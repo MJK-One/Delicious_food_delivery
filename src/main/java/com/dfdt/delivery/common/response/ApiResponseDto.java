@@ -1,7 +1,7 @@
 package com.dfdt.delivery.common.response;
 
 
-import com.dfdt.delivery.common.enums.ErrorCode;
+import com.dfdt.delivery.common.exception.ErrorCode;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 import org.springframework.http.ResponseEntity;
@@ -29,7 +29,7 @@ public class ApiResponseDto<T> {
                 .body(new ApiResponseDto<>(
                         errorCode.getStatus(),
                         errorCode.getMessage(),
-                        errorCode.getCode(),
+                        errorCode.getErrorCode(),
                         null
                 ));
     }
