@@ -1,9 +1,13 @@
-package com.dfdt.delivery.domain.user.entity;
+package com.dfdt.delivery.domain.user.domain.entity;
 
-import com.dfdt.delivery.common.Entity.BaseAuditSoftDeleteEntity;
-import com.dfdt.delivery.domain.user.enums.UserRole;
+import com.dfdt.delivery.common.infrastructure.persistence.embedded.CreateAudit;
+import com.dfdt.delivery.common.infrastructure.persistence.embedded.SoftDeleteAudit;
+import com.dfdt.delivery.common.infrastructure.persistence.embedded.UpdateAudit;
+import com.dfdt.delivery.domain.user.domain.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
 
 
 import java.time.LocalDateTime;
@@ -17,7 +21,9 @@ import java.time.LocalDateTime;
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class User extends BaseAuditSoftDeleteEntity {
+@SQLDelete(sql = "UPDATE p_user SET deleted_at = CURRENT_TIMESTAMP WHERE username = ?")
+@Where(clause = "deleted_at IS NULL")
+public class User {
     @Id
     @Column(length = 10, updatable = false, nullable = false)
     private String username;
@@ -35,16 +41,32 @@ public class User extends BaseAuditSoftDeleteEntity {
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
 
+    @Embedded
+    private CreateAudit createAudit;
+
+    @Embedded
+    private UpdateAudit updateAudit;
+
+    @Embedded
+    private SoftDeleteAudit softDeleteAudit;
+
     @Builder
     public User(String username, String name, String password, UserRole role) {
         this.username = username;
         this.name = name;
         this.password = password;
         this.role = role;
+        this.createAudit = new CreateAudit();
+        this.updateAudit = new UpdateAudit();
+        this.softDeleteAudit = SoftDeleteAudit.active();
     }
 
     // 로그인 성공 시 호출
     public void recordLogin() {
         this.lastLoginAt = LocalDateTime.now();
+    }
+
+    public void delete(String deletedBy) {
+        this.softDeleteAudit.softDelete(deletedBy);
     }
 }
