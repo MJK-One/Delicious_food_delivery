@@ -1,6 +1,5 @@
 package com.dfdt.delivery.domain.user.entity;
 
-import com.dfdt.delivery.common.Entity.BaseAuditSoftDeleteEntity;
 import com.dfdt.delivery.domain.user.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
