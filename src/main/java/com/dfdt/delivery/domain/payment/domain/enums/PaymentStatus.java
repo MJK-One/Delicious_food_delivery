@@ -1,4 +1,4 @@
-package com.dfdt.delivery.domain.payment.enums;
+package com.dfdt.delivery.domain.payment.domain.enums;
 
 public enum PaymentStatus {
     READY,
