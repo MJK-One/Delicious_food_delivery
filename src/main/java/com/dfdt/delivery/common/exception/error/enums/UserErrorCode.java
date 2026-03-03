@@ -1,10 +1,12 @@
-package com.dfdt.delivery.common.enums;
+package com.dfdt.delivery.common.exception.error.enums;
 
-import lombok.*;
+import com.dfdt.delivery.common.exception.ErrorCode;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public enum ErrorCode {
+public enum UserErrorCode implements ErrorCode {
     /** 공통 에러 **/
 
     /** 인증/인가 관련 **/
@@ -22,7 +24,8 @@ public enum ErrorCode {
     FORBIDDEN(403, "AUTH-4030", "접근 권한이 없습니다."),
     WITHDRAWN_ACCOUNT(403, "AUTH-4031", "탈퇴 처리된 계정입니다.");
 
+
     private final int status;
-    private final String code;
+    private final String errorCode;
     private final String message;
 }
