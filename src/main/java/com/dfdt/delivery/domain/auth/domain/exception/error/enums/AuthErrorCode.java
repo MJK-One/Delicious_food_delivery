@@ -1,11 +1,12 @@
 package com.dfdt.delivery.domain.auth.domain.exception.error.enums;
 
+import com.dfdt.delivery.common.exception.ErrorCode;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public enum AuthErrorCode {
+public enum AuthErrorCode implements ErrorCode {
     // 400 BAD REQUEST
     REFRESH_TOKEN_REQUIRED(400, "AUTH-4001", "Refresh Token이 제공되지 않았습니다."),
     INVALID_AUTH_REQUEST(400, "AUTH-4002", "잘못된 요청입니다. (로그아웃 처리되었거나 토큰 정보 없음)"),
