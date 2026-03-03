@@ -1,4 +1,4 @@
-package com.dfdt.delivery.domain.order.domain.model;
+package com.dfdt.delivery.domain.order.domain.entity;
 
 import com.dfdt.delivery.common.infrastructure.persistence.embedded.CreateAudit;
 import com.dfdt.delivery.common.infrastructure.persistence.embedded.SoftDeleteAudit;

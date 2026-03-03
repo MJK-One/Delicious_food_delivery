@@ -1,12 +1,12 @@
-package com.dfdt.delivery.domain.order.domain.model;
+package com.dfdt.delivery.domain.order.domain.entity;
 
 import com.dfdt.delivery.common.infrastructure.persistence.embedded.CreateAudit;
 import com.dfdt.delivery.common.infrastructure.persistence.embedded.SoftDeleteAudit;
 import com.dfdt.delivery.common.infrastructure.persistence.embedded.UpdateAudit;
 import com.dfdt.delivery.domain.order.domain.enums.OrderStatus;
-import com.dfdt.delivery.domain.store.domain.model.Store;
-import com.dfdt.delivery.domain.user.domain.model.User;
-import com.dfdt.delivery.domain.user.domain.model.Address;
+import com.dfdt.delivery.domain.store.domain.entity.Store;
+import com.dfdt.delivery.domain.user.domain.entity.User;
+import com.dfdt.delivery.domain.address.domain.entity.Address;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;

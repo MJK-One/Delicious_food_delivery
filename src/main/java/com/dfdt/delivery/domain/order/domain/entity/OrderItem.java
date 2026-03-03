@@ -1,7 +1,7 @@
-package com.dfdt.delivery.domain.order.domain.model;
+package com.dfdt.delivery.domain.order.domain.entity;
 
 import com.dfdt.delivery.common.infrastructure.persistence.embedded.SoftDeleteAudit;
-import com.dfdt.delivery.domain.product.domain.model.Product;
+import com.dfdt.delivery.domain.product.domain.entity.Product;
 import jakarta.persistence.*;
 import lombok.*;
 
