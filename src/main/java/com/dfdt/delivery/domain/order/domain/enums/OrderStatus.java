@@ -1,4 +1,4 @@
-package com.dfdt.delivery.domain.order.enums;
+package com.dfdt.delivery.domain.order.domain.enums;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

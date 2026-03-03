@@ -1,7 +1,8 @@
-package com.dfdt.delivery.domain.order.entity;
+package com.dfdt.delivery.domain.order.domain.model;
 
-import com.dfdt.delivery.common.Entity.SoftDeleteEntity;
-import com.dfdt.delivery.domain.order.enums.OrderStatus;
+import com.dfdt.delivery.common.infrastructure.persistence.embedded.CreateAudit;
+import com.dfdt.delivery.common.infrastructure.persistence.embedded.SoftDeleteAudit;
+import com.dfdt.delivery.domain.order.domain.enums.OrderStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -13,7 +14,7 @@ import java.util.UUID;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class OrderStatusHistory extends SoftDeleteEntity {
+public class OrderStatusHistory {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -33,4 +34,11 @@ public class OrderStatusHistory extends SoftDeleteEntity {
 
     @Column(name = "change_reason", length = 255)
     private String changeReason;
+
+    @Embedded
+    private CreateAudit createdAudit;
+
+    @Embedded
+    private SoftDeleteAudit softDeleteAudit;
+
 }

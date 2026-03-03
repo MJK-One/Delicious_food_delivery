@@ -1,6 +1,7 @@
-package com.dfdt.delivery.domain.order.entity;
+package com.dfdt.delivery.domain.order.domain.model;
 
-import com.dfdt.delivery.common.Entity.BaseAuditSoftDeleteEntity;
+import com.dfdt.delivery.common.infrastructure.persistence.embedded.SoftDeleteAudit;
+import com.dfdt.delivery.domain.product.domain.model.Product;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -12,7 +13,7 @@ import java.util.UUID;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class OrderItem extends BaseAuditSoftDeleteEntity {
+public class OrderItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -31,18 +32,31 @@ public class OrderItem extends BaseAuditSoftDeleteEntity {
     private Integer quantity;
 
     @Column(name = "unit_price_snapshot", nullable = false)
-    private Integer unitPriceSnapshot;
+    private Long unitPriceSnapshot;
 
     @Column(name = "product_name_snapshot", length = 120, nullable = false)
     private String productNameSnapshot;
 
     @Column(name = "total_price", nullable = false)
-    private Integer totalPrice;
+    private Long totalPrice;
+
+    @Embedded
+    private SoftDeleteAudit softDeleteAudit;
 
     public void setOrder(Order order) {
         this.order = order;
         if (!order.getOrderItems().contains(this)) {
             order.getOrderItems().add(this);
         }
+    }
+    // 스냅샷 찍기
+    public static OrderItem createOrderItem(Product product, Integer quantity) {
+        return OrderItem.builder()
+                .productId(product.getProductId())
+                .productNameSnapshot(product.getName())
+                .unitPriceSnapshot(product.getPrice())
+                .quantity(quantity)
+                .totalPrice(product.getPrice() * quantity)
+                .build();
     }
 }
