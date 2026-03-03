@@ -1,7 +1,7 @@
 package com.dfdt.delivery.domain.order.entity;
 
 import com.dfdt.delivery.common.Entity.BaseAuditSoftDeleteEntity;
-import com.dfdt.delivery.domain.address.entity.Address;
+import com.dfdt.delivery.domain.address.domain.entity.Address;
 import com.dfdt.delivery.domain.order.enums.OrderStatus;
 import com.dfdt.delivery.domain.store.entity.Store;
 import com.dfdt.delivery.domain.user.entity.User;
