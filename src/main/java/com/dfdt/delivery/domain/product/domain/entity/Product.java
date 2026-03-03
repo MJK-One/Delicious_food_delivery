@@ -4,7 +4,6 @@ import com.dfdt.delivery.domain.store.domain.entity.Store;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
@@ -13,7 +12,7 @@ import java.util.UUID;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Table(name = "p_product")
-public class Product extends BaseAuditSoftDeleteEntity {
+public class Product {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -62,18 +61,18 @@ public class Product extends BaseAuditSoftDeleteEntity {
         }
     }
 
-    public void delete(String username) {
-        this.deletedAt = OffsetDateTime.now();
-        this.deletedBy = username;
-    }
-
-    public void soldOut() {
-        this.isHidden = true;
-    }
-
-    public void restore() {
-        this.isHidden = false;
-        this.deletedAt = null;
-        this.deletedBy = null;
-    }
+//    public void delete(String username) {
+//        this.deletedAt = OffsetDateTime.now();
+//        this.deletedBy = username;
+//    }
+//
+//    public void soldOut() {
+//        this.isHidden = true;
+//    }
+//
+//    public void restore() {
+//        this.isHidden = false;
+//        this.deletedAt = null;
+//        this.deletedBy = null;
+//    }
 }
