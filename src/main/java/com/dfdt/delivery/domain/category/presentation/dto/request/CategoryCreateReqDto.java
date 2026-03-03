@@ -1,4 +1,4 @@
-package com.dfdt.delivery.domain.category.dto.request;
+package com.dfdt.delivery.domain.category.presentation.dto.request;
 
 import jakarta.validation.constraints.*;
 import lombok.Getter;
@@ -8,7 +8,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class CategoryUpdateReqDto {
+public class CategoryCreateReqDto {
 
     @NotBlank(message = "카테고리명은 필수입니다.")
     @Size(max = 50, message = "카테고리명은 최대 50자 이하로 작성해주세요.")

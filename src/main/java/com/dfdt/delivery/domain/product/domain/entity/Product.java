@@ -1,6 +1,5 @@
 package com.dfdt.delivery.domain.product.domain.entity;
 
-import com.dfdt.delivery.common.Entity.BaseAuditSoftDeleteEntity;
 import com.dfdt.delivery.domain.store.domain.entity.Store;
 import jakarta.persistence.*;
 import lombok.*;

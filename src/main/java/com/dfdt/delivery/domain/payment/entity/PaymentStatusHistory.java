@@ -1,6 +1,5 @@
 package com.dfdt.delivery.domain.payment.entity;
 
-import com.dfdt.delivery.common.Entity.BaseAuditSoftDeleteEntity;
 import com.dfdt.delivery.domain.payment.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.*;

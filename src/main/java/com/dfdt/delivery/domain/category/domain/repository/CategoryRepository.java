@@ -1,6 +1,6 @@
-package com.dfdt.delivery.domain.category.repository;
+package com.dfdt.delivery.domain.category.domain.repository;
 
-import com.dfdt.delivery.domain.category.entity.Category;
+import com.dfdt.delivery.domain.category.domain.entity.Category;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

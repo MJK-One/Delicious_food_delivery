@@ -1,4 +1,4 @@
-package com.dfdt.delivery.domain.category.dto.response;
+package com.dfdt.delivery.domain.category.presentation.dto.response;
 
 import com.dfdt.delivery.domain.store.domain.entity.StoreCategory;
 import lombok.AccessLevel;

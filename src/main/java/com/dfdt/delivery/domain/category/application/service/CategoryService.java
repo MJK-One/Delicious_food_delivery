@@ -1,10 +1,10 @@
-package com.dfdt.delivery.domain.category.service;
+package com.dfdt.delivery.domain.category.application.service;
 
-import com.dfdt.delivery.domain.category.dto.request.CategoryCreateReqDto;
-import com.dfdt.delivery.domain.category.dto.request.CategoryUpdateReqDto;
-import com.dfdt.delivery.domain.category.dto.response.CategoryResDto;
-import com.dfdt.delivery.domain.category.entity.Category;
-import com.dfdt.delivery.domain.category.repository.CategoryRepository;
+import com.dfdt.delivery.domain.category.presentation.dto.request.CategoryCreateReqDto;
+import com.dfdt.delivery.domain.category.presentation.dto.request.CategoryUpdateReqDto;
+import com.dfdt.delivery.domain.category.presentation.dto.response.CategoryResDto;
+import com.dfdt.delivery.domain.category.domain.entity.Category;
+import com.dfdt.delivery.domain.category.domain.repository.CategoryRepository;
 import com.dfdt.delivery.domain.store.domain.repository.StoreRepository;
 import com.dfdt.delivery.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;

@@ -1,6 +1,6 @@
 package com.dfdt.delivery.domain.store.domain.entity;
 
-import com.dfdt.delivery.domain.category.entity.Category;
+import com.dfdt.delivery.domain.category.domain.entity.Category;
 import com.dfdt.delivery.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;

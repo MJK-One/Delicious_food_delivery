@@ -3,7 +3,7 @@ package com.dfdt.delivery.domain.store.domain.entity;
 import com.dfdt.delivery.common.infrastructure.persistence.embedded.CreateAudit;
 import com.dfdt.delivery.common.infrastructure.persistence.embedded.SoftDeleteAudit;
 import com.dfdt.delivery.common.infrastructure.persistence.embedded.UpdateAudit;
-import com.dfdt.delivery.domain.category.entity.Category;
+import com.dfdt.delivery.domain.category.domain.entity.Category;
 import com.dfdt.delivery.domain.product.domain.entity.Product;
 import com.dfdt.delivery.domain.region.domain.entity.Region;
 import com.dfdt.delivery.domain.store.domain.enums.StoreStatus;

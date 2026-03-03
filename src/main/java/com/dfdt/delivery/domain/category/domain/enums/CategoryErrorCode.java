@@ -1,4 +1,4 @@
-package com.dfdt.delivery.domain.category.enums;
+package com.dfdt.delivery.domain.category.domain.enums;
 
 import com.dfdt.delivery.common.exception.ErrorCode;
 import lombok.AllArgsConstructor;

@@ -1,6 +1,6 @@
 package com.dfdt.delivery.domain.store.presentation.dto.response;
 
-import com.dfdt.delivery.domain.category.dto.response.CategoryIdNameResDto;
+import com.dfdt.delivery.domain.category.presentation.dto.response.CategoryIdNameResDto;
 import com.dfdt.delivery.domain.store.domain.entity.Store;
 import lombok.*;
 

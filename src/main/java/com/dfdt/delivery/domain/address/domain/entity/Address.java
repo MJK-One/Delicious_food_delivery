@@ -1,6 +1,5 @@
 package com.dfdt.delivery.domain.address.domain.entity;
 
-import com.dfdt.delivery.common.Entity.BaseAuditSoftDeleteEntity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -13,7 +12,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "p_address")
-public class Address extends BaseAuditSoftDeleteEntity {
+public class Address {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

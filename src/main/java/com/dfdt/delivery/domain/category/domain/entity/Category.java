@@ -1,12 +1,11 @@
-package com.dfdt.delivery.domain.category.entity;
+package com.dfdt.delivery.domain.category.domain.entity;
 
-import com.dfdt.delivery.domain.category.dto.request.CategoryCreateReqDto;
-import com.dfdt.delivery.domain.category.dto.request.CategoryUpdateReqDto;
+import com.dfdt.delivery.domain.category.presentation.dto.request.CategoryCreateReqDto;
+import com.dfdt.delivery.domain.category.presentation.dto.request.CategoryUpdateReqDto;
 import com.dfdt.delivery.domain.store.domain.entity.StoreCategory;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -17,7 +16,7 @@ import java.util.UUID;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 @Table(name = "p_category")
-public class Category extends BaseAuditSoftDeleteEntity {
+public class Category {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -55,13 +54,13 @@ public class Category extends BaseAuditSoftDeleteEntity {
         this.isActive = request.getIsActive();
     }
 
-    public void delete(String username) {
-        this.deletedAt = OffsetDateTime.now();
-        this.deletedBy = username;
-    }
-
-    public void restore() {
-        this.deletedAt = null;
-        this.deletedBy = null;
-    }
+//    public void delete(String username) {
+//        this.deletedAt = OffsetDateTime.now();
+//        this.deletedBy = username;
+//    }
+//
+//    public void restore() {
+//        this.deletedAt = null;
+//        this.deletedBy = null;
+//    }
 }

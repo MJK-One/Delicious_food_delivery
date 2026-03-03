@@ -1,6 +1,6 @@
-package com.dfdt.delivery.domain.category.dto.response;
+package com.dfdt.delivery.domain.category.presentation.dto.response;
 
-import com.dfdt.delivery.domain.category.entity.Category;
+import com.dfdt.delivery.domain.category.domain.entity.Category;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

@@ -1,6 +1,6 @@
 package com.dfdt.delivery.domain.store.application.service;
 
-import com.dfdt.delivery.domain.category.repository.CategoryRepository;
+import com.dfdt.delivery.domain.category.domain.repository.CategoryRepository;
 import com.dfdt.delivery.domain.store.domain.repository.StoreCategoryRepository;
 import com.dfdt.delivery.domain.store.domain.repository.StoreCustomRepository;
 import com.dfdt.delivery.domain.store.domain.repository.StoreRatingRepository;
@@ -8,7 +8,7 @@ import com.dfdt.delivery.domain.store.domain.repository.StoreRepository;
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreCreateReqDto;
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreStatusReqDto;
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreUpdateReqDto;
-import com.dfdt.delivery.domain.category.entity.Category;
+import com.dfdt.delivery.domain.category.domain.entity.Category;
 import com.dfdt.delivery.domain.store.domain.entity.Store;
 import com.dfdt.delivery.domain.store.domain.entity.StoreCategory;
 import com.dfdt.delivery.domain.store.domain.entity.StoreRating;

@@ -1,10 +1,10 @@
-package com.dfdt.delivery.domain.category.controller;
+package com.dfdt.delivery.domain.category.presentation.controller;
 
 import com.dfdt.delivery.common.response.ApiResponseDto;
-import com.dfdt.delivery.domain.category.dto.request.CategoryCreateReqDto;
-import com.dfdt.delivery.domain.category.dto.request.CategoryUpdateReqDto;
-import com.dfdt.delivery.domain.category.dto.response.CategoryResDto;
-import com.dfdt.delivery.domain.category.service.CategoryService;
+import com.dfdt.delivery.domain.category.presentation.dto.request.CategoryCreateReqDto;
+import com.dfdt.delivery.domain.category.presentation.dto.request.CategoryUpdateReqDto;
+import com.dfdt.delivery.domain.category.presentation.dto.response.CategoryResDto;
+import com.dfdt.delivery.domain.category.application.service.CategoryService;
 import com.dfdt.delivery.domain.user.entity.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
