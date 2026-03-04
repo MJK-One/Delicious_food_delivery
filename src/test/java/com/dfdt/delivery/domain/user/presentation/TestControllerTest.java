@@ -1,6 +1,6 @@
 package com.dfdt.delivery.domain.user.presentation;
 
-import com.dfdt.delivery.common.config.security.SecurityConfig;
+import com.dfdt.delivery.common.config.SecurityConfig;
 import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
 import com.dfdt.delivery.domain.user.domain.entity.User;
 import com.dfdt.delivery.domain.user.domain.enums.UserRole;
@@ -36,9 +36,9 @@ class TestControllerTest {
         CustomUserDetails customUserDetails = new CustomUserDetails(user);
 
         // when & then
-        mockMvc.perform(get("/api/v1/api/test/me")
+        mockMvc.perform(get("/api/v1/test/me")
                         .with(user(customUserDetails)))
                 .andExpect(status().isOk())
-                .andExpect(content().string("Hello 홍길동 (testuser)"));
+                .andExpect(content().string("Hello 홍길동 testuser"));
     }
 }

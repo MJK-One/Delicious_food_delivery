@@ -56,17 +56,10 @@ public class User {
         this.name = name;
         this.password = password;
         this.role = role;
-        this.createAudit = new CreateAudit();
-        this.updateAudit = new UpdateAudit();
-        this.softDeleteAudit = SoftDeleteAudit.active();
     }
 
     // 로그인 성공 시 호출
     public void recordLogin() {
         this.lastLoginAt = LocalDateTime.now();
-    }
-
-    public void delete(String deletedBy) {
-        this.softDeleteAudit.softDelete(deletedBy);
     }
 }
