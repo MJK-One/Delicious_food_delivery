@@ -62,7 +62,7 @@ public class OrderController implements OrderControllerDocs {
     // todo: AUTH로 바꾸기,UserDetail 생성 전까지 userId를 경로상에 포함시킵니다.
 
     // API-004 주문 수정하기
-    @PatchMapping("/{order_id}/update/{user_id}")
+    @PatchMapping("/{order_id}/{user_id}")
     public ResponseEntity<ApiResponseDto<OrderResDto.OrderMutationResponse>> updateOrder(
             @PathVariable (value = "order_id") String orderId,
             @PathVariable (value = "user_id") String  userId,
