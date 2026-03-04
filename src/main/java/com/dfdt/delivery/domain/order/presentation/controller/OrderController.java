@@ -5,7 +5,6 @@ import com.dfdt.delivery.domain.order.application.service.query.OrderQueryServic
 import com.dfdt.delivery.domain.order.presentation.dto.OrderReqDto;
 import com.dfdt.delivery.domain.order.presentation.dto.OrderResDto;
 import com.dfdt.delivery.domain.order.application.service.command.OrderCommandService;
-import com.dfdt.delivery.domain.order.application.service.query.OrderQueryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
