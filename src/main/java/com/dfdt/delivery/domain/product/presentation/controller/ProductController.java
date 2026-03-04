@@ -1,13 +1,12 @@
 package com.dfdt.delivery.domain.product.presentation.controller;
 
 import com.dfdt.delivery.common.response.ApiResponseDto;
+import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
+import com.dfdt.delivery.domain.product.application.service.ProductService;
 import com.dfdt.delivery.domain.product.presentation.dto.request.ProductCreateReqDto;
 import com.dfdt.delivery.domain.product.presentation.dto.request.ProductUpdateReqDto;
-import com.dfdt.delivery.domain.product.presentation.dto.response.ProductPageResDto;
-import com.dfdt.delivery.domain.product.presentation.dto.response.ProductResDto;
-import com.dfdt.delivery.domain.product.domain.entity.Product;
-import com.dfdt.delivery.domain.product.application.service.ProductService;
-import com.dfdt.delivery.domain.user.entity.User;
+import com.dfdt.delivery.domain.product.presentation.dto.response.*;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -15,13 +14,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/stores/{storeId}/products")
+@RequestMapping("/stores/{storeId}/products")
 public class ProductController {
 
     private final ProductService productService;
@@ -31,11 +31,9 @@ public class ProductController {
      * GET /api/v1/stores/{store_id}/products/{product_id}
      */
     @GetMapping("/{productId}")
-    public ResponseEntity<ApiResponseDto<ProductResDto>> getProduct(
-            @PathVariable("storeId") UUID storeId,
-            @PathVariable("productId") UUID productId
-    ) {
-        ProductResDto product = productService.getProduct(storeId, productId);
+    public ResponseEntity<ApiResponseDto<ProductResDto>> getProduct(@PathVariable("storeId") UUID storeId, @PathVariable("productId") UUID productId,
+                                                                    @AuthenticationPrincipal CustomUserDetails userDetails) {
+        ProductResDto product = productService.getProduct(storeId, productId, userDetails);
 
         return ApiResponseDto.success(
                 HttpStatus.OK.value(),
@@ -45,7 +43,7 @@ public class ProductController {
     }
 
     /**
-     * 메뉴 조회 (목록)
+     * 메뉴 조회
      * GET /api/v1/stores/{store_id}/products
      */
     @GetMapping
@@ -54,11 +52,35 @@ public class ProductController {
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "10") int size,
             @RequestParam(value = "sortBy", defaultValue = "createdAt") String sortBy,
-            @RequestParam(value = "isAsc", defaultValue = "false") boolean isAsc,
+            @RequestParam(value = "isAsc", defaultValue = "true") boolean isAsc,
             @RequestParam(value = "keyword", required = false) String keyword
     ) {
         Page<ProductResDto> products = productService.getProducts(storeId, page, size, sortBy, isAsc, keyword);
         ProductPageResDto response = ProductPageResDto.from(products);
+
+        return ApiResponseDto.success(
+                HttpStatus.OK.value(),
+                "메뉴 목록이 성공적으로 조회되었습니다.",
+                response
+        );
+    }
+
+    /**
+     * 메뉴 조회(관리자용)
+     * GET /api/v1/stores/{store_id}/products/admin
+     */
+    @GetMapping("/admin")
+    public ResponseEntity<ApiResponseDto<ProductAdminPageResDto>> getProductsAdmin(
+            @PathVariable("storeId") UUID storeId,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "sortBy", defaultValue = "createdAt") String sortBy,
+            @RequestParam(value = "isAsc", defaultValue = "true") boolean isAsc,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "isDeleted", defaultValue = "false") Boolean isDeleted
+    ) {
+        Page<ProductAdminResDto> products = productService.getProductsAdmin(storeId, page, size, sortBy, isAsc, keyword, isDeleted);
+        ProductAdminPageResDto response = ProductAdminPageResDto.from(products);
 
         return ApiResponseDto.success(
                 HttpStatus.OK.value(),
@@ -73,12 +95,9 @@ public class ProductController {
      */
     @PreAuthorize("hasAnyRole('OWNER','MASTER')")
     @PostMapping
-    public ResponseEntity<ApiResponseDto<Product>> createProduct(
-            @PathVariable("storeId") UUID storeId,
-            @Valid @RequestBody ProductCreateReqDto request,
-            @AuthenticationPrincipal User user
-    ) {
-        Product created = productService.createProduct(storeId, request, user);
+    public ResponseEntity<ApiResponseDto<ProductResDto>> createProduct(@PathVariable("storeId") UUID storeId, @Valid @RequestBody ProductCreateReqDto request,
+                                                                       @AuthenticationPrincipal CustomUserDetails userDetails) {
+        ProductResDto created = productService.createProduct(storeId, request, userDetails);
 
         return ApiResponseDto.success(
                 HttpStatus.CREATED.value(),
@@ -93,13 +112,13 @@ public class ProductController {
      */
     @PreAuthorize("hasAnyRole('OWNER','MASTER')")
     @PutMapping("/{productId}")
-    public ResponseEntity<ApiResponseDto<Product>> updateProduct(
+    public ResponseEntity<ApiResponseDto<ProductUpdateResDto>> updateProduct(
             @PathVariable("storeId") UUID storeId,
             @PathVariable("productId") UUID productId,
             @Valid @RequestBody ProductUpdateReqDto request,
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        Product updated = productService.updateProduct(storeId, productId, request, user);
+        ProductUpdateResDto updated = productService.updateProduct(storeId, productId, request, userDetails);
 
         return ApiResponseDto.success(
                 HttpStatus.OK.value(),
@@ -114,12 +133,9 @@ public class ProductController {
      */
     @PreAuthorize("hasAnyRole('OWNER','MASTER')")
     @DeleteMapping("/{productId}")
-    public ResponseEntity<ApiResponseDto<Object>> deleteProduct(
-            @PathVariable("storeId") UUID storeId,
-            @PathVariable("productId") UUID productId,
-            @AuthenticationPrincipal User user
-    ) {
-        productService.deleteProduct(storeId, productId, user);
+    public ResponseEntity<ApiResponseDto<Object>> deleteProduct(@PathVariable("storeId") UUID storeId, @PathVariable("productId") UUID productId,
+                                                                @AuthenticationPrincipal CustomUserDetails userDetails) {
+        productService.deleteProduct(storeId, productId, userDetails);
 
         return ApiResponseDto.success(
                 HttpStatus.OK.value(),
@@ -130,16 +146,13 @@ public class ProductController {
 
     /**
      * 품절 처리
-     * PATCH /api/v1/stores/{store_id}/products/{product_id}/soldOut
+     * PATCH /api/v1/stores/{store_id}/products/{product_id}/sold-out
      */
     @PreAuthorize("hasAnyRole('OWNER','MASTER')")
-    @PatchMapping("/{productId}/soldOut")
-    public ResponseEntity<ApiResponseDto<Object>> markSoldOut(
-            @PathVariable("storeId") UUID storeId,
-            @PathVariable("productId") UUID productId,
-            @AuthenticationPrincipal User user
-    ) {
-        productService.markSoldOut(storeId, productId, user);
+    @PatchMapping("/{productId}/sold-out")
+    public ResponseEntity<ApiResponseDto<Object>> soleOut(@PathVariable("storeId") UUID storeId, @PathVariable("productId") UUID productId,
+                                                          @AuthenticationPrincipal CustomUserDetails userDetails) {
+        productService.soleOut(storeId, productId, userDetails);
 
         return ApiResponseDto.success(
                 HttpStatus.OK.value(),
@@ -154,12 +167,9 @@ public class ProductController {
      */
     @PreAuthorize("hasAnyRole('OWNER','MASTER')")
     @PatchMapping("/{productId}/restore")
-    public ResponseEntity<ApiResponseDto<Object>> restoreProduct(
-            @PathVariable("storeId") UUID storeId,
-            @PathVariable("productId") UUID productId,
-            @AuthenticationPrincipal User user
-    ) {
-        productService.restoreProduct(storeId, productId, user);
+    public ResponseEntity<ApiResponseDto<Object>> restoreProduct(@PathVariable("storeId") UUID storeId, @PathVariable("productId") UUID productId,
+                                                                 @AuthenticationPrincipal CustomUserDetails userDetails) {
+        productService.restoreProduct(storeId, productId, userDetails);
 
         return ApiResponseDto.success(
                 HttpStatus.OK.value(),

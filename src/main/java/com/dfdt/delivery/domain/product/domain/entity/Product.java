@@ -1,5 +1,10 @@
 package com.dfdt.delivery.domain.product.domain.entity;
 
+import com.dfdt.delivery.common.infrastructure.persistence.embedded.CreateAudit;
+import com.dfdt.delivery.common.infrastructure.persistence.embedded.SoftDeleteAudit;
+import com.dfdt.delivery.common.infrastructure.persistence.embedded.UpdateAudit;
+import com.dfdt.delivery.domain.product.presentation.dto.request.ProductCreateReqDto;
+import com.dfdt.delivery.domain.product.presentation.dto.request.ProductUpdateReqDto;
 import com.dfdt.delivery.domain.store.domain.entity.Store;
 import jakarta.persistence.*;
 import lombok.*;
@@ -29,50 +34,68 @@ public class Product {
     private Integer price;
 
     @Column(nullable = false)
-    @Builder.Default
-    private Boolean isHidden = false;
+    private Boolean isHidden;
 
     private Boolean isAiDescription;
 
     @Column(nullable = false)
     private Integer displayOrder;
 
+    @Embedded
+    private CreateAudit createAudit;
+
+    @Embedded
+    private UpdateAudit updateAudit;
+
+    @Embedded
+    private SoftDeleteAudit softDeleteAudit;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
 
-    public static Product create(Store store, String name, String description, Integer price, Integer displayOrder) {
+    public static Product create(ProductCreateReqDto request, Store store, Integer displayOrder, String username) {
         return Product.builder()
                 .store(store)
-                .name(name)
-                .description(description)
-                .price(price)
+                .name(request.getName())
+                .description(request.getDescription())
+                .isAiDescription(request.getIsAiDescription())
+                .price(request.getPrice())
                 .displayOrder(displayOrder)
-                .isHidden(false)
+                .isHidden(request.getIsHidden())
+                .createAudit(CreateAudit.now(username))
                 .build();
     }
 
-    public void update(String name, String description, Integer price, Integer displayOrder) {
-        this.name = name;
-        this.description = description;
-        this.price = price;
-        if (displayOrder != null) {
-            this.displayOrder = displayOrder;
-        }
+    public void update(ProductUpdateReqDto request, String username) {
+        this.name = request.getName();
+        this.description = request.getDescription();
+        this.isAiDescription = request.getIsAiDescription();
+        this.price = request.getPrice();
+        this.displayOrder = request.getDisplayOrder();
+        this.isHidden = request.getIsHidden();
+        makeUpdateAudit(username);
     }
 
-//    public void delete(String username) {
-//        this.deletedAt = OffsetDateTime.now();
-//        this.deletedBy = username;
-//    }
-//
-//    public void soldOut() {
-//        this.isHidden = true;
-//    }
-//
-//    public void restore() {
-//        this.isHidden = false;
-//        this.deletedAt = null;
-//        this.deletedBy = null;
-//    }
+    public void delete(String username) {
+        makeUpdateAudit(username);
+        this.softDeleteAudit = SoftDeleteAudit.active();
+        this.softDeleteAudit.softDelete(username);
+    }
+
+    public void soldOut(String username) {
+        makeUpdateAudit(username);
+        this.isHidden = !this.isHidden;
+    }
+
+    public void restore(int maxOrder, String username) {
+        this.displayOrder = maxOrder;
+        this.softDeleteAudit.restore();
+        makeUpdateAudit(username);
+    }
+
+    private void makeUpdateAudit(String username) {
+        this.updateAudit = UpdateAudit.empty();
+        this.updateAudit.touch(username);
+    }
 }
