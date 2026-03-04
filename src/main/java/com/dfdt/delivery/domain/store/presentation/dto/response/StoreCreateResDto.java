@@ -21,7 +21,7 @@ public class StoreCreateResDto {
         return new StoreCreateResDto(
                 store.getStoreId(),
                 StoreStatus.REQUESTED.name(),
-                store.getCreatedAt()
+                store.getCreateAudit().getCreatedAt()
         );
     }
 }

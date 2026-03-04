@@ -11,7 +11,7 @@ import java.util.UUID;
 
 @Getter
 @AllArgsConstructor
-public class StoreResDto {
+public class StoreAdminResDto {
 
     private UUID storeId;
     private String ownerName;
@@ -25,8 +25,10 @@ public class StoreResDto {
     private BigDecimal rating;
     private int reviewCount;
     private OffsetDateTime createdAt;
+    private OffsetDateTime updatedAt;
+    private OffsetDateTime deletedAt;
 
-    public static StoreResDto from(Store store, StoreRating rating) {
+    public static StoreAdminResDto from(Store store, StoreRating rating) {
         BigDecimal ratingAvg = BigDecimal.ZERO;
         int reviewCount = 0;
 
@@ -40,7 +42,7 @@ public class StoreResDto {
                     : rating.getRatingCount();
         }
 
-        return new StoreResDto(
+        return new StoreAdminResDto(
                 store.getStoreId(),
                 store.getUser().getName(),
                 store.getRegion().getRegionId(),
@@ -52,7 +54,9 @@ public class StoreResDto {
                 store.getStatus().name(),
                 ratingAvg,
                 reviewCount,
-                store.getCreateAudit().getCreatedAt()
+                store.getCreateAudit().getCreatedAt(),
+                store.getUpdateAudit().getUpdatedAt(),
+                store.getSoftDeleteAudit().getDeletedAt()
         );
     }
 }

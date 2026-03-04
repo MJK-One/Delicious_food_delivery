@@ -60,8 +60,8 @@ public class Store {
     @Embedded
     private SoftDeleteAudit softDeleteAudit;
 
-    @Column(nullable = false)
-    @OneToMany(mappedBy = "store")
+    @Builder.Default
+    @OneToMany(mappedBy = "store", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     private List<StoreCategory> categories = new ArrayList<>();
 
     @OneToMany(mappedBy = "store")
@@ -79,8 +79,9 @@ public class Store {
     private StoreRating storeRating;
 
 
-    public static Store create(StoreCreateReqDto request, User user) {
+    public static Store create(StoreCreateReqDto request, User user, Region region) {
         return Store.builder()
+                .region(region)
                 .name(request.getName())
                 .phone(request.getPhone())
                 .description(request.getDescription())
@@ -88,47 +89,56 @@ public class Store {
                 .isOpen(false)
                 .status(StoreStatus.REQUESTED)
                 .user(user)
+                .createAudit(CreateAudit.now(user.getUsername()))
                 .build();
     }
 
-    public void addCategory(Category category) {
-        this.categories.add(new StoreCategory(this, category));
+    public void addCategory(Category category, String username) {
+        this.categories.add(StoreCategory.create(this, category, username));
     }
 
-    public void addCategories(List<Category> categoryList) {
+    public void addCategories(List<Category> categoryList, String username) {
         for (Category category : categoryList) {
-            StoreCategory storeCategory = new StoreCategory(this, category);
+            StoreCategory storeCategory = StoreCategory.create(this, category, username);
             this.categories.add(storeCategory);
         }
     }
 
-    public void update(StoreUpdateReqDto request) {
+    public void update(StoreUpdateReqDto request, String username) {
         this.name = request.getName();
         this.phone = request.getPhone();
         this.description = request.getDescription();
         this.addressText = request.getAddressText();
         this.isOpen = request.getIsOpen();
+        makeUpdateAudit(username);
     }
 
-//    public void delete(String username) {
-//        this.deletedAt = OffsetDateTime.now();
-//        this.deletedBy = username;
-//    }
 
-    public void changeIsOpen() {
-        this.isOpen = this.isOpen ? false : true;
+    public void delete(String username) {
+        this.status = StoreStatus.SUSPENDED;
+        makeUpdateAudit(username);
+        this.softDeleteAudit = SoftDeleteAudit.active();
+        this.softDeleteAudit.softDelete(username);
     }
 
-    public void restore() {
+    public void changeIsOpen(String username) {
+        this.isOpen = !this.isOpen;
+        makeUpdateAudit(username);
+    }
+
+    public void restore(String username) {
         this.status = StoreStatus.APPROVED;
+        this.softDeleteAudit.restore();
+        makeUpdateAudit(username);
     }
 
-    public void changeStatus(String status) {
-        try {
-            this.status = StoreStatus.valueOf(status.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("잘못된 상태 값입니다: " + status);
-        }
+    public void changeStatus(String status, String username) {
+        this.status = StoreStatus.valueOf(status.toUpperCase());
+        makeUpdateAudit(username);
     }
 
+    private void makeUpdateAudit(String username) {
+        this.updateAudit = UpdateAudit.empty();
+        this.updateAudit.touch(username);
+    }
 }

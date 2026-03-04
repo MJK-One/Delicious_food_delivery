@@ -1,5 +1,8 @@
 package com.dfdt.delivery.domain.store.domain.entity;
 
+import com.dfdt.delivery.common.infrastructure.persistence.embedded.CreateAudit;
+import com.dfdt.delivery.common.infrastructure.persistence.embedded.SoftDeleteAudit;
+import com.dfdt.delivery.common.infrastructure.persistence.embedded.UpdateAudit;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -14,7 +17,7 @@ import java.util.UUID;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "p_store_rating")
-public class StoreRating extends BaseAuditSoftDeleteEntity {
+public class StoreRating {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -32,13 +35,18 @@ public class StoreRating extends BaseAuditSoftDeleteEntity {
 
     private OffsetDateTime lastReviewedAt;
 
+    @Embedded
+    private CreateAudit createAudit;
+
+    @Embedded
+    private UpdateAudit updateAudit;
+
+    @Embedded
+    private SoftDeleteAudit softDeleteAudit;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
-
-    // =========================
-    // 비즈니스 로직
-    // =========================
 
     public void addRating(int rating) {
         this.ratingSum += rating;

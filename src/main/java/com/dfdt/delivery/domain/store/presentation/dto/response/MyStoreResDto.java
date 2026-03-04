@@ -15,26 +15,48 @@ public class MyStoreResDto {
 
     private UUID storeId;
     private String name;
-    private List<CategoryIdNameResDto> category;
+    private List<CategoryIdNameResDto> categories;
+    private String addressText;
+    private String phone;
+    private String description;
     private BigDecimal rating;
     private Integer reviewCount;
     private boolean isOpen;
+    private String status;
     private OffsetDateTime createdAt;
 
     public static MyStoreResDto from(Store store) {
+        BigDecimal ratingAvg = BigDecimal.ZERO;
+        int reviewCount = 0;
+
+        if (store.getStoreRating() != null) {
+            ratingAvg = store.getStoreRating().getRatingAvg() == null
+                    ? BigDecimal.ZERO
+                    : store.getStoreRating().getRatingAvg();
+
+            reviewCount = store.getStoreRating().getRatingCount() == null
+                    ? 0
+                    : store.getStoreRating().getRatingCount();
+        }
+
         return MyStoreResDto.builder()
                 .storeId(store.getStoreId())
                 .name(store.getName())
-                .category(
+                .categories(
                         store.getCategories()
                                 .stream()
+                                .filter(sc -> sc.getSoftDeleteAudit() == null)
                                 .map(CategoryIdNameResDto::from)
                                 .toList()
                 )
-                .rating(store.getStoreRating().getRatingAvg())
-                .reviewCount(store.getStoreRating().getRatingCount())
+                .addressText(store.getAddressText())
+                .phone(store.getPhone())
+                .description(store.getDescription())
+                .rating(ratingAvg)
+                .reviewCount(reviewCount)
                 .isOpen(store.getIsOpen())
-                .createdAt(store.getCreatedAt())
+                .status(store.getStatus().name())
+                .createdAt(store.getCreateAudit().getCreatedAt())
                 .build();
     }
 }

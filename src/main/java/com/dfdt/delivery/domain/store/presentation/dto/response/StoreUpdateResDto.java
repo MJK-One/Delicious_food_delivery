@@ -30,7 +30,7 @@ public class StoreUpdateResDto {
                 store.getAddressText(),
                 store.getIsOpen(),
                 store.getStatus().name(),
-                store.getUpdatedAt()
+                store.getUpdateAudit().getUpdatedAt()
         );
     }
 }
