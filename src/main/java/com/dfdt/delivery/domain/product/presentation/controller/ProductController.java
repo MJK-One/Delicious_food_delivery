@@ -6,7 +6,6 @@ import com.dfdt.delivery.domain.product.application.service.ProductService;
 import com.dfdt.delivery.domain.product.presentation.dto.request.ProductCreateReqDto;
 import com.dfdt.delivery.domain.product.presentation.dto.request.ProductUpdateReqDto;
 import com.dfdt.delivery.domain.product.presentation.dto.response.*;
-
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -14,7 +13,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -22,7 +20,7 @@ import java.util.UUID;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/stores/{storeId}/products")
-public class ProductController {
+public class ProductController implements ProductControllerDocs{
 
     private final ProductService productService;
 
@@ -31,9 +29,8 @@ public class ProductController {
      * GET /api/v1/stores/{store_id}/products/{product_id}
      */
     @GetMapping("/{productId}")
-    public ResponseEntity<ApiResponseDto<ProductResDto>> getProduct(@PathVariable("storeId") UUID storeId, @PathVariable("productId") UUID productId,
-                                                                    @AuthenticationPrincipal CustomUserDetails userDetails) {
-        ProductResDto product = productService.getProduct(storeId, productId, userDetails);
+    public ResponseEntity<ApiResponseDto<ProductResDto>> getProduct(@PathVariable("storeId") UUID storeId, @PathVariable("productId") UUID productId) {
+        ProductResDto product = productService.getProduct(storeId, productId);
 
         return ApiResponseDto.success(
                 HttpStatus.OK.value(),
