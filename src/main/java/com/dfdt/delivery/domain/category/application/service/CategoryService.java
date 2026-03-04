@@ -1,13 +1,23 @@
 package com.dfdt.delivery.domain.category.application.service;
 
+import com.dfdt.delivery.common.exception.BusinessException;
+import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
+import com.dfdt.delivery.domain.category.domain.entity.Category;
+import com.dfdt.delivery.domain.category.domain.enums.CategoryErrorCode;
+import com.dfdt.delivery.domain.category.domain.repository.CategoryCustomRepository;
+import com.dfdt.delivery.domain.category.domain.repository.CategoryRepository;
 import com.dfdt.delivery.domain.category.presentation.dto.request.CategoryCreateReqDto;
 import com.dfdt.delivery.domain.category.presentation.dto.request.CategoryUpdateReqDto;
+import com.dfdt.delivery.domain.category.presentation.dto.response.CategoryAdminResDto;
 import com.dfdt.delivery.domain.category.presentation.dto.response.CategoryResDto;
-import com.dfdt.delivery.domain.category.domain.entity.Category;
-import com.dfdt.delivery.domain.category.domain.repository.CategoryRepository;
+import com.dfdt.delivery.domain.category.presentation.dto.response.CategoryUpdateResDto;
 import com.dfdt.delivery.domain.store.domain.repository.StoreRepository;
-import com.dfdt.delivery.domain.user.entity.User;
+
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,53 +30,124 @@ import java.util.UUID;
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final CategoryCustomRepository categoryCustomRepository;
     private final StoreRepository storeRepository;
 
     @Transactional(readOnly = true)
+    public CategoryResDto getCategory(UUID categoryId) {
+        Category category = checkExistCategory(categoryId);
+
+        return CategoryResDto.from(category);
+    }
+
+    @Transactional(readOnly = true)
     public List<CategoryResDto> getCategories() {
-        return categoryRepository.findAllByDeletedAtIsNull()
-                .stream()
+        List<Category> categories = categoryRepository.findActiveCategoriesOrderBySortOrder();
+        if (categories.isEmpty()) {
+            throw new BusinessException(CategoryErrorCode.NOT_FOUND_CATEGORIES);    // 등록된 카테고리가 존재하는지 확인
+        }
+
+        return categories.stream()
                 .map(CategoryResDto::from)
                 .toList();
     }
 
-    public CategoryResDto createCategory(CategoryCreateReqDto request) {
-        Category category = Category.create(request);
+    @Transactional(readOnly = true)
+    public Page<CategoryAdminResDto> getCategoriesAdmin(int page, int size, String sortBy, Boolean isAsc, String name, boolean isDeleted) {
+        Sort.Direction direction = isAsc ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Sort sort = Sort.by(direction, sortBy);
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<CategoryAdminResDto> categoryResDto = categoryCustomRepository.searchCategoriesAdmin(pageable, name, isDeleted);
+        if (categoryResDto.getTotalElements() == 0) {
+            throw new BusinessException(CategoryErrorCode.NOT_FOUND_CATEGORIES);    // 등록된 카테고리가 존재하는지 확인
+        }
+
+        return categoryResDto;
+    }
+
+    public CategoryResDto createCategory(CategoryCreateReqDto request, CustomUserDetails userDetails) {
+        checkDuplicatedName(request.getName());
+
+        int maxSortOrder = categoryRepository.findMaxSortOrder().orElse(0);
+        Category category = Category.create(request, maxSortOrder + 1, userDetails.getUsername()); // 기존 sortOrder 값 중 (마지막 번호 + 1) 주입
         categoryRepository.save(category);
 
         return CategoryResDto.from(category);
     }
 
-    public CategoryResDto updateCategory(UUID categoryId, CategoryUpdateReqDto request) {
-        Category category = categoryRepository.findByCategoryIdAndDeletedAtIsNull(categoryId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 카테고리가 존재하지 않습니다."));
 
-        if (!category.getIsActive()) {
-            boolean hasStore = storeRepository.existsByCategoryIdAndDeletedAtIsNull((category.getCategoryId()));
+    public CategoryUpdateResDto updateCategory(UUID categoryId, CategoryUpdateReqDto request, CustomUserDetails userDetails) {
+        Category category = checkExistActiveCategory(categoryId);
 
-            if (hasStore) {
-                throw new IllegalArgumentException("삭제된 카테고리가 아닙니다.");
+        if (categoryRepository.existsByNameAndCategoryIdNot(request.getName(), categoryId)) {
+            throw new BusinessException(CategoryErrorCode.ALREADY_EXIST);   // 수정 시 중복 카테고리명 확인(본인 제외)
+        }
+        if (category.getSoftDeleteAudit() != null) {
+            throw new BusinessException(CategoryErrorCode.NOT_MODIFIED);    // 삭제된 카테고리는 정보 변경 X
+        }
+
+        // sortOrder 변경이 있으면 sortOrder 값 조정
+        int oldSortOrder = category.getSortOrder();
+        int newSortOrder = request.getSortOrder();
+
+        if (oldSortOrder != newSortOrder) {
+            if (newSortOrder < oldSortOrder) {
+                // 위로 이동: 새 위치 ~ 기존 위치-1 까지 +1
+                categoryRepository.shiftSortOrdersUp(newSortOrder, oldSortOrder - 1);
+            } else {
+                // 아래로 이동: 기존 위치+1 ~ 새 위치 까지 -1
+                categoryRepository.shiftSortOrdersDown(oldSortOrder + 1, newSortOrder);
             }
         }
-        category.update(request);
+        category.update(request, userDetails.getUsername());
 
-        return CategoryResDto.from(category);
+        return CategoryUpdateResDto.from(category);
     }
 
-    public void deleteCategory(UUID categoryId, User user) {
-        Category category = categoryRepository.findByCategoryIdAndDeletedAtIsNull(categoryId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 카테고리가 존재하지 않습니다."));
+    public void deleteCategory(UUID categoryId, CustomUserDetails userDetails) {
+        Category category = checkExistCategory(categoryId);
 
-        category.delete(user.getUsername());
-    }
-
-    public void restoreCategory(UUID categoryId) {
-        Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 카테고리가 존재하지 않습니다."));
-        if (category.getDeletedAt() == null) {
-            throw new IllegalArgumentException("삭제된 카테고리가 아닙니다.");
+        if (category.getSoftDeleteAudit().isDeleted()) {
+            throw new BusinessException(CategoryErrorCode.ALREADY_DELETED);     // 삭제된 카테고리인지 확인
+        }
+        if (storeRepository.existsByCategoryIdAndNotDeleted(category.getCategoryId())) {
+            throw new BusinessException(CategoryErrorCode.CATEGORY_BE_USED);    // 해당 카테고리를 사용중인 가게가 있는지 확인
         }
 
-        category.restore();
+        categoryRepository.decrementSortOrdersAfter(category.getSortOrder());   // 삭제된 sortOrder 값 이후 모두 -1
+        category.delete(userDetails.getUsername());
+    }
+
+    public void restoreCategory(UUID categoryId, CustomUserDetails userDetails) {
+        Category category = checkExistCategory(categoryId);
+
+        if (category.getSoftDeleteAudit() == null) {
+            throw new BusinessException(CategoryErrorCode.NOT_DELETED); // 삭제된 카테고리인지 확인
+        }
+        checkDuplicatedName(category.getName());
+
+        // 복구 시 기존 sortOrder 값 중 (마지막 번호 + 1) 주입
+        int maxSortOrder = categoryRepository.findMaxSortOrder().orElse(0);
+        category.restore(maxSortOrder + 1, userDetails.getUsername());
+    }
+
+    // 해당 카테고리가 존재하는지 확인
+    private Category checkExistCategory(UUID categoryId) {
+        return categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new BusinessException(CategoryErrorCode.NOT_FOUND_CATEGORY));
+    }
+
+    // 해당 카테고리가 존재하는지 확인(Not Deleted)
+    private Category checkExistActiveCategory(UUID categoryId) {
+        return categoryRepository.findActiveCategoryById(categoryId)
+                .orElseThrow(() -> new BusinessException(CategoryErrorCode.NOT_FOUND_CATEGORY));
+    }
+
+    // 카테고리명 중복 확인
+    private void checkDuplicatedName(String name) {
+        if (categoryRepository.existsByNameAndDeletedAtIsNull(name)) {
+            throw new BusinessException(CategoryErrorCode.ALREADY_EXIST);
+        }
     }
 }

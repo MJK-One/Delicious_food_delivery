@@ -1,5 +1,8 @@
 package com.dfdt.delivery.domain.category.domain.entity;
 
+import com.dfdt.delivery.common.infrastructure.persistence.embedded.CreateAudit;
+import com.dfdt.delivery.common.infrastructure.persistence.embedded.SoftDeleteAudit;
+import com.dfdt.delivery.common.infrastructure.persistence.embedded.UpdateAudit;
 import com.dfdt.delivery.domain.category.presentation.dto.request.CategoryCreateReqDto;
 import com.dfdt.delivery.domain.category.presentation.dto.request.CategoryUpdateReqDto;
 import com.dfdt.delivery.domain.store.domain.entity.StoreCategory;
@@ -33,34 +36,52 @@ public class Category {
     private Integer sortOrder;
 
     @Column(nullable = false)
-    private Boolean isActive = false;
+    private Boolean isActive;
+
+    @Embedded
+    private CreateAudit createAudit;
+
+    @Embedded
+    private UpdateAudit updateAudit;
+
+    @Embedded
+    private SoftDeleteAudit softDeleteAudit;
 
     @OneToMany(mappedBy = "category")
     private List<StoreCategory> stores = new ArrayList<>();
 
-    public static Category create(CategoryCreateReqDto request) {
+    public static Category create(CategoryCreateReqDto request, int maxOrder, String username) {
         return Category.builder()
                 .name(request.getName())
                 .description(request.getDescription())
-                .sortOrder(request.getSortOrder())
+                .sortOrder(maxOrder)
                 .isActive(request.getIsActive())
+                .createAudit(CreateAudit.now(username))
                 .build();
     }
 
-    public void update(CategoryUpdateReqDto request) {
+    public void update(CategoryUpdateReqDto request, String username) {
         this.name = request.getName();
         this.description = request.getDescription();
         this.sortOrder = request.getSortOrder();
         this.isActive = request.getIsActive();
+        makeUpdateAudit(username);
     }
 
-//    public void delete(String username) {
-//        this.deletedAt = OffsetDateTime.now();
-//        this.deletedBy = username;
-//    }
-//
-//    public void restore() {
-//        this.deletedAt = null;
-//        this.deletedBy = null;
-//    }
+    public void delete(String username) {
+        makeUpdateAudit(username);
+        this.softDeleteAudit = SoftDeleteAudit.active();
+        this.softDeleteAudit.softDelete(username);
+    }
+
+    public void restore(int maxSortOrder, String username) {
+        this.sortOrder = maxSortOrder;
+        this.softDeleteAudit.restore();
+        makeUpdateAudit(username);
+    }
+
+    private void makeUpdateAudit(String username) {
+        this.updateAudit = UpdateAudit.empty();
+        this.updateAudit.touch(username);
+    }
 }
