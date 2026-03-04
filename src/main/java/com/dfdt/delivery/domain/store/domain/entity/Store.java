@@ -9,7 +9,7 @@ import com.dfdt.delivery.domain.region.domain.entity.Region;
 import com.dfdt.delivery.domain.store.domain.enums.StoreStatus;
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreCreateReqDto;
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreUpdateReqDto;
-import com.dfdt.delivery.domain.user.entity.User;
+import com.dfdt.delivery.domain.user.domain.entity.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Pattern;
 import lombok.*;

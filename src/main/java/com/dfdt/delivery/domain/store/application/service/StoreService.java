@@ -20,8 +20,8 @@ import com.dfdt.delivery.domain.store.presentation.dto.request.StoreCreateReqDto
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreStatusReqDto;
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreUpdateReqDto;
 import com.dfdt.delivery.domain.store.presentation.dto.response.*;
-import com.dfdt.delivery.domain.user.entity.User;
-import com.dfdt.delivery.domain.user.enums.UserRole;
+import com.dfdt.delivery.domain.user.domain.entity.User;
+import com.dfdt.delivery.domain.user.domain.enums.UserRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
