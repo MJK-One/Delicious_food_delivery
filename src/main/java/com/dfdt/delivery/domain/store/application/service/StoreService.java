@@ -1,6 +1,7 @@
 package com.dfdt.delivery.domain.store.application.service;
 
 import com.dfdt.delivery.common.exception.BusinessException;
+import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
 import com.dfdt.delivery.domain.category.domain.entity.Category;
 import com.dfdt.delivery.domain.category.domain.enums.CategoryErrorCode;
 import com.dfdt.delivery.domain.category.domain.repository.CategoryRepository;
@@ -22,6 +23,8 @@ import com.dfdt.delivery.domain.store.presentation.dto.request.StoreUpdateReqDto
 import com.dfdt.delivery.domain.store.presentation.dto.response.*;
 import com.dfdt.delivery.domain.user.domain.entity.User;
 import com.dfdt.delivery.domain.user.domain.enums.UserRole;
+import com.dfdt.delivery.domain.user.domain.exception.error.enums.UserErrorCode;
+import com.dfdt.delivery.domain.user.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -44,6 +47,7 @@ public class StoreService {
     private final StoreCategoryRepository storeCategoryRepository;
     private final StoreRatingRepository storeRatingRepository;
     private final RegionRepository regionRepository;
+    private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
     public StoreResDto getStore(UUID storeId) {
@@ -73,26 +77,27 @@ public class StoreService {
         return storeAdminResDto;
     }
 
-    public StoreCreateResDto createStore(StoreCreateReqDto request, User user) {
+    public StoreCreateResDto createStore(StoreCreateReqDto request, CustomUserDetails userDetails) {
         List<Category> categories = categoryRepository.findAllById(request.getCategoryIds());
 
         checkExistCategory(request.getCategoryIds().size(), categories);
+        User user = userRepository.findByUsername(userDetails.getUsername()).orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
         Region region = regionRepository.findById(request.getRegionId()).orElseThrow(() -> new BusinessException(RegionErrorCode.NOT_FOUND_REGION));
 
         Store store = Store.create(request, user, region);
-        store.addCategories(categories, user.getUsername());
+        store.addCategories(categories, userDetails.getUsername());
         storeRepository.save(store);
 
         return StoreCreateResDto.from(store);
     }
 
-    public StoreUpdateResDto updateStore(UUID storeId, StoreUpdateReqDto request, User user) {
+    public StoreUpdateResDto updateStore(UUID storeId, StoreUpdateReqDto request, CustomUserDetails userDetails) {
         List<Category> newCategories = categoryRepository.findAllById(request.getCategoryIds());
         Store store = findStoreById(storeId);
         List<StoreCategory> before = storeCategoryRepository.findByStore(store);
 
         checkExistCategory(request.getCategoryIds().size(), newCategories);
-        checkMyStore(user, store);
+        checkMyStore(userDetails, store);
         checkDeletedStore(store);
 
         // 1. 기존 active 카테고리
@@ -103,20 +108,20 @@ public class StoreService {
         // 2. 삭제 처리 (기존에는 있는데 새 리스트에는 없는 경우)
         existing.stream()
                 .filter(sc -> !newCategories.contains(sc.getCategory()))
-                .forEach(sc -> sc.delete(user.getUsername())
+                .forEach(sc -> sc.delete(userDetails.getUsername())
                 );
 
         // 3. 새로 추가 (새 리스트에는 있는데 기존에는 없는 경우)
         newCategories.stream()
                 .filter(c -> existing.stream().noneMatch(sc -> sc.getCategory().equals(c)))
-                .forEach(c -> store.addCategory(c, user.getUsername()));
+                .forEach(c -> store.addCategory(c, userDetails.getUsername()));
 
-        store.update(request, user.getUsername());
+        store.update(request, userDetails.getUsername());
 
         return StoreUpdateResDto.from(store);
     }
 
-    public void deleteStore(UUID storeId, User user) {
+    public void deleteStore(UUID storeId, CustomUserDetails user) {
         Store store = findStoreById(storeId);
         checkMyStore(user, store);
 
@@ -127,12 +132,12 @@ public class StoreService {
         store.delete(user.getUsername());
     }
 
-    public void changeIsOpen(UUID storeId, User user) {
+    public void changeIsOpen(UUID storeId, CustomUserDetails userDetails) {
         Store store = findStoreById(storeId);
-        checkMyStore(user, store);
+        checkMyStore(userDetails, store);
         checkDeletedStore(store);
 
-        store.changeIsOpen(user.getUsername());
+        store.changeIsOpen(userDetails.getUsername());
     }
 
     public List<MyStoreResDto> getMyStores(String username) {
@@ -143,7 +148,7 @@ public class StoreService {
                 .toList();
     }
 
-    public void restoreStore(UUID storeId, User user) {
+    public void restoreStore(UUID storeId, CustomUserDetails user) {
         // 영업 중지된 가게인지 확인
         Store store = findStoreById(storeId);
         if (!store.getStatus().equals(StoreStatus.SUSPENDED)) {
@@ -153,9 +158,9 @@ public class StoreService {
         store.restore(user.getUsername());
     }
 
-    public StoreStatusResDto changeStatus(UUID storeId, StoreStatusReqDto request, User user) {
+    public StoreStatusResDto changeStatus(UUID storeId, StoreStatusReqDto request,CustomUserDetails userDetails) {
         Store store = findStoreById(storeId);
-        store.changeStatus(request.getStatus(), user.getUsername());
+        store.changeStatus(request.getStatus(), userDetails.getUsername());
 
         return StoreStatusResDto.from(store);
     }
@@ -197,8 +202,8 @@ public class StoreService {
     }
 
     // 본인 소유의 가게만 정보 변경 가능
-    private static void checkMyStore(User user, Store store) {
-        if (!store.getUser().getUsername().equals(user.getUsername()) && !user.getRole().equals(UserRole.MASTER)) {
+    private static void checkMyStore(CustomUserDetails userDetails, Store store) {
+        if (!store.getUser().getUsername().equals(userDetails.getUsername()) && !userDetails.getRole().equals(UserRole.MASTER)) {
             throw new BusinessException(StoreErrorCode.NOT_MY_STORE);
         }
     }

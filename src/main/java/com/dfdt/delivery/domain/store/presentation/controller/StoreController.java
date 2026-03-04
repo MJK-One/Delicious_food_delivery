@@ -1,6 +1,7 @@
 package com.dfdt.delivery.domain.store.presentation.controller;
 
 import com.dfdt.delivery.common.response.ApiResponseDto;
+import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
 import com.dfdt.delivery.domain.store.presentation.dto.response.StorePageResDto;
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreCreateReqDto;
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreStatusReqDto;
@@ -98,8 +99,8 @@ public class StoreController {
      * POST /api/v1/stores
      */
     @PostMapping()
-    public ResponseEntity<ApiResponseDto<StoreCreateResDto>> createStore(@Valid @RequestBody StoreCreateReqDto request, @AuthenticationPrincipal User user) {
-        StoreCreateResDto createdStore = storeService.createStore(request, user);
+    public ResponseEntity<ApiResponseDto<StoreCreateResDto>> createStore(@Valid @RequestBody StoreCreateReqDto request, @AuthenticationPrincipal CustomUserDetails userDetails) {
+        StoreCreateResDto createdStore = storeService.createStore(request, userDetails);
 
         return ApiResponseDto.success(
                     HttpStatus.CREATED.value(),
@@ -114,8 +115,9 @@ public class StoreController {
      */
     @PreAuthorize("hasAnyRole('OWNER','MASTER')")
     @PutMapping("/{storeId}")
-    public ResponseEntity<ApiResponseDto<StoreUpdateResDto>> updateStore(@PathVariable("storeId") UUID storeId, @Valid @RequestBody StoreUpdateReqDto request, @AuthenticationPrincipal User user) {
-        StoreUpdateResDto updatedStore = storeService.updateStore(storeId, request, user);
+    public ResponseEntity<ApiResponseDto<StoreUpdateResDto>> updateStore(@PathVariable("storeId") UUID storeId, @Valid @RequestBody StoreUpdateReqDto request,
+                                                                         @AuthenticationPrincipal CustomUserDetails userDetails) {
+        StoreUpdateResDto updatedStore = storeService.updateStore(storeId, request, userDetails);
 
         return ApiResponseDto.success(
                     HttpStatus.OK.value(),
@@ -130,8 +132,8 @@ public class StoreController {
      */
     @PreAuthorize("hasAnyRole('OWNER','MASTER')")
     @DeleteMapping("/{storeId}")
-    public ResponseEntity<ApiResponseDto<Object>> deleteStore(@PathVariable("storeId") UUID storeId, @AuthenticationPrincipal User user) {
-        storeService.deleteStore(storeId, user);
+    public ResponseEntity<ApiResponseDto<Object>> deleteStore(@PathVariable("storeId") UUID storeId, @AuthenticationPrincipal CustomUserDetails userDetails) {
+        storeService.deleteStore(storeId, userDetails);
 
         return ApiResponseDto.success(
                     HttpStatus.OK.value(),
@@ -147,8 +149,8 @@ public class StoreController {
      */
     @PreAuthorize("hasAnyRole('OWNER','MASTER')")
     @PatchMapping("/{storeId}/open")
-    public ResponseEntity<ApiResponseDto<Object>> changeStoreOpenStatus(@PathVariable("storeId") UUID storeId, @AuthenticationPrincipal User user) {
-        storeService.changeIsOpen(storeId, user);
+    public ResponseEntity<ApiResponseDto<Object>> changeStoreOpenStatus(@PathVariable("storeId") UUID storeId, @AuthenticationPrincipal CustomUserDetails userDetails) {
+        storeService.changeIsOpen(storeId, userDetails);
 
         return ApiResponseDto.success(
                     HttpStatus.OK.value(),
@@ -164,8 +166,8 @@ public class StoreController {
      */
     @PreAuthorize("hasAnyRole('OWNER','MASTER')")
     @GetMapping("/me")
-    public ResponseEntity<ApiResponseDto<List<MyStoreResDto>>> getMyStores(@AuthenticationPrincipal User user) {
-        List<MyStoreResDto> stores = storeService.getMyStores(user.getUsername());
+    public ResponseEntity<ApiResponseDto<List<MyStoreResDto>>> getMyStores(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        List<MyStoreResDto> stores = storeService.getMyStores(userDetails.getUsername());
 
         return ApiResponseDto.success(
                     HttpStatus.OK.value(),
@@ -180,8 +182,8 @@ public class StoreController {
      */
     @PreAuthorize("hasRole('MASTER')")
     @PatchMapping("/{storeId}/restore")
-    public ResponseEntity<ApiResponseDto<Object>> restoreStore(@PathVariable("storeId") UUID storeId, @AuthenticationPrincipal User user) {
-        storeService.restoreStore(storeId, user);
+    public ResponseEntity<ApiResponseDto<Object>> restoreStore(@PathVariable("storeId") UUID storeId, @AuthenticationPrincipal CustomUserDetails userDetails) {
+        storeService.restoreStore(storeId, userDetails);
 
         return ApiResponseDto.success(
                     HttpStatus.OK.value(),
@@ -197,8 +199,9 @@ public class StoreController {
      */
     @PreAuthorize("hasRole('MASTER')")
     @PatchMapping("/{storeId}/status")
-    public ResponseEntity<ApiResponseDto<Object>> changeStoreApprovalStatus(@PathVariable("storeId") UUID storeId, @RequestBody StoreStatusReqDto request, @AuthenticationPrincipal User user) {
-        StoreStatusResDto storeStatus = storeService.changeStatus(storeId, request, user);
+    public ResponseEntity<ApiResponseDto<Object>> changeStoreApprovalStatus(@PathVariable("storeId") UUID storeId, @RequestBody StoreStatusReqDto request,
+                                                                            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        StoreStatusResDto storeStatus = storeService.changeStatus(storeId, request, userDetails);
 
         return ApiResponseDto.success(
                     HttpStatus.OK.value(),
