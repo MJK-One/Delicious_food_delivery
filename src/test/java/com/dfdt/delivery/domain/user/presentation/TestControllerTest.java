@@ -39,6 +39,6 @@ class TestControllerTest {
         mockMvc.perform(get("/api/v1/test/me")
                         .with(user(customUserDetails)))
                 .andExpect(status().isOk())
-                .andExpect(content().string("Hello 홍길동 (testuser)"));
+                .andExpect(content().string("Hello 홍길동 testuser"));
     }
 }
