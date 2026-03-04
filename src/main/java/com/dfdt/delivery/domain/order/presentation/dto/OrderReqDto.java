@@ -13,7 +13,7 @@ public class OrderReqDto {
             UUID storeId,
             @NotNull(message = "주소가 입력되지 않았습니다.")
             UUID addressId,
-            @NotNull @NotEmpty(message = "하나 이상의 상품이 들어있어야 합니다.")
+            @NotEmpty(message = "하나 이상의 상품이 들어있어야 합니다.")
             List<OrderItem> productItemList,
             @Length(max = 255,message = "최대 255자 입니다.")
             String requestMemo
