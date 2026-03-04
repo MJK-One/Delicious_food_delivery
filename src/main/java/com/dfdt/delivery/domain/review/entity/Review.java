@@ -1,5 +1,6 @@
 package com.dfdt.delivery.domain.review.entity;
 
+import com.dfdt.delivery.common.Entity.BaseAuditSoftDeleteEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.UuidGenerator;
