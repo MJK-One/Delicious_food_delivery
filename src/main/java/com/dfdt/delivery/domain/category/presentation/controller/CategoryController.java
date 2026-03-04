@@ -1,13 +1,18 @@
 package com.dfdt.delivery.domain.category.presentation.controller;
 
 import com.dfdt.delivery.common.response.ApiResponseDto;
+import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
+import com.dfdt.delivery.domain.category.application.service.CategoryService;
 import com.dfdt.delivery.domain.category.presentation.dto.request.CategoryCreateReqDto;
 import com.dfdt.delivery.domain.category.presentation.dto.request.CategoryUpdateReqDto;
+import com.dfdt.delivery.domain.category.presentation.dto.response.CategoryAdminResDto;
+import com.dfdt.delivery.domain.category.presentation.dto.response.CategoryPageResDto;
 import com.dfdt.delivery.domain.category.presentation.dto.response.CategoryResDto;
-import com.dfdt.delivery.domain.category.application.service.CategoryService;
-import com.dfdt.delivery.domain.user.entity.User;
+import com.dfdt.delivery.domain.category.presentation.dto.response.CategoryUpdateResDto;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -19,16 +24,32 @@ import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1")
-public class CategoryController {
+@RequestMapping("/categories")
+public class CategoryController implements CategoryControllerDocs{
 
     private final CategoryService categoryService;
 
     /**
-     * 카테고리 목록 조회
+     * 카테고리 단일 조회
      * GET /api/v1/categories
      */
-    @GetMapping("/categories")
+    @GetMapping("/{categoryId}")
+    public ResponseEntity<ApiResponseDto<CategoryResDto>> getCategory(@PathVariable("categoryId") UUID categoryId) {
+        CategoryResDto categories = categoryService.getCategory(categoryId);
+
+        return ApiResponseDto.success(
+                HttpStatus.OK.value(),
+                "카테고리가 성공적으로 조회되었습니다.",
+                categories
+        );
+    }
+
+    /**
+     * 카테고리 조회
+     * GET /api/v1/categories
+     */
+//    @Operation(summary = "카테고리 조회",description = "카테고리 목록을 조회합니다.")
+    @GetMapping()
     public ResponseEntity<ApiResponseDto<List<CategoryResDto>>> getCategories() {
         List<CategoryResDto> categories = categoryService.getCategories();
 
@@ -40,13 +61,38 @@ public class CategoryController {
     }
 
     /**
+     * 카테고리 조회(관리자용)
+     * 삭제 여부 상관 없이 불러옴
+     * GET /api/v1/categories/admin
+     */
+    @PreAuthorize("hasRole('MASTER')")
+    @GetMapping("/admin")
+    public ResponseEntity<ApiResponseDto<CategoryPageResDto>> getCategoriesAdmin(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "sortBy", defaultValue = "createdAt") String sortBy,
+            @RequestParam(value = "isAsc", defaultValue = "true") boolean isAsc,
+            @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "isDeleted", defaultValue = "false") Boolean isDeleted
+    ) {
+        Page<CategoryAdminResDto> categories = categoryService.getCategoriesAdmin(page, size, sortBy, isAsc, name, isDeleted);
+        CategoryPageResDto response = new CategoryPageResDto(categories);
+
+        return ApiResponseDto.success(
+                HttpStatus.OK.value(),
+                "카테고리 목록이 성공적으로 조회되었습니다.",
+                response
+        );
+    }
+
+    /**
      * 카테고리 생성
      * POST /api/v1/categories
      */
     @PreAuthorize("hasRole('MASTER')")
-    @PostMapping("/categories")
-    public ResponseEntity<ApiResponseDto<CategoryResDto>> createCategory(@Valid @RequestBody CategoryCreateReqDto request, @AuthenticationPrincipal User user) {
-        CategoryResDto createdCategory = categoryService.createCategory(request);
+    @PostMapping()
+    public ResponseEntity<ApiResponseDto<CategoryResDto>> createCategory(@Valid @RequestBody CategoryCreateReqDto request, @AuthenticationPrincipal CustomUserDetails userDetails) {
+        CategoryResDto createdCategory = categoryService.createCategory(request, userDetails);
 
         return ApiResponseDto.success(
                 HttpStatus.CREATED.value(),
@@ -60,13 +106,10 @@ public class CategoryController {
      * PUT /api/v1/categories/{category_id}
      */
     @PreAuthorize("hasRole('MASTER')")
-    @PutMapping("/categories/{categoryId}")
-    public ResponseEntity<ApiResponseDto<CategoryResDto>> updateCategory(
-            @PathVariable("categoryId") UUID categoryId,
-            @Valid @RequestBody CategoryUpdateReqDto request,
-            @AuthenticationPrincipal User user
-    ) {
-        CategoryResDto updated = categoryService.updateCategory(categoryId, request);
+    @PutMapping("/{categoryId}")
+    public ResponseEntity<ApiResponseDto<CategoryUpdateResDto>> updateCategory(@PathVariable("categoryId") UUID categoryId, @Valid @RequestBody CategoryUpdateReqDto request,
+                                                                               @AuthenticationPrincipal CustomUserDetails userDetails) {
+        CategoryUpdateResDto updated = categoryService.updateCategory(categoryId, request, userDetails);
 
         return ApiResponseDto.success(
                 HttpStatus.OK.value(),
@@ -80,9 +123,9 @@ public class CategoryController {
      * DELETE /api/v1/categories/{category_id}
      */
     @PreAuthorize("hasRole('MASTER')")
-    @DeleteMapping("/categories/{categoryId}")
-    public ResponseEntity<ApiResponseDto<Object>> deleteCategory(@PathVariable("categoryId") UUID categoryId, @AuthenticationPrincipal User user) {
-        categoryService.deleteCategory(categoryId, user);
+    @DeleteMapping("/{categoryId}")
+    public ResponseEntity<ApiResponseDto<Object>> deleteCategory(@PathVariable("categoryId") UUID categoryId, @AuthenticationPrincipal CustomUserDetails userDetails) {
+        categoryService.deleteCategory(categoryId, userDetails);
 
         return ApiResponseDto.success(
                 HttpStatus.OK.value(),
@@ -96,9 +139,9 @@ public class CategoryController {
      * PATCH /api/v1/categories/{category_id}/restore
      */
     @PreAuthorize("hasRole('MASTER')")
-    @PatchMapping("/categories/{categoryId}/restore")
-    public ResponseEntity<ApiResponseDto<Object>> restoreCategory(@PathVariable("categoryId") UUID categoryId, @AuthenticationPrincipal User user) {
-        categoryService.restoreCategory(categoryId);
+    @PatchMapping("/{categoryId}/restore")
+    public ResponseEntity<ApiResponseDto<Object>> restoreCategory(@PathVariable("categoryId") UUID categoryId, @AuthenticationPrincipal CustomUserDetails userDetails) {
+        categoryService.restoreCategory(categoryId, userDetails);
 
         return ApiResponseDto.success(
                 HttpStatus.OK.value(),

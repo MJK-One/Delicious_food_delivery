@@ -17,8 +17,5 @@ public class CategoryCreateReqDto {
     @Size(max = 255, message = "카테고리 설명은 최대 255자 이하로 작성해주세요.")
     private String description;
 
-    @NotNull(message = "정렬 순서는 필수입니다.")
-    private Integer sortOrder;
-
     private Boolean isActive = false;
 }
