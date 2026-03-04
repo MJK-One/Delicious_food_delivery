@@ -102,44 +102,8 @@ public interface OrderControllerDocs {
             @PathVariable(value = "user_id") String userId);
 
 
-    @Operation(summary = "API-006 주문 수락하기", description = "사장님이 접수된 주문을 수락하여 조리를 시작합니다.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "수락 성공"),            
-            @ApiResponse(responseCode = "400", description = "잘못된 주문 요청", content = @Content(mediaType = "application/json", examples = {
-                    @ExampleObject(name = "이미 처리된 주문", value = OrderErrorDocs.ALREADY_PROCESSED), 
-                    @ExampleObject(name = "사용자 결제 전", value = OrderErrorDocs.PAYMENT_REQUIRED)
-            })),
-            @ApiResponse(responseCode = "401", description = "권한 오류", content = @Content(mediaType = "application/json", examples = {
-                    @ExampleObject(name = "주문에 접근 권한 없음", value = OrderErrorDocs.ACCESS_DENIED)
-            })),
-            @ApiResponse(responseCode = "404", description = "찾을 수 없음", content = @Content(mediaType = "application/json", examples = {
-                    @ExampleObject(name = "주문을 찾을 수 없음", value = OrderErrorDocs.ORDER_NOT_FOUND)
-            })),
-    })
-    ResponseEntity<ApiResponseDto<OrderResDto.OrderMutationResponse>> acceptOrder(
-            @PathVariable(value = "order_id") String orderId,
-            @PathVariable(value = "user_id") String userId);
-
-
-    @Operation(summary = "API-007 주문 거절하기", description = "재고 부족 등의 사유로 사장님이 주문을 거절합니다.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "거절 성공"),
-            @ApiResponse(responseCode = "400", description = "잘못된 주문 요청", content = @Content(mediaType = "application/json", examples = {
-                    @ExampleObject(name = "이미 처리된 주문", value = OrderErrorDocs.ALREADY_PROCESSED)
-            })),
-            @ApiResponse(responseCode = "401", description = "권한 오류", content = @Content(mediaType = "application/json", examples = {
-                    @ExampleObject(name = "주문에 접근 권한 없음", value = OrderErrorDocs.ACCESS_DENIED)
-            })),
-            @ApiResponse(responseCode = "404", description = "찾을 수 없음", content = @Content(mediaType = "application/json", examples = {
-                    @ExampleObject(name = "주문을 찾을 수 없음", value = OrderErrorDocs.ORDER_NOT_FOUND)
-            })),
-    })
-    ResponseEntity<ApiResponseDto<OrderResDto.OrderMutationResponse>> rejectOrder(
-            @PathVariable(value = "order_id") String orderId,
-            @PathVariable(value = "user_id") String userId);
-
-
-    @Operation(summary = "API-008 주문 상태 변경하기", description = "준비 중 -> 배달 중 -> 배달 완료 등으로 상태를 수동 변경합니다.")
+    
+    @Operation(summary = "API-006 주문 상태 변경하기", description = "준비 중 -> 배달 중 -> 배달 완료 등으로 상태를 수동 변경합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "상태 변경 성공"),
             @ApiResponse(responseCode = "400", description = "잘못된 주문 요청", content = @Content(mediaType = "application/json", examples = {
@@ -159,7 +123,7 @@ public interface OrderControllerDocs {
     );
 
 
-    @Operation(summary = "API-009 가게의 주문 목록 조회하기", description = "가게 ID를 기준으로 들어온 모든 주문을 조회합니다.")
+    @Operation(summary = "API-007 가게의 주문 목록 조회하기", description = "가게 ID를 기준으로 들어온 모든 주문을 조회합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "404", description = "가게 정보를 찾을 수 없음")

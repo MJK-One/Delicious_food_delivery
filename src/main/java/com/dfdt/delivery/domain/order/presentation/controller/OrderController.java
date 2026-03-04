@@ -77,7 +77,7 @@ public class OrderController implements OrderControllerDocs {
     // todo: AUTH로 바꾸기,UserDetail 생성 전까지 userId를 경로상에 포함시킵니다.
 
     // API-005 주문 삭제하기
-    @DeleteMapping("/{order_id}/delete/{user_id}")
+    @DeleteMapping("/{order_id}/{user_id}")
     public ResponseEntity<ApiResponseDto<Void>> deleteOrder(
             @PathVariable (value = "order_id") String orderId,
             @PathVariable (value = "user_id") String  userId
@@ -90,35 +90,7 @@ public class OrderController implements OrderControllerDocs {
     }
     // todo: AUTH로 바꾸기,UserDetail 생성 전까지 userId를 경로상에 포함시킵니다.
 
-    // API-006 주문 수락하기
-    @PatchMapping("/{order_id}/accept/{user_id}")
-    public ResponseEntity<ApiResponseDto<OrderResDto.OrderMutationResponse>> acceptOrder(
-            @PathVariable (value = "order_id") String orderId,
-            @PathVariable (value = "user_id") String  userId
-    ) {
-        return ApiResponseDto.success(
-                200,
-                "주문이 수락되었습니다.",
-                null
-        );
-    }
-    // todo: AUTH로 바꾸기,UserDetail 생성 전까지 userId를 경로상에 포함시킵니다.
-
-    // API-007 주문 거절하기
-    @PatchMapping("/{order_id}/reject/{user_id}")
-    public ResponseEntity<ApiResponseDto<OrderResDto.OrderMutationResponse>> rejectOrder(
-            @PathVariable (value = "order_id") String orderId,
-            @PathVariable (value = "user_id") String  userId
-    ) {
-        return ApiResponseDto.success(
-                200,
-                "주문이 거절되었습니다.",
-                null
-        );
-    }
-    // todo: AUTH로 바꾸기,UserDetail 생성 전까지 userId를 경로상에 포함시킵니다.
-
-    // API-008 주문 상태 변경하기
+    // API-006 주문 상태 변경하기
     @PatchMapping("/{order_id}/status/{user_id}")
     public ResponseEntity<ApiResponseDto<OrderResDto.OrderMutationResponse>> updateOrderStatus(
             @PathVariable (value = "order_id") String orderId,
@@ -133,7 +105,7 @@ public class OrderController implements OrderControllerDocs {
     }
     // todo: AUTH로 바꾸기,UserDetail 생성 전까지 userId를 경로상에 포함시킵니다.
 
-    // API-009 가게의 주문 목록 조회하기 ( 상태별 )
+    // API-007 가게의 주문 목록 조회하기 ( 상태별 )
     @GetMapping("/store/{store_id}")
     public ResponseEntity<ApiResponseDto<OrderResDto.OwnerDashboardResponse>> getOrdersByOwner(
             @PathVariable (value = "store_id") String  storeId
