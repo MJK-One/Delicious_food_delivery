@@ -11,22 +11,22 @@ import java.util.UUID;
 
 @Getter
 @Builder
-public class StoreStatusResDto {
+public class StoreStatusRequestResDto {
 
     private UUID storeId;
     private UUID regionId;
     private String ownerName;
-    private List<CategoryIdNameResDto> categories;
     private String name;
-    private String addressText;
-    private String phone;
+    private List<CategoryIdNameResDto> categories;
     private String description;
+    private String phone;
+    private String addressText;
     private boolean isOpen;
     private String status;
-    private OffsetDateTime updatedAt;
+    private OffsetDateTime createdAt;
 
-    public static StoreStatusResDto from(Store store) {
-        return StoreStatusResDto.builder()
+    public static StoreStatusRequestResDto from(Store store) {
+        return StoreStatusRequestResDto.builder()
                 .storeId(store.getStoreId())
                 .regionId(store.getRegion().getRegionId())
                 .ownerName(store.getUser().getUsername())
@@ -40,7 +40,7 @@ public class StoreStatusResDto {
                 .addressText(store.getAddressText())
                 .isOpen(store.getIsOpen())
                 .status(store.getStatus().name())
-                .updatedAt(store.getUpdateAudit().getUpdatedAt())
+                .createdAt(store.getCreateAudit().getCreatedAt())
                 .build();
     }
 }

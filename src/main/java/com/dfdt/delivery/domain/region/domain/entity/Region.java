@@ -1,5 +1,8 @@
 package com.dfdt.delivery.domain.region.domain.entity;
 
+import com.dfdt.delivery.common.infrastructure.persistence.embedded.CreateAudit;
+import com.dfdt.delivery.common.infrastructure.persistence.embedded.SoftDeleteAudit;
+import com.dfdt.delivery.common.infrastructure.persistence.embedded.UpdateAudit;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -14,7 +17,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "p_region")
-public class Region extends BaseAuditSoftDeleteEntity {
+public class Region {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -30,11 +33,20 @@ public class Region extends BaseAuditSoftDeleteEntity {
     @Column(length = 30, unique = true)
     private String code;
 
-    @OneToMany(mappedBy = "parentRegion")
-    private List<Region> childRegions = new ArrayList<>();
-
     @Column(nullable = false)
     private Boolean isOrderEnabled = false;
+
+    @Embedded
+    private CreateAudit createAudit;
+
+    @Embedded
+    private UpdateAudit updateAudit;
+
+    @Embedded
+    private SoftDeleteAudit softDeleteAudit;
+
+    @OneToMany(mappedBy = "parentRegionId")
+    private List<Region> childRegions = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_region_id")

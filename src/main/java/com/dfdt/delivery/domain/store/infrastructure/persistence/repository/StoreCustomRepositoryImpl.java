@@ -1,6 +1,8 @@
 package com.dfdt.delivery.domain.store.infrastructure.persistence.repository;
 
+import com.dfdt.delivery.domain.store.domain.enums.StoreStatus;
 import com.dfdt.delivery.domain.store.domain.repository.StoreCustomRepository;
+import com.dfdt.delivery.domain.store.presentation.dto.response.StoreAdminResDto;
 import com.dfdt.delivery.domain.store.presentation.dto.response.StoreResDto;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
@@ -14,13 +16,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static com.dfdt.delivery.domain.category.domain.entity.QCategory.category;
 import static com.dfdt.delivery.domain.store.domain.entity.QStore.store;
-import static com.dfdt.delivery.domain.store.domain.entity.QStoreCategory.storeCategory;
 import static com.dfdt.delivery.domain.store.domain.entity.QStoreRating.storeRating;
 
 @Repository
@@ -35,25 +36,27 @@ public class StoreCustomRepositoryImpl implements StoreCustomRepository {
         List<StoreResDto> fetch = queryFactory
                 .select(Projections.constructor(StoreResDto.class,
                                 store.storeId,
-                                null,   // 가게 소유자는 search 시 제외
+                                store.user.name,
                                 store.region.regionId,
                                 store.name,
                                 store.addressText,
                                 store.phone,
                                 store.description,
                                 store.isOpen,
-                                storeRating.ratingAvg,
-                                storeRating.ratingCount
+                                store.status.stringValue(),
+                                storeRating.ratingAvg.coalesce(BigDecimal.ZERO),
+                                storeRating.ratingCount.coalesce(0),
+                                store.createAudit.createdAt
                         )
                 )
                 .from(store)
-                .leftJoin(store.categories, storeCategory)
-                .leftJoin(storeCategory.category, category)
                 .leftJoin(storeRating).on(storeRating.store.eq(store))
                 .where(
                         nameContains(name),
-                        categoryIdEq(categoryId),
-                        store.deletedAt.isNull()
+                        categoryIdIn(categoryId),
+                        store.softDeleteAudit.deletedAt.isNull(),
+                        store.region.isOrderEnabled,
+                        store.status.eq(StoreStatus.APPROVED)
                 )
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
@@ -63,12 +66,59 @@ public class StoreCustomRepositoryImpl implements StoreCustomRepository {
         Long total = queryFactory
                 .select(store.count())
                 .from(store)
-                .leftJoin(store.categories, storeCategory)
-                .leftJoin(storeCategory.category, category)
                 .where(
                         nameContains(name),
-                        categoryIdEq(categoryId),
-                        store.deletedAt.isNull()
+                        categoryIdIn(categoryId),
+                        store.softDeleteAudit.deletedAt.isNull(),
+                        store.region.isOrderEnabled,
+                        store.status.eq(StoreStatus.APPROVED)
+
+                )
+                .fetchOne();
+
+        return new PageImpl<>(fetch, pageable, total);
+    }
+
+    @Override
+    public Page<StoreAdminResDto> searchStoresAdmin(Pageable pageable, UUID categoryId, String name, Boolean isDeleted) {
+
+        List<StoreAdminResDto> fetch = queryFactory
+                .select(Projections.constructor(StoreAdminResDto.class,
+                                store.storeId,
+                                store.user.name,
+                                store.region.regionId,
+                                store.name,
+                                store.addressText,
+                                store.phone,
+                                store.description,
+                                store.isOpen,
+                                store.status.stringValue(),
+                                storeRating.ratingAvg.coalesce(BigDecimal.ZERO),
+                                storeRating.ratingCount.coalesce(0),
+                                store.createAudit.createdAt,
+                                store.updateAudit.updatedAt,
+                                store.softDeleteAudit.deletedAt
+                        )
+                )
+                .from(store)
+                .leftJoin(storeRating).on(storeRating.store.eq(store))
+                .where(
+                        nameContains(name),
+                        categoryIdIn(categoryId),
+                        isDeletedEq(isDeleted)
+                )
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .orderBy(getAllOrderSpecifiers(pageable).toArray(new OrderSpecifier[0]))
+                .fetch();
+
+        Long total = queryFactory
+                .select(store.count())
+                .from(store)
+                .where(
+                        nameContains(name),
+                        categoryIdIn(categoryId)
+
                 )
                 .fetchOne();
 
@@ -76,12 +126,15 @@ public class StoreCustomRepositoryImpl implements StoreCustomRepository {
     }
 
     private BooleanExpression nameContains(String name) {
-        return (name == null || name.isBlank()) ? null
-                : store.name.containsIgnoreCase(name);
+        return (name == null || name.isBlank()) ? null : store.name.containsIgnoreCase(name);
     }
 
-    private BooleanExpression categoryIdEq(UUID categoryId) {
-        return categoryId == null ? null : category.categoryId.eq(categoryId);
+    private BooleanExpression categoryIdIn(UUID categoryId) {
+        return categoryId == null ? null : store.categories.any().category.categoryId.eq(categoryId);
+    }
+
+    private BooleanExpression isDeletedEq(Boolean isDeleted) {
+        return isDeleted ? store.softDeleteAudit.deletedAt.isNotNull() : store.softDeleteAudit.deletedAt.isNull();
     }
 
     private List<OrderSpecifier<?>> getAllOrderSpecifiers(Pageable pageable) {
@@ -92,13 +145,11 @@ public class StoreCustomRepositoryImpl implements StoreCustomRepository {
                 Order direction = sortOrder.isAscending() ? Order.ASC : Order.DESC;
 
                 switch (sortOrder.getProperty()) {
-                    case "createdAt":
-                         orders.add(new OrderSpecifier<>(direction, store.createdAt));
-                        break;
                     case "name":
                         orders.add(new OrderSpecifier<>(direction, store.name));
                         break;
                     default:
+                        orders.add(new OrderSpecifier<>(direction, store.createAudit.createdAt));
                         break;
                 }
             }
