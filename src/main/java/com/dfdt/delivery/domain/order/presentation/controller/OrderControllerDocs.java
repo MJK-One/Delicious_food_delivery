@@ -56,7 +56,7 @@ public interface OrderControllerDocs {
                     @ExampleObject(name = "주문에 접근 권한 없음", value = OrderErrorDocs.ACCESS_DENIED)
             })),
             @ApiResponse(responseCode = "404", description = "찾을 수 없음", content = @Content(mediaType = "application/json", examples = {
-                    @ExampleObject(name = "판매 중지 상품 포함", value = OrderErrorDocs.ORDER_NOT_FOUND)
+                    @ExampleObject(name = "주문을 찾을 수 없음", value = OrderErrorDocs.ORDER_NOT_FOUND)
             }))
     })
     ResponseEntity<ApiResponseDto<OrderResDto.GetOrderDetailResponse>> getOrderDetail(
