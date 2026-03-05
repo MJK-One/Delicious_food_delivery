@@ -1,6 +1,7 @@
 package com.dfdt.delivery.domain.order.presentation.controller;
 
 import com.dfdt.delivery.common.response.ApiResponseDto;
+import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
 import com.dfdt.delivery.domain.order.application.service.query.OrderQueryService;
 import com.dfdt.delivery.domain.order.presentation.dto.OrderReqDto;
 import com.dfdt.delivery.domain.order.presentation.dto.OrderResDto;
@@ -8,7 +9,10 @@ import com.dfdt.delivery.domain.order.application.service.command.OrderCommandSe
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 
 @RestController
@@ -18,18 +22,17 @@ public class OrderController implements OrderControllerDocs {
     private final OrderCommandService orderCommandService;
     private final OrderQueryService orderQueryService;
 
-    // todo: AUTH로 바꾸기,UserDetail 생성 전까지 userId를 경로상에 포함시킵니다.
 
     // API-001 주문 생성하기
-    @PostMapping("/{user_id}")
+    @PostMapping()
     public ResponseEntity<ApiResponseDto<OrderResDto.OrderMutationResponse>> createOrder(
-            @PathVariable (value = "user_id") String userId,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @Valid @RequestBody  OrderReqDto.Create createDTO)
     {
         return ApiResponseDto.success(
                 201,
                 "주문이 생성되었습니다.",
-                null
+                orderCommandService.createOrder(customUserDetails.getUsername(),createDTO)
         );
     }
     // todo: AUTH로 바꾸기,UserDetail 생성 전까지 userId를 경로상에 포함시킵니다.
@@ -59,33 +62,31 @@ public class OrderController implements OrderControllerDocs {
                 null
         );
     }
-    // todo: AUTH로 바꾸기,UserDetail 생성 전까지 userId를 경로상에 포함시킵니다.
 
     // API-004 주문 수정하기
-    @PatchMapping("/{order_id}/{user_id}")
+    @PatchMapping("/{order_id}")
     public ResponseEntity<ApiResponseDto<OrderResDto.OrderMutationResponse>> updateOrder(
-            @PathVariable (value = "order_id") String orderId,
-            @PathVariable (value = "user_id") String  userId,
+            @PathVariable (value = "order_id") UUID orderId,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @Valid @RequestBody OrderReqDto.UpdateOrder updateDTO
     ) {
         return ApiResponseDto.success(
                 200,
                 "주문이 수정되었습니다.",
-                null
+                orderCommandService.updateOrder(customUserDetails.getUsername(),orderId,updateDTO)
         );
     }
-    // todo: AUTH로 바꾸기,UserDetail 생성 전까지 userId를 경로상에 포함시킵니다.
 
     // API-005 주문 삭제하기
-    @DeleteMapping("/{order_id}/{user_id}")
+    @DeleteMapping("/{order_id}")
     public ResponseEntity<ApiResponseDto<Void>> deleteOrder(
-            @PathVariable (value = "order_id") String orderId,
-            @PathVariable (value = "user_id") String  userId
+            @PathVariable (value = "order_id") UUID orderId,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails
     ) {
         return ApiResponseDto.success(
                 200,
                 "주문이 삭제되었습니다.",
-                null
+                orderCommandService.deleteOrder(customUserDetails.getUsername(),orderId)
         );
     }
     // todo: AUTH로 바꾸기,UserDetail 생성 전까지 userId를 경로상에 포함시킵니다.
