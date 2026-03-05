@@ -4,15 +4,13 @@ import com.dfdt.delivery.domain.product.domain.entity.Product;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Getter
-@NoArgsConstructor
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class ProductResDto {
+public class ProductUpdateResDto {
 
     private UUID productId;
     private String name;
@@ -21,10 +19,10 @@ public class ProductResDto {
     private Integer price;
     private Integer displayOrder;
     private Boolean isHidden;
-    private OffsetDateTime createdAt;
+    private OffsetDateTime updatedAt;
 
-    public static ProductResDto from(Product product) {
-        return new ProductResDto(
+    public static ProductUpdateResDto from(Product product) {
+        return new ProductUpdateResDto(
                 product.getProductId(),
                 product.getName(),
                 product.getDescription(),
@@ -32,7 +30,7 @@ public class ProductResDto {
                 product.getPrice(),
                 product.getDisplayOrder(),
                 product.getIsHidden(),
-                product.getCreateAudit().getCreatedAt()
+                product.getUpdateAudit().getUpdatedAt()
         );
     }
 }

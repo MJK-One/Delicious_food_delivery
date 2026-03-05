@@ -1,6 +1,8 @@
 package com.dfdt.delivery.domain.product.infrastructure.persistence.repository;
 
 import com.dfdt.delivery.domain.product.domain.repository.ProductCustomRepository;
+import com.dfdt.delivery.domain.product.presentation.dto.response.ProductAdminPageResDto;
+import com.dfdt.delivery.domain.product.presentation.dto.response.ProductAdminResDto;
 import com.dfdt.delivery.domain.product.presentation.dto.response.ProductResDto;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
@@ -29,17 +31,21 @@ public class ProductCustomRepositoryImpl implements ProductCustomRepository {
     @Override
     public Page<ProductResDto> searchProducts(Pageable pageable, UUID storeId, String keyword) {
         List<ProductResDto> content = queryFactory
-                .select(Projections.constructor(ProductResDto.class,
+                .select(Projections.fields(ProductResDto.class,
                         product.productId,
                         product.name,
                         product.description,
-                        product.price
+                        product.isAiDescription,
+                        product.price,
+                        product.displayOrder,
+                        product.isHidden,
+                        product.createAudit.createdAt
                 ))
                 .from(product)
                 .where(
                         storeIdEq(storeId),
                         nameContains(keyword),
-                        product.deletedAt.isNull(),
+                        product.softDeleteAudit.deletedAt.isNull(),
                         product.isHidden.isFalse()
                 )
                 .offset(pageable.getOffset())
@@ -53,8 +59,47 @@ public class ProductCustomRepositoryImpl implements ProductCustomRepository {
                 .where(
                         storeIdEq(storeId),
                         nameContains(keyword),
-                        product.deletedAt.isNull(),
+                        product.softDeleteAudit.deletedAt.isNull(),
                         product.isHidden.isFalse()
+                )
+                .fetchOne();
+
+        return new PageImpl<>(content, pageable, total == null ? 0 : total);
+    }
+
+    @Override
+    public Page<ProductAdminResDto> searchAdminProducts(Pageable pageable, UUID storeId, String keyword, Boolean isDeleted) {
+        List<ProductAdminResDto> content = queryFactory
+                .select(Projections.fields(ProductAdminResDto.class,
+                        product.productId,
+                        product.name,
+                        product.description,
+                        product.isAiDescription,
+                        product.price,
+                        product.displayOrder,
+                        product.isHidden,
+                        product.createAudit.createdAt,
+                        product.updateAudit.updatedAt,
+                        product.softDeleteAudit.deletedAt
+                ))
+                .from(product)
+                .where(
+                        storeIdEq(storeId),
+                        nameContains(keyword),
+                        isDeletedEq(isDeleted)
+                )
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .orderBy(getAllOrderSpecifiers(pageable).toArray(new OrderSpecifier[0]))
+                .fetch();
+
+        Long total = queryFactory
+                .select(product.count())
+                .from(product)
+                .where(
+                        storeIdEq(storeId),
+                        nameContains(keyword),
+                        isDeletedEq(isDeleted)
                 )
                 .fetchOne();
 
@@ -69,6 +114,10 @@ public class ProductCustomRepositoryImpl implements ProductCustomRepository {
         return (keyword == null || keyword.isBlank()) ? null : product.name.containsIgnoreCase(keyword);
     }
 
+    private BooleanExpression isDeletedEq(Boolean isDeleted) {
+        return isDeleted ? product.softDeleteAudit.deletedAt.isNotNull() : product.softDeleteAudit.deletedAt.isNull();
+    }
+
     private List<OrderSpecifier<?>> getAllOrderSpecifiers(Pageable pageable) {
         List<OrderSpecifier<?>> orders = new ArrayList<>();
 
@@ -78,7 +127,7 @@ public class ProductCustomRepositoryImpl implements ProductCustomRepository {
 
                 switch (sortOrder.getProperty()) {
                     case "createdAt":
-                        orders.add(new OrderSpecifier<>(direction, product.createdAt));
+                        orders.add(new OrderSpecifier<>(direction, product.createAudit.createdAt));
                         break;
                     case "name":
                         orders.add(new OrderSpecifier<>(direction, product.name));
