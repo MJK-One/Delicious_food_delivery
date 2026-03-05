@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
  * 회원가입, 내 정보 관리, 관리자용 유저 권한 변경 기능을 제공합니다.
  */
 @RestController
-@RequestMapping("/api/v1/users")
+@RequestMapping("/users")
 @RequiredArgsConstructor
 public class UserController {
 
