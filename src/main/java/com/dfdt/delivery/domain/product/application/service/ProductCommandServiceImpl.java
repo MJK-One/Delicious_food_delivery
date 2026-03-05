@@ -2,13 +2,12 @@ package com.dfdt.delivery.domain.product.application.service;
 
 import com.dfdt.delivery.common.exception.BusinessException;
 import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
+import com.dfdt.delivery.domain.product.application.command.ProductCommandService;
 import com.dfdt.delivery.domain.product.domain.entity.Product;
 import com.dfdt.delivery.domain.product.domain.enums.ProductErrorCode;
-import com.dfdt.delivery.domain.product.domain.repository.ProductCustomRepository;
 import com.dfdt.delivery.domain.product.domain.repository.ProductRepository;
 import com.dfdt.delivery.domain.product.presentation.dto.request.ProductCreateReqDto;
 import com.dfdt.delivery.domain.product.presentation.dto.request.ProductUpdateReqDto;
-import com.dfdt.delivery.domain.product.presentation.dto.response.ProductAdminResDto;
 import com.dfdt.delivery.domain.product.presentation.dto.response.ProductResDto;
 import com.dfdt.delivery.domain.product.presentation.dto.response.ProductUpdateResDto;
 import com.dfdt.delivery.domain.store.domain.entity.Store;
@@ -16,10 +15,6 @@ import com.dfdt.delivery.domain.store.domain.enums.StoreErrorCode;
 import com.dfdt.delivery.domain.store.domain.repository.StoreRepository;
 import com.dfdt.delivery.domain.user.domain.enums.UserRole;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,47 +23,10 @@ import java.util.UUID;
 @Service
 @Transactional
 @RequiredArgsConstructor
-public class ProductService {
+public class ProductCommandServiceImpl implements ProductCommandService {
 
     private final ProductRepository productRepository;
-    private final ProductCustomRepository productCustomRepository;
     private final StoreRepository storeRepository;
-
-    @Transactional(readOnly = true)
-    public ProductResDto getProduct(UUID storeId, UUID productId) {
-        checkExistStore(storeId);
-        Product product = checkExistProduct(storeId, productId);
-
-        return ProductResDto.from(product);
-    }
-
-    @Transactional(readOnly = true)
-    public Page<ProductResDto> getProducts(UUID storeId, int page, int size, String sortBy, boolean isAsc, String keyword) {
-        Sort.Direction direction = isAsc ? Sort.Direction.ASC : Sort.Direction.DESC;
-        Sort sort = Sort.by(direction, sortBy);
-        Pageable pageable = PageRequest.of(page, size, sort);
-
-        Page<ProductResDto> productResDto = productCustomRepository.searchProducts(pageable, storeId, keyword);
-        if (productResDto.getTotalElements() == 0) {
-            throw new BusinessException(ProductErrorCode.NOT_FOUND_PRODUCTS);
-        }
-
-        return productResDto;
-    }
-
-    @Transactional(readOnly = true)
-    public Page<ProductAdminResDto> getProductsAdmin(UUID storeId, int page, int size, String sortBy, boolean isAsc, String keyword, Boolean isDeleted) {
-        Sort.Direction direction = isAsc ? Sort.Direction.ASC : Sort.Direction.DESC;
-        Sort sort = Sort.by(direction, sortBy);
-        Pageable pageable = PageRequest.of(page, size, sort);
-
-        Page<ProductAdminResDto> productResDto = productCustomRepository.searchAdminProducts(pageable, storeId, keyword, isDeleted);
-        if (productResDto.getTotalElements() == 0) {
-            throw new BusinessException(ProductErrorCode.NOT_FOUND_PRODUCTS);
-        }
-
-        return productResDto;
-    }
 
     public ProductResDto createProduct(UUID storeId, ProductCreateReqDto request, CustomUserDetails userDetails) {
         Store store = checkExistStore(storeId);

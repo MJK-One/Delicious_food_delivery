@@ -2,7 +2,8 @@ package com.dfdt.delivery.domain.product.presentation.controller;
 
 import com.dfdt.delivery.common.response.ApiResponseDto;
 import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
-import com.dfdt.delivery.domain.product.application.service.ProductService;
+import com.dfdt.delivery.domain.product.application.command.ProductCommandService;
+import com.dfdt.delivery.domain.product.application.query.ProductQueryService;
 import com.dfdt.delivery.domain.product.presentation.dto.request.ProductCreateReqDto;
 import com.dfdt.delivery.domain.product.presentation.dto.request.ProductUpdateReqDto;
 import com.dfdt.delivery.domain.product.presentation.dto.response.*;
@@ -22,7 +23,8 @@ import java.util.UUID;
 @RequestMapping("/stores/{storeId}/products")
 public class ProductController implements ProductControllerDocs{
 
-    private final ProductService productService;
+    private final ProductQueryService productQueryService;
+    private final ProductCommandService productCommandService;
 
     /**
      * 메뉴 단일 조회
@@ -30,7 +32,7 @@ public class ProductController implements ProductControllerDocs{
      */
     @GetMapping("/{productId}")
     public ResponseEntity<ApiResponseDto<ProductResDto>> getProduct(@PathVariable("storeId") UUID storeId, @PathVariable("productId") UUID productId) {
-        ProductResDto product = productService.getProduct(storeId, productId);
+        ProductResDto product = productQueryService.getProduct(storeId, productId);
 
         return ApiResponseDto.success(
                 HttpStatus.OK.value(),
@@ -52,7 +54,7 @@ public class ProductController implements ProductControllerDocs{
             @RequestParam(value = "isAsc", defaultValue = "true") boolean isAsc,
             @RequestParam(value = "keyword", required = false) String keyword
     ) {
-        Page<ProductResDto> products = productService.getProducts(storeId, page, size, sortBy, isAsc, keyword);
+        Page<ProductResDto> products = productQueryService.getProducts(storeId, page, size, sortBy, isAsc, keyword);
         ProductPageResDto response = ProductPageResDto.from(products);
 
         return ApiResponseDto.success(
@@ -76,7 +78,7 @@ public class ProductController implements ProductControllerDocs{
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "isDeleted", defaultValue = "false") Boolean isDeleted
     ) {
-        Page<ProductAdminResDto> products = productService.getProductsAdmin(storeId, page, size, sortBy, isAsc, keyword, isDeleted);
+        Page<ProductAdminResDto> products = productQueryService.getProductsAdmin(storeId, page, size, sortBy, isAsc, keyword, isDeleted);
         ProductAdminPageResDto response = ProductAdminPageResDto.from(products);
 
         return ApiResponseDto.success(
@@ -94,7 +96,7 @@ public class ProductController implements ProductControllerDocs{
     @PostMapping
     public ResponseEntity<ApiResponseDto<ProductResDto>> createProduct(@PathVariable("storeId") UUID storeId, @Valid @RequestBody ProductCreateReqDto request,
                                                                        @AuthenticationPrincipal CustomUserDetails userDetails) {
-        ProductResDto created = productService.createProduct(storeId, request, userDetails);
+        ProductResDto created = productCommandService.createProduct(storeId, request, userDetails);
 
         return ApiResponseDto.success(
                 HttpStatus.CREATED.value(),
@@ -115,7 +117,7 @@ public class ProductController implements ProductControllerDocs{
             @Valid @RequestBody ProductUpdateReqDto request,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        ProductUpdateResDto updated = productService.updateProduct(storeId, productId, request, userDetails);
+        ProductUpdateResDto updated = productCommandService.updateProduct(storeId, productId, request, userDetails);
 
         return ApiResponseDto.success(
                 HttpStatus.OK.value(),
@@ -132,7 +134,7 @@ public class ProductController implements ProductControllerDocs{
     @DeleteMapping("/{productId}")
     public ResponseEntity<ApiResponseDto<Object>> deleteProduct(@PathVariable("storeId") UUID storeId, @PathVariable("productId") UUID productId,
                                                                 @AuthenticationPrincipal CustomUserDetails userDetails) {
-        productService.deleteProduct(storeId, productId, userDetails);
+        productCommandService.deleteProduct(storeId, productId, userDetails);
 
         return ApiResponseDto.success(
                 HttpStatus.OK.value(),
@@ -149,7 +151,7 @@ public class ProductController implements ProductControllerDocs{
     @PatchMapping("/{productId}/sold-out")
     public ResponseEntity<ApiResponseDto<Object>> soleOut(@PathVariable("storeId") UUID storeId, @PathVariable("productId") UUID productId,
                                                           @AuthenticationPrincipal CustomUserDetails userDetails) {
-        productService.soleOut(storeId, productId, userDetails);
+        productCommandService.soleOut(storeId, productId, userDetails);
 
         return ApiResponseDto.success(
                 HttpStatus.OK.value(),
@@ -166,7 +168,7 @@ public class ProductController implements ProductControllerDocs{
     @PatchMapping("/{productId}/restore")
     public ResponseEntity<ApiResponseDto<Object>> restoreProduct(@PathVariable("storeId") UUID storeId, @PathVariable("productId") UUID productId,
                                                                  @AuthenticationPrincipal CustomUserDetails userDetails) {
-        productService.restoreProduct(storeId, productId, userDetails);
+        productCommandService.restoreProduct(storeId, productId, userDetails);
 
         return ApiResponseDto.success(
                 HttpStatus.OK.value(),
