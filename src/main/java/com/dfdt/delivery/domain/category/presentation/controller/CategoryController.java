@@ -2,7 +2,8 @@ package com.dfdt.delivery.domain.category.presentation.controller;
 
 import com.dfdt.delivery.common.response.ApiResponseDto;
 import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
-import com.dfdt.delivery.domain.category.application.service.CategoryService;
+import com.dfdt.delivery.domain.category.application.service.command.CategoryCommandService;
+import com.dfdt.delivery.domain.category.application.service.query.CategoryQueryService;
 import com.dfdt.delivery.domain.category.presentation.dto.request.CategoryCreateReqDto;
 import com.dfdt.delivery.domain.category.presentation.dto.request.CategoryUpdateReqDto;
 import com.dfdt.delivery.domain.category.presentation.dto.response.CategoryAdminResDto;
@@ -27,7 +28,8 @@ import java.util.UUID;
 @RequestMapping("/categories")
 public class CategoryController implements CategoryControllerDocs{
 
-    private final CategoryService categoryService;
+    private final CategoryQueryService categoryQueryService;
+    private final CategoryCommandService categoryCommandService;
 
     /**
      * 카테고리 단일 조회
@@ -35,7 +37,7 @@ public class CategoryController implements CategoryControllerDocs{
      */
     @GetMapping("/{categoryId}")
     public ResponseEntity<ApiResponseDto<CategoryResDto>> getCategory(@PathVariable("categoryId") UUID categoryId) {
-        CategoryResDto categories = categoryService.getCategory(categoryId);
+        CategoryResDto categories = categoryQueryService.getCategory(categoryId);
 
         return ApiResponseDto.success(
                 HttpStatus.OK.value(),
@@ -48,10 +50,9 @@ public class CategoryController implements CategoryControllerDocs{
      * 카테고리 조회
      * GET /api/v1/categories
      */
-//    @Operation(summary = "카테고리 조회",description = "카테고리 목록을 조회합니다.")
     @GetMapping()
     public ResponseEntity<ApiResponseDto<List<CategoryResDto>>> getCategories() {
-        List<CategoryResDto> categories = categoryService.getCategories();
+        List<CategoryResDto> categories = categoryQueryService.getCategories();
 
         return ApiResponseDto.success(
                 HttpStatus.OK.value(),
@@ -75,7 +76,7 @@ public class CategoryController implements CategoryControllerDocs{
             @RequestParam(value = "name", required = false) String name,
             @RequestParam(value = "isDeleted", defaultValue = "false") Boolean isDeleted
     ) {
-        Page<CategoryAdminResDto> categories = categoryService.getCategoriesAdmin(page, size, sortBy, isAsc, name, isDeleted);
+        Page<CategoryAdminResDto> categories = categoryQueryService.getCategoriesAdmin(page, size, sortBy, isAsc, name, isDeleted);
         CategoryPageResDto response = new CategoryPageResDto(categories);
 
         return ApiResponseDto.success(
@@ -92,7 +93,7 @@ public class CategoryController implements CategoryControllerDocs{
     @PreAuthorize("hasRole('MASTER')")
     @PostMapping()
     public ResponseEntity<ApiResponseDto<CategoryResDto>> createCategory(@Valid @RequestBody CategoryCreateReqDto request, @AuthenticationPrincipal CustomUserDetails userDetails) {
-        CategoryResDto createdCategory = categoryService.createCategory(request, userDetails);
+        CategoryResDto createdCategory = categoryCommandService.createCategory(request, userDetails);
 
         return ApiResponseDto.success(
                 HttpStatus.CREATED.value(),
@@ -109,7 +110,7 @@ public class CategoryController implements CategoryControllerDocs{
     @PutMapping("/{categoryId}")
     public ResponseEntity<ApiResponseDto<CategoryUpdateResDto>> updateCategory(@PathVariable("categoryId") UUID categoryId, @Valid @RequestBody CategoryUpdateReqDto request,
                                                                                @AuthenticationPrincipal CustomUserDetails userDetails) {
-        CategoryUpdateResDto updated = categoryService.updateCategory(categoryId, request, userDetails);
+        CategoryUpdateResDto updated = categoryCommandService.updateCategory(categoryId, request, userDetails);
 
         return ApiResponseDto.success(
                 HttpStatus.OK.value(),
@@ -125,7 +126,7 @@ public class CategoryController implements CategoryControllerDocs{
     @PreAuthorize("hasRole('MASTER')")
     @DeleteMapping("/{categoryId}")
     public ResponseEntity<ApiResponseDto<Object>> deleteCategory(@PathVariable("categoryId") UUID categoryId, @AuthenticationPrincipal CustomUserDetails userDetails) {
-        categoryService.deleteCategory(categoryId, userDetails);
+        categoryCommandService.deleteCategory(categoryId, userDetails);
 
         return ApiResponseDto.success(
                 HttpStatus.OK.value(),
@@ -141,7 +142,7 @@ public class CategoryController implements CategoryControllerDocs{
     @PreAuthorize("hasRole('MASTER')")
     @PatchMapping("/{categoryId}/restore")
     public ResponseEntity<ApiResponseDto<Object>> restoreCategory(@PathVariable("categoryId") UUID categoryId, @AuthenticationPrincipal CustomUserDetails userDetails) {
-        categoryService.restoreCategory(categoryId, userDetails);
+        categoryCommandService.restoreCategory(categoryId, userDetails);
 
         return ApiResponseDto.success(
                 HttpStatus.OK.value(),
