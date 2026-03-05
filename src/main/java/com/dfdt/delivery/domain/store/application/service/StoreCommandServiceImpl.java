@@ -4,7 +4,7 @@ import com.dfdt.delivery.common.exception.BusinessException;
 import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
 import com.dfdt.delivery.domain.category.domain.entity.Category;
 import com.dfdt.delivery.domain.category.domain.enums.CategoryErrorCode;
-import com.dfdt.delivery.domain.category.domain.repository.CategoryRepository;
+import com.dfdt.delivery.domain.category.domain.repository.JpaCategoryRepository;
 import com.dfdt.delivery.domain.region.domain.entity.Region;
 import com.dfdt.delivery.domain.region.domain.enums.RegionErrorCode;
 import com.dfdt.delivery.domain.region.domain.repository.RegionRepository;
@@ -39,7 +39,7 @@ import java.util.UUID;
 public class StoreCommandServiceImpl implements StoreCommandService {
 
     private final JpaStoreRepository storeRepository;
-    private final CategoryRepository categoryRepository;
+    private final JpaCategoryRepository categoryRepository;
     private final StoreCategoryRepository storeCategoryRepository;
     private final RegionRepository regionRepository;
     private final UserRepository userRepository;

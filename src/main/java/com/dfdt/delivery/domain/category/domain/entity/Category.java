@@ -51,7 +51,13 @@ public class Category {
     private List<StoreCategory> stores = new ArrayList<>();
 
     public static Category create(CategoryCreateReqDto request, int maxOrder, String username) {
-        return null;
+        return Category.builder()
+                .name(request.getName())
+                .description(request.getDescription())
+                .sortOrder(maxOrder)
+                .isActive(request.getIsActive())
+                .createAudit(CreateAudit.now(username))
+                .build();
     }
 
     public void update(CategoryUpdateReqDto request, String username) {
@@ -59,13 +65,11 @@ public class Category {
         this.description = request.getDescription();
         this.sortOrder = request.getSortOrder();
         this.isActive = request.getIsActive();
-        this.updateAudit = UpdateAudit.empty();
-        this.updateAudit.touch(username);
+        makeUpdateAudit(username);
     }
 
     public void delete(String username) {
-        this.updateAudit = UpdateAudit.empty();
-        this.updateAudit.touch(username);
+        makeUpdateAudit(username);
         this.softDeleteAudit = SoftDeleteAudit.active();
         this.softDeleteAudit.softDelete(username);
     }
@@ -73,6 +77,10 @@ public class Category {
     public void restore(int maxSortOrder, String username) {
         this.sortOrder = maxSortOrder;
         this.softDeleteAudit.restore();
+        makeUpdateAudit(username);
+    }
+
+    private void makeUpdateAudit(String username) {
         this.updateAudit = UpdateAudit.empty();
         this.updateAudit.touch(username);
     }
