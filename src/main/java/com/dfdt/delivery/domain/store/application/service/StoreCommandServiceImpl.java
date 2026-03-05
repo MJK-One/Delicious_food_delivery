@@ -13,8 +13,8 @@ import com.dfdt.delivery.domain.store.domain.entity.Store;
 import com.dfdt.delivery.domain.store.domain.entity.StoreCategory;
 import com.dfdt.delivery.domain.store.domain.enums.StoreErrorCode;
 import com.dfdt.delivery.domain.store.domain.enums.StoreStatus;
+import com.dfdt.delivery.domain.store.domain.repository.JpaStoreRepository;
 import com.dfdt.delivery.domain.store.domain.repository.StoreCategoryRepository;
-import com.dfdt.delivery.domain.store.domain.repository.StoreRepository;
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreCreateReqDto;
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreStatusReqDto;
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreUpdateReqDto;
@@ -38,7 +38,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class StoreCommandServiceImpl implements StoreCommandService {
 
-    private final StoreRepository storeRepository;
+    private final JpaStoreRepository storeRepository;
     private final CategoryRepository categoryRepository;
     private final StoreCategoryRepository storeCategoryRepository;
     private final RegionRepository regionRepository;

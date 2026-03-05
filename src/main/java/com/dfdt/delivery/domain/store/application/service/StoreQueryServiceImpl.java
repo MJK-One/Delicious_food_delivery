@@ -6,9 +6,9 @@ import com.dfdt.delivery.domain.store.domain.entity.Store;
 import com.dfdt.delivery.domain.store.domain.entity.StoreRating;
 import com.dfdt.delivery.domain.store.domain.enums.StoreErrorCode;
 import com.dfdt.delivery.domain.store.domain.enums.StoreStatus;
+import com.dfdt.delivery.domain.store.domain.repository.JpaStoreRepository;
 import com.dfdt.delivery.domain.store.domain.repository.StoreCustomRepository;
 import com.dfdt.delivery.domain.store.domain.repository.StoreRatingRepository;
-import com.dfdt.delivery.domain.store.domain.repository.StoreRepository;
 import com.dfdt.delivery.domain.store.presentation.dto.response.StoreAdminResDto;
 import com.dfdt.delivery.domain.store.presentation.dto.response.StoreResDto;
 import com.dfdt.delivery.domain.store.presentation.dto.response.StoreStatusRequestResDto;
@@ -27,7 +27,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class StoreQueryServiceImpl implements StoreQueryService {
 
-    private final StoreRepository storeRepository;
+    private final JpaStoreRepository storeRepository;
     private final StoreCustomRepository storeCustomRepository;
     private final StoreRatingRepository storeRatingRepository;
 
