@@ -1,6 +1,7 @@
 package com.dfdt.delivery.domain.order.presentation.dto;
 
 import com.dfdt.delivery.domain.order.domain.enums.OrderStatus;
+import com.dfdt.delivery.domain.payment.domain.enums.PaymentMethod;
 import jakarta.validation.constraints.*;
 import org.hibernate.validator.constraints.Length;
 
@@ -16,7 +17,9 @@ public class OrderReqDto {
             @NotEmpty(message = "하나 이상의 상품이 들어있어야 합니다.")
             List<OrderItem> orderItems,
             @Length(max = 255,message = "최대 255자 입니다.")
-            String requestMemo
+            String requestMemo,
+            @NotNull
+            PaymentMethod paymentMethod
     ){}
     public record OrderItem(
             @NotNull(message = "상품 아이디가 입력되지 않았습니다.")

@@ -11,6 +11,7 @@ import com.dfdt.delivery.domain.order.domain.repository.OrderCacheManager;
 import com.dfdt.delivery.domain.order.domain.repository.OrderRepository;
 import com.dfdt.delivery.domain.order.presentation.dto.OrderReqDto;
 import com.dfdt.delivery.domain.order.presentation.dto.OrderResDto;
+import com.dfdt.delivery.domain.payment.application.service.command.PaymentCommandService;
 import com.dfdt.delivery.domain.product.domain.entity.Product;
 import com.dfdt.delivery.domain.store.domain.entity.Store;
 import com.dfdt.delivery.domain.user.domain.entity.User;
@@ -28,6 +29,7 @@ public class OrderCommandServiceImpl implements OrderCommandService {
     private final OrderRepository orderRepository;
     private final OrderPreConditionChecker orderPreConditionChecker;
     private final OrderDataFinder orderDataFinder;
+    private final PaymentCommandService paymentCommandService;
 
 
     @Transactional
@@ -54,6 +56,8 @@ public class OrderCommandServiceImpl implements OrderCommandService {
         }
         // DB 저장
         Order savedOrder = orderRepository.save(order);
+        // 결제 생성 로직 넣기
+        paymentCommandService.createPayment(null);
         // Redis TTL 설정하여 결제 대기 시간 제한
         orderCacheManager.setPaymentTimeout(savedOrder.getOrderId(), Duration.ofMinutes(5));
         // 응답 반환
@@ -117,5 +121,24 @@ public class OrderCommandServiceImpl implements OrderCommandService {
             order.updateStatus(OrderStatus.HIDDEN,"주문 목록에서 제거");
         order.deleteOrder(user.getName());
         return null;
+    }
+
+    @Transactional
+    @Override
+    public OrderResDto.OrderMutationResponse updateOrderStatus(String username, UUID orderId, OrderReqDto.UpdateStatus updateStatusDTO) {
+
+        // 정보 가져오기
+        Order order = orderDataFinder.findOrder(orderId);
+        User user = orderDataFinder.findUser(username);
+
+        // 전체 권한 체크
+        orderPreConditionChecker.authoriseOrder(order,user);
+        orderPreConditionChecker.validateStatusUpdatable(user,order,updateStatusDTO.orderStatus());
+
+        // 권한 수정
+        order.updateStatus(updateStatusDTO.orderStatus(), updateStatusDTO.changedReason());
+        Order saveOrder = orderRepository.save(order);
+
+        return OrderConverter.toMutationResponse(saveOrder);
     }
 }

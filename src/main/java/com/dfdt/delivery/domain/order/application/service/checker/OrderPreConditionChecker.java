@@ -11,6 +11,8 @@ import com.dfdt.delivery.domain.user.domain.entity.User;
 import com.dfdt.delivery.domain.user.domain.enums.UserRole;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
+
 @Component
 public class OrderPreConditionChecker {
 
@@ -33,7 +35,8 @@ public class OrderPreConditionChecker {
     public void authoriseOrder(Order order, User user) {
         // 1. 고객인 경우: 본인 주문만 접근 가능
         if (user.getRole() == UserRole.CUSTOMER) {
-            if (!order.getUser().getUsername().equals(user.getUsername())) {
+            System.out.println(order.getUser().getUsername()+ user.getUsername());
+            if (!Objects.equals(order.getUser().getUsername(), user.getUsername())) {
                 throw new BusinessException(OrderErrorCode.ACCESS_DENIED);
             }
         }
@@ -74,6 +77,31 @@ public class OrderPreConditionChecker {
         if (user.getRole() == UserRole.CUSTOMER) {
             authoriseOrder(order, user);
         }
-       throw new BusinessException(OrderErrorCode.ACCESS_DENIED);
+       else throw new BusinessException(OrderErrorCode.ACCESS_DENIED);
+    }
+
+    public void validateStatusUpdatable(User user, Order order,OrderStatus toStatus) {
+        OrderStatus nowStatus = order.getStatus();
+        if (user.getRole() == UserRole.CUSTOMER)
+        {
+            throw new BusinessException(OrderErrorCode.ACCESS_DENIED);
+        }
+        // 결제 상태가 아니라면 바꿀 수 없음
+        if (nowStatus==OrderStatus.PENDING)
+        {
+            throw new BusinessException(OrderErrorCode.PAYMENT_REQUIRED);
+        }
+        // 이미 삭제 되었거나 완료되었으면
+        if (nowStatus == OrderStatus.COMPLETED
+                || nowStatus == OrderStatus.CANCELED
+                || nowStatus == OrderStatus.HIDDEN)
+            throw new BusinessException(OrderErrorCode.ACCESS_DENIED);
+
+        // 같은 상태로는 못 바꾸고 이미 처리된 주문에 대해서는 못 바꿈
+        if (order.getStatus() == toStatus || isProcessing(order) && toStatus == OrderStatus.REJECTED)
+        {
+            throw  new BusinessException(OrderErrorCode.ALREADY_PROCESSED);
+        }
+
     }
 }
