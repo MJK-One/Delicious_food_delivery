@@ -20,6 +20,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * 모든 요청에서 JWT 토큰을 추출하고 유효성을 검증하여 Spring Security 인증 정보를 설정하는 필터.
+ * 중복 로그인 방지 로직과 블랙리스트 확인 로직을 포함.
+ */
 @Slf4j
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -32,31 +36,33 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
+        // 요청 헤더에서 JWT 토큰을 추출.
         String token = jwtProvider.resolveToken(request.getHeader(JwtProvider.AUTHORIZATION_HEADER));
 
         if (StringUtils.hasText(token)) {
-            // 1. 블랙리스트 확인 (로그아웃 된 토큰인지)
+            // 블랙리스트 확인: 사용자가 로그아웃한 토큰인지 Redis에서 조회.
             if (redisService.hasKey("blacklist:" + token)) {
                 log.warn("Blacklisted token accessed: {}", token);
                 filterChain.doFilter(request, response);
                 return;
             }
 
-            // 2. JWT 유효성 및 만료 확인
+            // JWT 유효성 및 만료 기간 확인: 기술적으로 유효한 토큰인지 검증.
             if (!jwtProvider.validateToken(token)) {
                 log.error("Token validation failed");
                 filterChain.doFilter(request, response);
                 return;
             }
 
+            // 사용자 정보 추출: 토큰 내부의 Claims에서 username(Subject)을 가져옵니다.
             Claims info = jwtProvider.getUserInfoFromToken(token);
             String username = info.getSubject();
 
-            // 3. 중복 로그인 확인 (Redis에 저장된 최신 활성 토큰과 일치하는지)
+            // 중복 로그인 확인 (Active Token 체크)
             String activeToken = (String) redisService.getData("active_token:" + username);
             if (activeToken != null && !activeToken.equals(token)) {
                 log.warn("Duplicate login detected for user: {}. Current token is outdated.", username);
-                throw new JwtException(AuthErrorCode.DUPLICATE_LOGIN.name());
+                throw new JwtException(AuthErrorCode.TOKEN_VERSION_MISMATCH.name());
             }
 
             setAuthentication(username);
@@ -65,6 +71,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
+    /**
+     * Spring Security의 ContextHolder에 인증 객체를 담는다.
+     * 비즈니스 로직(Controller 등)에서 @AuthenticationPrincipal을 사용.
+     * @param username 인증된 사용자의 아이디
+     */
     public void setAuthentication(String username) {
         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
         Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
