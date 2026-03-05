@@ -81,24 +81,33 @@ public class StoreCustomRepositoryImpl implements StoreCustomRepository {
     }
 
     @Override
-    public Page<StoreStatusRequestResDto> searchRequestStores(Pageable pageable, StoreStatus requested) {
+    public Page<StoreAdminResDto> searchStoresAdmin(Pageable pageable, UUID categoryId, String name, Boolean isDeleted) {
 
-        List<StoreStatusRequestResDto> fetch = queryFactory
-                .select(Projections.fields(StoreStatusRequestResDto.class,
+        List<StoreAdminResDto> fetch = queryFactory
+                .select(Projections.constructor(StoreAdminResDto.class,
                                 store.storeId,
+                                store.user.name,
                                 store.region.regionId,
-                                store.user.name.as("ownerName"),
                                 store.name,
-                                store.description,
-                                store.phone,
                                 store.addressText,
+                                store.phone,
+                                store.description,
                                 store.isOpen,
-                                store.status,
-                                store.createAudit.createdAt
+                                store.status.stringValue(),
+                                storeRating.ratingAvg.coalesce(BigDecimal.ZERO),
+                                storeRating.ratingCount.coalesce(0),
+                                store.createAudit.createdAt,
+                                store.updateAudit.updatedAt,
+                                store.softDeleteAudit.deletedAt
                         )
                 )
                 .from(store)
-                .where(store.status.eq(StoreStatus.REQUESTED))
+                .leftJoin(storeRating).on(storeRating.store.eq(store))
+                .where(
+                        nameContains(name),
+                        categoryIdIn(categoryId),
+                        isDeletedEq(isDeleted)
+                )
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .orderBy(getAllOrderSpecifiers(pageable).toArray(new OrderSpecifier[0]))
@@ -107,7 +116,12 @@ public class StoreCustomRepositoryImpl implements StoreCustomRepository {
         Long total = queryFactory
                 .select(store.count())
                 .from(store)
-                .where(store.status.eq(StoreStatus.REQUESTED))
+                .leftJoin(storeRating).on(storeRating.store.eq(store))
+                .where(
+                        nameContains(name),
+                        categoryIdIn(categoryId),
+                        isDeletedEq(isDeleted)
+                )
                 .fetchOne();
 
         return new PageImpl<>(fetch, pageable, total);

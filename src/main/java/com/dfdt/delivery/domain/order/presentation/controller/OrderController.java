@@ -35,12 +35,11 @@ public class OrderController implements OrderControllerDocs {
                 orderCommandService.createOrder(customUserDetails.getUsername(),createDTO)
         );
     }
-    // todo: AUTH로 바꾸기,UserDetail 생성 전까지 userId를 경로상에 포함시킵니다.
 
     // API-002 사용자의 주문 목록 조회
-    @GetMapping("/{user_id}")
+    @GetMapping()
     public ResponseEntity<ApiResponseDto<OrderResDto.CustomerOrderResponse>> getOrders(
-            @PathVariable (value = "user_id") String userId
+            @AuthenticationPrincipal CustomUserDetails customUserDetails
     ){
         return ApiResponseDto.success(
                 200,
@@ -48,13 +47,12 @@ public class OrderController implements OrderControllerDocs {
                 null
         );
     }
-    // todo: AUTH로 바꾸기,UserDetail 생성 전까지 userId를 경로상에 포함시킵니다.
 
     // API-003 주문 상세 조회
-    @GetMapping("/{order_id}/{user_id}")
+    @GetMapping("/{orderId}")
     public ResponseEntity<ApiResponseDto<OrderResDto.GetOrderDetailResponse>> getOrderDetail(
-            @PathVariable (value = "order_id") String orderId,
-            @PathVariable (value = "user_id") String  userId
+            @PathVariable (value = "orderId") UUID orderId,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails
     ){
         return ApiResponseDto.success(
                 200,
@@ -64,9 +62,9 @@ public class OrderController implements OrderControllerDocs {
     }
 
     // API-004 주문 수정하기
-    @PatchMapping("/{order_id}")
+    @PatchMapping("/{orderId}")
     public ResponseEntity<ApiResponseDto<OrderResDto.OrderMutationResponse>> updateOrder(
-            @PathVariable (value = "order_id") UUID orderId,
+            @PathVariable (value = "orderId") UUID orderId,
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @Valid @RequestBody OrderReqDto.UpdateOrder updateDTO
     ) {
@@ -78,9 +76,9 @@ public class OrderController implements OrderControllerDocs {
     }
 
     // API-005 주문 삭제하기
-    @DeleteMapping("/{order_id}")
+    @DeleteMapping("/{orderId}")
     public ResponseEntity<ApiResponseDto<Void>> deleteOrder(
-            @PathVariable (value = "order_id") UUID orderId,
+            @PathVariable (value = "orderId") UUID orderId,
             @AuthenticationPrincipal CustomUserDetails customUserDetails
     ) {
         return ApiResponseDto.success(
@@ -89,27 +87,25 @@ public class OrderController implements OrderControllerDocs {
                 orderCommandService.deleteOrder(customUserDetails.getUsername(),orderId)
         );
     }
-    // todo: AUTH로 바꾸기,UserDetail 생성 전까지 userId를 경로상에 포함시킵니다.
 
     // API-006 주문 상태 변경하기
-    @PatchMapping("/{order_id}/status/{user_id}")
+    @PatchMapping("/{orderId}/status")
     public ResponseEntity<ApiResponseDto<OrderResDto.OrderMutationResponse>> updateOrderStatus(
-            @PathVariable (value = "order_id") String orderId,
-            @PathVariable (value = "user_id") String  userId,
+            @PathVariable (value = "orderId") UUID orderId,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @Valid @RequestBody OrderReqDto.UpdateStatus updateStatusDTO
     ) {
         return ApiResponseDto.success(
                 200,
                 "주문 상태가 성공적으로 변경되었습니다.",
-                null
+                orderCommandService.updateOrderStatus(customUserDetails.getUsername(),orderId,updateStatusDTO)
         );
     }
-    // todo: AUTH로 바꾸기,UserDetail 생성 전까지 userId를 경로상에 포함시킵니다.
 
     // API-007 가게의 주문 목록 조회하기 ( 상태별 )
-    @GetMapping("/store/{store_id}")
+    @GetMapping("/store/{storeId}")
     public ResponseEntity<ApiResponseDto<OrderResDto.OwnerDashboardResponse>> getOrdersByOwner(
-            @PathVariable (value = "store_id") String  storeId
+            @PathVariable (value = "storeId") UUID  storeId
     ) {
         return ApiResponseDto.success(
                 200,

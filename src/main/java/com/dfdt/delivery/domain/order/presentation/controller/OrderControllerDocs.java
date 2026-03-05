@@ -50,7 +50,7 @@ public interface OrderControllerDocs {
             @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
     })
     ResponseEntity<ApiResponseDto<OrderResDto.CustomerOrderResponse>> getOrders(
-            @PathVariable(value = "user_id") String userId);
+            @AuthenticationPrincipal CustomUserDetails customUserDetails);
 
 
     @Operation(summary = "API-003 주문 상세 조회", description = "특정 주문에 대한 상세 정보를 조회합니다.")
@@ -64,8 +64,8 @@ public interface OrderControllerDocs {
             }))
     })
     ResponseEntity<ApiResponseDto<OrderResDto.GetOrderDetailResponse>> getOrderDetail(
-            @PathVariable(value = "order_id") String orderId,
-            @PathVariable(value = "user_id") String userId);
+            @PathVariable(value = "orderId") UUID orderId,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails);
 
 
     @Operation(summary = "API-004 주문 수정하기", description = "배달지 정보나 요청사항 등 주문 내용을 수정합니다.")
@@ -82,7 +82,7 @@ public interface OrderControllerDocs {
             })),
     })
     ResponseEntity<ApiResponseDto<OrderResDto.OrderMutationResponse>> updateOrder(
-            @PathVariable(value = "order_id") UUID orderId,
+            @PathVariable(value = "orderId") UUID orderId,
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @Valid @RequestBody OrderReqDto.UpdateOrder updateDTO
     );
@@ -102,7 +102,7 @@ public interface OrderControllerDocs {
             })),
     })
     ResponseEntity<ApiResponseDto<Void>> deleteOrder(
-            @PathVariable(value = "order_id") UUID orderId,
+            @PathVariable(value = "orderId") UUID orderId,
             @AuthenticationPrincipal CustomUserDetails customUserDetails);
 
 
@@ -121,8 +121,8 @@ public interface OrderControllerDocs {
             })),
     })
     ResponseEntity<ApiResponseDto<OrderResDto.OrderMutationResponse>> updateOrderStatus(
-            @PathVariable(value = "order_id") String orderId,
-            @PathVariable(value = "user_id") String userId,
+            @PathVariable(value = "orderId") UUID orderId,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @Valid @RequestBody OrderReqDto.UpdateStatus updateStatusDTO
     );
 
@@ -133,5 +133,5 @@ public interface OrderControllerDocs {
             @ApiResponse(responseCode = "404", description = "가게 정보를 찾을 수 없음")
     })
     ResponseEntity<ApiResponseDto<OrderResDto.OwnerDashboardResponse>> getOrdersByOwner(
-            @PathVariable(value = "store_id") String store_id);
+            @PathVariable(value = "storeId") UUID storeId);
 }
