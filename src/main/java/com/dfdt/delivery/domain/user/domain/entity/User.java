@@ -56,6 +56,9 @@ public class User {
         this.name = name;
         this.password = password;
         this.role = role;
+        this.createAudit = CreateAudit.now("system");
+        this.updateAudit = UpdateAudit.empty();
+        this.softDeleteAudit = SoftDeleteAudit.active();
     }
 
     // 로그인 성공 시 호출
