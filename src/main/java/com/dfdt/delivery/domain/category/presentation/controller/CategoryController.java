@@ -5,7 +5,7 @@ import com.dfdt.delivery.domain.category.presentation.dto.request.CategoryCreate
 import com.dfdt.delivery.domain.category.presentation.dto.request.CategoryUpdateReqDto;
 import com.dfdt.delivery.domain.category.presentation.dto.response.CategoryResDto;
 import com.dfdt.delivery.domain.category.application.service.CategoryService;
-import com.dfdt.delivery.domain.user.entity.User;
+import com.dfdt.delivery.domain.user.domain.entity.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
