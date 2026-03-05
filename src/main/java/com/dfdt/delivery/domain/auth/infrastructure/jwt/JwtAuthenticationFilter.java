@@ -62,7 +62,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String activeToken = (String) redisService.getData("active_token:" + username);
             if (activeToken != null && !activeToken.equals(token)) {
                 log.warn("Duplicate login detected for user: {}. Current token is outdated.", username);
-                throw new JwtException(AuthErrorCode.TOKEN_VERSION_MISMATCH.name());
+                throw new JwtException(AuthErrorCode.INVALID_ACCESS_TOKEN.name());
             }
 
             setAuthentication(username);
