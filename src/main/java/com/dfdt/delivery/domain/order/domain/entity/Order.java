@@ -50,7 +50,7 @@ public class Order {
     private OrderStatus status = OrderStatus.PENDING;
 
     @Column(name = "total_price", nullable = false)
-    private Long totalPrice;
+    private Integer totalPrice;
 
     @Column(name = "order_request_message", length = 255)
     private String orderRequestMessage;
@@ -75,29 +75,10 @@ public class Order {
     // 양방향 추가
     public void addOrderItem(OrderItem item) {
         this.orderItems.add(item);
+        this.totalPrice += item.getTotalPrice();
         item.setOrder(this);
     }
-    public static Order createOrder(User user, Address address,Store store) {
-        String addressSnapshot = String.format("[%s / %s] %s %s (메모: %s)",
-                address.getReceiverName(),
-                address.getReceiverPhone(),
-                address.getAddressLine1(),
-                address.getAddressLine2() != null ? address.getAddressLine2() : "",
-                address.getDeliveryMemo() != null ? address.getDeliveryMemo() : "없음"
-        );
-        Order order = Order.builder()
-                .user(user)
-                .address(address)
-                .deliveryAddressSnapshot(addressSnapshot)
-                .store(store)
-                .orderItems(new ArrayList<>()) // 리스트 초기화
-                .totalPrice(0L)
-                .createdAudit(CreateAudit.now(user.getName()))
-                .build();
-        order.addStatusHistory(null,OrderStatus.PENDING,"주문 생성");
-        return order;
-    }
-    private void addStatusHistory(OrderStatus from, OrderStatus to, String reason) {
+    public void addStatusHistory(OrderStatus from, OrderStatus to, String reason) {
         OrderStatusHistory history = OrderStatusHistory.builder()
                 .order(this)
                 .fromStatus(from)
@@ -111,5 +92,45 @@ public class Order {
         OrderStatus fromStatus = this.status;
         this.status = toStatus; // 현재 상태 업데이트
         addStatusHistory(fromStatus, toStatus, reason); // 이력 추가
+    }
+    public void updateAddress(Address address)
+    {
+        this.address = address;
+        this.deliveryAddressSnapshot = String.format("[%s / %s] %s %s (메모: %s)",
+                address.getReceiverName(),
+                address.getReceiverPhone(),
+                address.getAddressLine1(),
+                address.getAddressLine2() != null ? address.getAddressLine2() : "",
+                address.getDeliveryMemo() != null ? address.getDeliveryMemo() : "없음"
+        );
+    }
+    public void removeOrderItems(List<UUID> itemIdsToDelete)
+    {
+        if (itemIdsToDelete == null || itemIdsToDelete.isEmpty()) {
+            return;
+        }
+        List<OrderItem> toRemove = this.orderItems.stream()
+                .filter(item -> itemIdsToDelete.contains(item.getOrderItemId()))
+                .toList();
+
+        for (OrderItem item : toRemove) {
+            if (this.totalPrice != null) {
+                this.totalPrice -= item.getTotalPrice();
+            }
+            this.orderItems.remove(item);
+        }
+    }
+    public void updateOrderMessage(String orderRequestMessage)
+    {
+        if (orderRequestMessage != null && !orderRequestMessage.isBlank()) {
+            this.orderRequestMessage = orderRequestMessage;
+        }
+        this.orderRequestMessage = orderRequestMessage;
+    }
+    public void deleteOrder(String deleteBy) {
+        if (this.softDeleteAudit == null) {
+            this.softDeleteAudit = SoftDeleteAudit.active();
+        }
+        this.softDeleteAudit.softDelete(deleteBy);
     }
 }
