@@ -1,7 +1,6 @@
 package com.dfdt.delivery.domain.order.domain.entity;
 
 import com.dfdt.delivery.common.infrastructure.persistence.embedded.SoftDeleteAudit;
-import com.dfdt.delivery.domain.product.domain.entity.Product;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -32,13 +31,13 @@ public class OrderItem {
     private Integer quantity;
 
     @Column(name = "unit_price_snapshot", nullable = false)
-    private Long unitPriceSnapshot;
+    private Integer unitPriceSnapshot;
 
     @Column(name = "product_name_snapshot", length = 120, nullable = false)
     private String productNameSnapshot;
 
     @Column(name = "total_price", nullable = false)
-    private Long totalPrice;
+    private Integer totalPrice;
 
     @Embedded
     private SoftDeleteAudit softDeleteAudit;
@@ -48,15 +47,5 @@ public class OrderItem {
         if (!order.getOrderItems().contains(this)) {
             order.getOrderItems().add(this);
         }
-    }
-    // 스냅샷 찍기
-    public static OrderItem createOrderItem(Product product, Integer quantity) {
-        return OrderItem.builder()
-                .productId(product.getProductId())
-                .productNameSnapshot(product.getName())
-                .unitPriceSnapshot(product.getPrice())
-                .quantity(quantity)
-                .totalPrice(product.getPrice() * quantity)
-                .build();
     }
 }

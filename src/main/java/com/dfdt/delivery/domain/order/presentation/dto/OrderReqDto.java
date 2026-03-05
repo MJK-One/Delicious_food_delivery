@@ -14,7 +14,7 @@ public class OrderReqDto {
             @NotNull(message = "주소가 입력되지 않았습니다.")
             UUID addressId,
             @NotEmpty(message = "하나 이상의 상품이 들어있어야 합니다.")
-            List<OrderItem> productItemList,
+            List<OrderItem> orderItems,
             @Length(max = 255,message = "최대 255자 입니다.")
             String requestMemo
     ){}
@@ -24,11 +24,12 @@ public class OrderReqDto {
             @NotNull(message = "상품 수량이 입력되지 않았습니다.")
             Integer quantity,
             @NotNull(message = "상품 가격이 입력되지 않았습니다.")
-            Long userViewedUnitPrice
+            Integer userViewedUnitPrice
     ){}
     public record UpdateOrder(
             UUID addressId,
-            List<OrderItem> orderItems,
+            List<OrderItem> addOrderItems,
+            List<UUID> removeOrderItemIds,
             @Length(max = 255,message = "최대 255자 입니다.")
             String requestMemo
     ){}

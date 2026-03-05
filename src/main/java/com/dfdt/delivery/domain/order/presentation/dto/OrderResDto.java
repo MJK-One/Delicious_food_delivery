@@ -23,7 +23,7 @@ public class OrderResDto {
             UUID orderStoreId,
             String orderStoreName,
             OffsetDateTime orderedAt,
-            Long totalPrice,
+            Integer totalPrice,
             Integer totalQuantity,
             String representativeProductName,
             String orderAddress,
@@ -40,18 +40,18 @@ public class OrderResDto {
 
     @Builder
     public record OrderSummaryCount(
-            long pendingCount,
-            long paidCount,
-            long cookingCount,
-            long doneCount,
-            long canceledCount
+            Integer pendingCount,
+            Integer paidCount,
+            Integer cookingCount,
+            Integer doneCount,
+            Integer canceledCount
     ){}
 
     @Builder
     public record OwnerOrderUnit(
             UUID orderId,
             OffsetDateTime orderTime,
-            Long totalPrice,
+            Integer totalPrice,
             Integer totalQuantity,
             String orderAddress,
             List<ProductSimpleInfo> products
@@ -68,12 +68,12 @@ public class OrderResDto {
             Integer totalQuantity,
             String orderAddress,
             OrderStatus orderStatus,
-            List<OrderItemDetail> orderItemDetails,
+            List<OrderItemResponse> orderItemDetails,
             List<OrderStatusHistoryDetail> orderStatusHistoryDetails
     ){}
 
     @Builder
-    public record OrderItemDetail(
+    public record OrderItemResponse(
             UUID productId,
             String productName,
             Integer quantity,
@@ -102,8 +102,9 @@ public class OrderResDto {
             UUID orderId,
             OrderStatus orderStatus,
             String orderAddress,
-            Long totalPrice,
-            List<OrderItemDetail> items, // 상세 수정 시에만 포함, 그 외엔 null/empty
+            Integer totalPrice,
+            String representativeProductName,
+            String orderRequestMessage,
             OffsetDateTime updatedAt
     ){}
 
