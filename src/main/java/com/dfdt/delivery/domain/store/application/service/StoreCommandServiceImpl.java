@@ -1,0 +1,161 @@
+package com.dfdt.delivery.domain.store.application.service;
+
+import com.dfdt.delivery.common.exception.BusinessException;
+import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
+import com.dfdt.delivery.domain.category.domain.entity.Category;
+import com.dfdt.delivery.domain.category.domain.enums.CategoryErrorCode;
+import com.dfdt.delivery.domain.category.domain.repository.JpaCategoryRepository;
+import com.dfdt.delivery.domain.region.domain.entity.Region;
+import com.dfdt.delivery.domain.region.domain.enums.RegionErrorCode;
+import com.dfdt.delivery.domain.region.domain.repository.RegionRepository;
+import com.dfdt.delivery.domain.store.application.service.command.StoreCommandService;
+import com.dfdt.delivery.domain.store.domain.entity.Store;
+import com.dfdt.delivery.domain.store.domain.entity.StoreCategory;
+import com.dfdt.delivery.domain.store.domain.enums.StoreErrorCode;
+import com.dfdt.delivery.domain.store.domain.enums.StoreStatus;
+import com.dfdt.delivery.domain.store.domain.repository.JpaStoreRepository;
+import com.dfdt.delivery.domain.store.domain.repository.StoreCategoryRepository;
+import com.dfdt.delivery.domain.store.presentation.dto.request.StoreCreateReqDto;
+import com.dfdt.delivery.domain.store.presentation.dto.request.StoreStatusReqDto;
+import com.dfdt.delivery.domain.store.presentation.dto.request.StoreUpdateReqDto;
+import com.dfdt.delivery.domain.store.presentation.dto.response.MyStoreResDto;
+import com.dfdt.delivery.domain.store.presentation.dto.response.StoreCreateResDto;
+import com.dfdt.delivery.domain.store.presentation.dto.response.StoreStatusResDto;
+import com.dfdt.delivery.domain.store.presentation.dto.response.StoreUpdateResDto;
+import com.dfdt.delivery.domain.user.domain.entity.User;
+import com.dfdt.delivery.domain.user.domain.enums.UserRole;
+import com.dfdt.delivery.domain.user.domain.exception.error.enums.UserErrorCode;
+import com.dfdt.delivery.domain.user.domain.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.UUID;
+
+@Service
+@Transactional
+@RequiredArgsConstructor
+public class StoreCommandServiceImpl implements StoreCommandService {
+
+    private final JpaStoreRepository storeRepository;
+    private final JpaCategoryRepository categoryRepository;
+    private final StoreCategoryRepository storeCategoryRepository;
+    private final RegionRepository regionRepository;
+    private final UserRepository userRepository;
+
+    public StoreCreateResDto createStore(StoreCreateReqDto request, CustomUserDetails userDetails) {
+        List<Category> categories = categoryRepository.findAllById(request.getCategoryIds());
+
+        checkExistCategory(request.getCategoryIds().size(), categories);
+        User user = userRepository.findByUsername(userDetails.getUsername()).orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
+        Region region = regionRepository.findById(request.getRegionId()).orElseThrow(() -> new BusinessException(RegionErrorCode.NOT_FOUND_REGION));
+
+        Store store = Store.create(request, user, region);
+        store.addCategories(categories, userDetails.getUsername());
+        storeRepository.save(store);
+
+        return StoreCreateResDto.from(store);
+    }
+
+    public StoreUpdateResDto updateStore(UUID storeId, StoreUpdateReqDto request, CustomUserDetails userDetails) {
+        List<Category> newCategories = categoryRepository.findAllById(request.getCategoryIds());
+        Store store = findStoreById(storeId);
+        List<StoreCategory> before = storeCategoryRepository.findByStore(store);
+
+        checkExistCategory(request.getCategoryIds().size(), newCategories);
+        checkMyStore(userDetails, store);
+        checkDeletedStore(store);
+
+        // 1. 기존 active 카테고리
+        List<StoreCategory> existing = before.stream()
+                .filter(sc -> sc.getSoftDeleteAudit() == null)
+                .toList();
+
+        // 2. 삭제 처리 (기존에는 있는데 새 리스트에는 없는 경우)
+        existing.stream()
+                .filter(sc -> !newCategories.contains(sc.getCategory()))
+                .forEach(sc -> sc.delete(userDetails.getUsername())
+                );
+
+        // 3. 새로 추가 (새 리스트에는 있는데 기존에는 없는 경우)
+        newCategories.stream()
+                .filter(c -> existing.stream().noneMatch(sc -> sc.getCategory().equals(c)))
+                .forEach(c -> store.addCategory(c, userDetails.getUsername()));
+
+        store.update(request, userDetails.getUsername());
+
+        return StoreUpdateResDto.from(store);
+    }
+
+    public void deleteStore(UUID storeId, CustomUserDetails user) {
+        Store store = findStoreById(storeId);
+        checkMyStore(user, store);
+
+        if (store.getSoftDeleteAudit() == null) {
+            throw new BusinessException(StoreErrorCode.ALREADY_DELETED);    // 삭제된 가게인지 확인
+        }
+
+        store.delete(user.getUsername());
+    }
+
+    public void changeIsOpen(UUID storeId, CustomUserDetails userDetails) {
+        Store store = findStoreById(storeId);
+        checkMyStore(userDetails, store);
+        checkDeletedStore(store);
+
+        store.changeIsOpen(userDetails.getUsername());
+    }
+
+    public List<MyStoreResDto> getMyStores(String username) {
+        return storeRepository
+                .findByUser_UsernameOrderByCreateAuditAsc(username)
+                .stream()
+                .map(MyStoreResDto::from)
+                .toList();
+    }
+
+    public void restoreStore(UUID storeId, CustomUserDetails user) {
+        // 영업 중지된 가게인지 확인
+        Store store = findStoreById(storeId);
+        if (!store.getStatus().equals(StoreStatus.SUSPENDED)) {
+            throw new BusinessException(StoreErrorCode.NOT_SUSPENDED);
+        }
+
+        store.restore(user.getUsername());
+    }
+
+    public StoreStatusResDto changeStatus(UUID storeId, StoreStatusReqDto request,CustomUserDetails userDetails) {
+        Store store = findStoreById(storeId);
+        store.changeStatus(request.getStatus(), userDetails.getUsername());
+
+        return StoreStatusResDto.from(store);
+    }
+
+    // 해당 가게가 존재하는지 확인
+    private Store findStoreById(UUID storeId) {
+        return storeRepository.findById(storeId).orElseThrow(() -> new BusinessException(StoreErrorCode.NOT_FOUND_STORE));
+    }
+
+    // 해당 카테고리가 존재하는지 확인
+    private void checkExistCategory(Integer size, List<Category> categories) {
+        if (categories.isEmpty() || categories.size() != size) {
+            throw new BusinessException(CategoryErrorCode.NOT_FOUND_CATEGORY);
+        }
+    }
+
+    // 본인 소유의 가게만 정보 변경 가능
+    private static void checkMyStore(CustomUserDetails userDetails, Store store) {
+        if (!store.getUser().getUsername().equals(userDetails.getUsername()) && !userDetails.getRole().equals(UserRole.MASTER)) {
+            throw new BusinessException(StoreErrorCode.NOT_MY_STORE);
+        }
+    }
+
+    // 삭제된 가게는 정보 변경 X
+    private static void checkDeletedStore(Store store) {
+        if (store.getSoftDeleteAudit() != null) {
+            throw new BusinessException(StoreErrorCode.NOT_MODIFIED);
+        }
+    }
+
+}
