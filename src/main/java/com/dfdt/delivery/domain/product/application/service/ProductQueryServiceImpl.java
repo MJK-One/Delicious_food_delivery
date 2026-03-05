@@ -4,8 +4,8 @@ import com.dfdt.delivery.common.exception.BusinessException;
 import com.dfdt.delivery.domain.product.application.query.ProductQueryService;
 import com.dfdt.delivery.domain.product.domain.entity.Product;
 import com.dfdt.delivery.domain.product.domain.enums.ProductErrorCode;
+import com.dfdt.delivery.domain.product.domain.repository.JpaProductRepository;
 import com.dfdt.delivery.domain.product.domain.repository.ProductCustomRepository;
-import com.dfdt.delivery.domain.product.domain.repository.ProductRepository;
 import com.dfdt.delivery.domain.product.presentation.dto.response.ProductAdminResDto;
 import com.dfdt.delivery.domain.product.presentation.dto.response.ProductResDto;
 import com.dfdt.delivery.domain.store.domain.entity.Store;
@@ -26,7 +26,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ProductQueryServiceImpl implements ProductQueryService {
 
-    private final ProductRepository productRepository;
+    private final JpaProductRepository productRepository;
     private final ProductCustomRepository productCustomRepository;
     private final StoreRepository storeRepository;
 

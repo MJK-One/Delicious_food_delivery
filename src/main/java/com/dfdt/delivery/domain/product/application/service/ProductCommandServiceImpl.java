@@ -5,7 +5,7 @@ import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
 import com.dfdt.delivery.domain.product.application.command.ProductCommandService;
 import com.dfdt.delivery.domain.product.domain.entity.Product;
 import com.dfdt.delivery.domain.product.domain.enums.ProductErrorCode;
-import com.dfdt.delivery.domain.product.domain.repository.ProductRepository;
+import com.dfdt.delivery.domain.product.domain.repository.JpaProductRepository;
 import com.dfdt.delivery.domain.product.presentation.dto.request.ProductCreateReqDto;
 import com.dfdt.delivery.domain.product.presentation.dto.request.ProductUpdateReqDto;
 import com.dfdt.delivery.domain.product.presentation.dto.response.ProductResDto;
@@ -25,7 +25,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ProductCommandServiceImpl implements ProductCommandService {
 
-    private final ProductRepository productRepository;
+    private final JpaProductRepository productRepository;
     private final StoreRepository storeRepository;
 
     public ProductResDto createProduct(UUID storeId, ProductCreateReqDto request, CustomUserDetails userDetails) {
