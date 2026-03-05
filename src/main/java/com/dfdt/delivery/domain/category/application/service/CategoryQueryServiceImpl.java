@@ -7,6 +7,7 @@ import com.dfdt.delivery.domain.category.domain.entity.Category;
 import com.dfdt.delivery.domain.category.domain.enums.CategoryErrorCode;
 import com.dfdt.delivery.domain.category.domain.repository.CategoryCustomRepository;
 import com.dfdt.delivery.domain.category.domain.repository.CategoryRepository;
+import com.dfdt.delivery.domain.category.domain.repository.JpaCategoryRepository;
 import com.dfdt.delivery.domain.category.presentation.dto.request.CategoryCreateReqDto;
 import com.dfdt.delivery.domain.category.presentation.dto.request.CategoryUpdateReqDto;
 import com.dfdt.delivery.domain.category.presentation.dto.response.CategoryAdminResDto;
@@ -29,9 +30,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class CategoryQueryServiceImpl implements CategoryQueryService {
 
-    private final CategoryRepository categoryRepository;
+    private final JpaCategoryRepository categoryRepository;
     private final CategoryCustomRepository categoryCustomRepository;
-    private final StoreRepository storeRepository;
 
     @Transactional(readOnly = true)
     public CategoryResDto getCategory(UUID categoryId) {
