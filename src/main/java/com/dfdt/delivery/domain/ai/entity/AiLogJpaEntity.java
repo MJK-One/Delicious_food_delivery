@@ -1,6 +1,9 @@
 package com.dfdt.delivery.domain.ai.entity;
 
-import com.dfdt.delivery.common.Entity.SoftDeleteEntity;
+//import com.dfdt.delivery.common.Entity.SoftDeleteEntity;
+import com.dfdt.delivery.common.infrastructure.persistence.embedded.CreateAudit;
+import com.dfdt.delivery.common.infrastructure.persistence.embedded.SoftDeleteAudit;
+import com.dfdt.delivery.common.infrastructure.persistence.embedded.UpdateAudit;
 import com.dfdt.delivery.domain.ai.enums.AiRequestType;
 import jakarta.persistence.*;
 import org.hibernate.annotations.SQLDelete;
@@ -13,7 +16,7 @@ import java.util.UUID;
 @Table(name = "p_ai_log")
 @SQLDelete(sql = "UPDATE p_ai_log SET deleted_at = now() WHERE ai_log_id = ?")
 @Where(clause = "deleted_at IS NULL")
-public class AiLogJpaEntity extends SoftDeleteEntity {
+public class AiLogJpaEntity  {
 
     @Id
     @Column(name = "ai_log_id", nullable = false, updatable = false)
@@ -56,17 +59,13 @@ public class AiLogJpaEntity extends SoftDeleteEntity {
     @Column(name = "response_time_ms")
     private Integer responseTimeMs;
 
-    @Column(name = "created_at", nullable = false)
-    private OffsetDateTime createdAt;
+    @Embedded
+    private CreateAudit createAudit;
 
-    @Column(name = "created_by", length = 10)
-    private String createdBy;
 
-    @Column(name = "deleted_at")
-    private OffsetDateTime deletedAt;
+    @Embedded
+    private SoftDeleteAudit softDeleteAudit;
 
-    @Column(name = "deleted_by", length = 10)
-    private String deletedBy;
 
     protected AiLogJpaEntity() {
     }
@@ -84,11 +83,7 @@ public class AiLogJpaEntity extends SoftDeleteEntity {
             String errorCode,
             String errorMessage,
             String modelName,
-            Integer responseTimeMs,
-            OffsetDateTime createdAt,
-            String createdBy,
-            OffsetDateTime deletedAt,
-            String deletedBy
+            Integer responseTimeMs
     ) {
         this.aiLogId = aiLogId;
         this.storeId = storeId;
@@ -103,10 +98,6 @@ public class AiLogJpaEntity extends SoftDeleteEntity {
         this.errorMessage = errorMessage;
         this.modelName = modelName;
         this.responseTimeMs = responseTimeMs;
-        this.createdAt = createdAt;
-        this.createdBy = createdBy;
-        this.deletedAt = deletedAt;
-        this.deletedBy = deletedBy;
     }
 
     // getters
@@ -123,8 +114,5 @@ public class AiLogJpaEntity extends SoftDeleteEntity {
     public String getErrorMessage() { return errorMessage; }
     public String getModelName() { return modelName; }
     public Integer getResponseTimeMs() { return responseTimeMs; }
-    public OffsetDateTime getCreatedAt() { return createdAt; }
-    public String getCreatedBy() { return createdBy; }
-    public OffsetDateTime getDeletedAt() { return deletedAt; }
-    public String getDeletedBy() { return deletedBy; }
+
 }

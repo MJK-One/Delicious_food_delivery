@@ -1,7 +1,8 @@
 spring:
   application:
     name: Delicious Food Delivery
-
+jwt:
+  secret: "v7St3S8B6pQ9uR2v5W8zA1B3C5E7G9J0K2M4P6Q8R0U2X4Y6Z8A1C3E5G7J9K1M"
 springdoc:
   swagger-ui:
     path: /swagger

@@ -1,0 +1,34 @@
+# ${~} : GitHub Secrets에서 올 값
+services:
+
+  postgres:
+    image: '${POSTGRESQL_IMAGE}'
+    restart: always
+    volumes:
+      - ./postgres_data:/var/lib/postgresql # 데이터 저장
+    environment:
+      - 'POSTGRES_DB=${DB}'
+      - 'POSTGRES_USER=${DB_USER}'
+      - 'POSTGRES_PASSWORD=${DB_PW}'
+
+  redis:
+    image: '${REDIS_IMAGE}'
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - ./redis_data:/data
+
+  api-server:
+    image: '${SERVER_IMAGE}'
+    restart: always
+    ports:
+      - '${SERVER_PORT}'
+    environment:
+      - SPRING_DATASOURCE_URL=${DB_URL} // /delivery
+      - SPRING_DATASOURCE_USERNAME=${DB_USER}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PW}
+      - SPRING_DATA_REDIS_HOST=${REDIS_HOST}
+      - SPRING_DATA_REDIS_PORT=${REDIS_PORT}
+    depends_on:
+      - postgres
+      - redis

@@ -56,7 +56,8 @@ public class SecurityConfig {
                                 "/swagger",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/api-docs/**"
+                                "/api-docs/**",     // yml 설정 경로
+                                "/api-docs"         // / 기호 없는 경로까지 포함
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
@@ -66,4 +67,3 @@ public class SecurityConfig {
         return http.build();
     }
 }
-

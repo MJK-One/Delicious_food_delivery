@@ -7,9 +7,11 @@ import com.dfdt.delivery.domain.order.domain.entity.Order;
 import com.dfdt.delivery.domain.order.domain.enums.OrderErrorCode;
 import com.dfdt.delivery.domain.order.domain.repository.OrderRepository;
 import com.dfdt.delivery.domain.product.domain.entity.Product;
+import com.dfdt.delivery.domain.product.domain.repository.JpaProductRepository;
 import com.dfdt.delivery.domain.product.domain.repository.ProductRepository;
 import com.dfdt.delivery.domain.store.domain.entity.Store;
 import com.dfdt.delivery.domain.store.domain.enums.StoreErrorCode;
+import com.dfdt.delivery.domain.store.domain.repository.JpaStoreRepository;
 import com.dfdt.delivery.domain.store.domain.repository.StoreRepository;
 import com.dfdt.delivery.domain.user.domain.entity.User;
 import com.dfdt.delivery.domain.user.domain.exception.error.enums.UserErrorCode;
@@ -26,10 +28,10 @@ import java.util.stream.Collectors;
 @Component
 @RequiredArgsConstructor
 public class OrderDataFinder {
-    private final StoreRepository storeRepository;
+    private final JpaStoreRepository storeRepository;
     private final AddressRepository addressRepository;
     private final UserRepository userRepository;
-    private final ProductRepository productRepository;
+    private final JpaProductRepository productRepository;
     private final OrderRepository orderRepository;
 
 
