@@ -81,27 +81,27 @@ public class PaymentCommandServiceImpl implements PaymentCommandService {
 
     @Override
     @Transactional
-    public PaymentDetailResDto approvePayment(UUID paymentId, PaymentApproveReqDto reqDto) {
+    public PaymentDetailResDto approvePayment(UUID paymentId, PaymentApproveReqDto reqDto, String username) {
         // TODO: 결제 승인
         return null;
     }
 
     @Override
     @Transactional
-    public PaymentDetailResDto cancelPayment(UUID paymentId) {
+    public PaymentDetailResDto cancelPayment(UUID paymentId, String username) {
         // TODO: 결제 취소
         return null;
     }
 
     @Override
     @Transactional
-    public void deletePayment(UUID paymentId) {
+    public void deletePayment(UUID paymentId, String username) {
         // TODO: 결제 삭제
     }
 
     @Override
     @Transactional
-    public PaymentHiddenToggleResDto toggleHidden(UUID paymentId, Boolean hidden) {
+    public PaymentHiddenToggleResDto toggleHidden(UUID paymentId, Boolean hidden, String username) {
         // TODO: 숨김 토글
         return null;
     }
