@@ -74,6 +74,6 @@ public class OrderPreConditionChecker {
         if (user.getRole() == UserRole.CUSTOMER) {
             authoriseOrder(order, user);
         }
-//        throw new BusinessException(OrderErrorCode.ACCESS_DENIED);
+       throw new BusinessException(OrderErrorCode.ACCESS_DENIED);
     }
 }
