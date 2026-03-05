@@ -1,5 +1,7 @@
 package com.dfdt.delivery.domain.order.application.service.command;
 
-@service
+import org.springframework.stereotype.Service;
+
+@Service
 public class OrderCommandService {
 }

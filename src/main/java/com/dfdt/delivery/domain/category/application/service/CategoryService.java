@@ -6,7 +6,7 @@ import com.dfdt.delivery.domain.category.presentation.dto.response.CategoryResDt
 import com.dfdt.delivery.domain.category.domain.entity.Category;
 import com.dfdt.delivery.domain.category.domain.repository.CategoryRepository;
 import com.dfdt.delivery.domain.store.domain.repository.StoreRepository;
-import com.dfdt.delivery.domain.user.entity.User;
+import com.dfdt.delivery.domain.user.domain.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
