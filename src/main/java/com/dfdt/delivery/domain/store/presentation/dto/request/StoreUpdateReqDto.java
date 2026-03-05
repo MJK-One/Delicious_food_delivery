@@ -1,6 +1,7 @@
 package com.dfdt.delivery.domain.store.presentation.dto.request;
 
 import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -9,6 +10,7 @@ import java.util.UUID;
 
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
 public class StoreUpdateReqDto {
 
     @NotBlank(message = "가게명은 필수입니다.")

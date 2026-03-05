@@ -92,7 +92,7 @@ public class StoreCommandServiceImpl implements StoreCommandService {
         Store store = findStoreById(storeId);
         checkMyStore(user, store);
 
-        if (store.getSoftDeleteAudit() == null) {
+        if (store.getSoftDeleteAudit() != null) {
             throw new BusinessException(StoreErrorCode.ALREADY_DELETED);    // 삭제된 가게인지 확인
         }
 
