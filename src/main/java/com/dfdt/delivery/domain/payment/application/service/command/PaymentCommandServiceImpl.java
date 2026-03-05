@@ -130,8 +130,37 @@ public class PaymentCommandServiceImpl implements PaymentCommandService {
     @Override
     @Transactional
     public PaymentDetailResDto cancelPayment(UUID paymentId, String username) {
-        // TODO: 결제 취소
-        return null;
+        // 1. 결제 데이터 조회
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new BusinessException(PaymentErrorCode.PAYMENT_NOT_FOUND));
+
+        // 2. 결제 상태 확인 (이미 취소되었거나 실패한 경우 제외)
+        if (payment.getPaymentStatus() == PaymentStatus.CANCELED || payment.getPaymentStatus() == PaymentStatus.FAILED) {
+            throw new BusinessException(PaymentErrorCode.INVALID_PAYMENT_STATUS);
+        }
+
+        // 3. 주문 정보 조회 및 상태 체크
+        Order order = orderRepository.findById(payment.getOrderId())
+                .orElseThrow(() -> new BusinessException(OrderErrorCode.ORDER_NOT_FOUND));
+
+        // PENDING, PAID 상태일 때만 취소 가능 (ACCEPTED 이후로는 취소 불가)
+        if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.PAID) {
+            throw new BusinessException(PaymentErrorCode.INVALID_PAYMENT_STATUS);
+        }
+
+        PaymentStatus fromStatus = payment.getPaymentStatus();
+
+        // 4. 결제 상태 CANCELED 처리
+        payment.markCanceled(username, "사용자 요청으로 인한 취소");
+        saveHistory(payment, username, fromStatus, PaymentStatus.CANCELED, "사용자 요청 결제 취소");
+
+        // 5. 주문 상태 CANCELED 변경
+        order.updateStatus(OrderStatus.CANCELED, "결제 취소로 인한 주문 자동 취소");
+
+        // 6. Redis TTL 키 즉시 삭제
+        redisService.deleteData(TIMEOUT_KEY_PREFIX + payment.getOrderId());
+
+        return PaymentConverter.toDetailResDto(payment);
     }
 
     @Override
