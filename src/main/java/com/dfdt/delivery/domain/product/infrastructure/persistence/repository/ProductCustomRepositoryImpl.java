@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static com.dfdt.delivery.domain.product.entity.QProduct.product;
+import static com.dfdt.delivery.domain.product.domain.entity.QProduct.product;
 
 @Repository
 @RequiredArgsConstructor

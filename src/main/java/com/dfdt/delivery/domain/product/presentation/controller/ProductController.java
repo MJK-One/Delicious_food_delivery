@@ -7,7 +7,7 @@ import com.dfdt.delivery.domain.product.presentation.dto.response.ProductPageRes
 import com.dfdt.delivery.domain.product.presentation.dto.response.ProductResDto;
 import com.dfdt.delivery.domain.product.domain.entity.Product;
 import com.dfdt.delivery.domain.product.application.service.ProductService;
-import com.dfdt.delivery.domain.user.entity.User;
+import com.dfdt.delivery.domain.user.domain.entity.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
