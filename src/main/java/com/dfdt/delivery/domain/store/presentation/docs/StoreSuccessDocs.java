@@ -276,22 +276,19 @@ public final class StoreSuccessDocs {
     {
       "status": 200,
       "message": "승인 대기 가게가 성공적으로 조회되었습니다.",
-      "data": [
-            "storeId": "32059350-0d40-4236-b1ca-0e7b3fa5313b",
-            "regionId": "26d953ec-b216-42e4-b9f6-5bdc3cd3f423",
-            "categories":[
-                {
-                    "categoryId": "4d82d85c-c1cd-4fe3-ad64-0a93b6ceb933",
-                    "name": "양식"
-                }
-            ],
-            "name": "광화문 김밥천국 2호점",
-            "description": "리뉴얼 오픈했습니다.",
-            "phone": "02-9876-5432",
-            "addressText": "서울 종로구 세종대로 1",
-            "status": "REQUESTED",
-            "isOpen": true,
-            "createdAt": "2026-03-03T04:18:01.681261Z"
+      "data": {
+            "content":[
+            {
+                "storeId": "32059350-0d40-4236-b1ca-0e7b3fa5313b",
+                "regionId": "26d953ec-b216-42e4-b9f6-5bdc3cd3f423",
+                "name": "광화문 김밥천국 2호점",
+                "description": "리뉴얼 오픈했습니다.",
+                "phone": "02-9876-5432",
+                "addressText": "서울 종로구 세종대로 1",
+                "status": "REQUESTED",
+                "isOpen": true,
+                "createdAt": "2026-03-03T04:18:01.681261Z"
+            }
       ],
       "page": 0,
       "size": 10,
