@@ -1,5 +1,8 @@
 package com.dfdt.delivery.domain.address.domain.entity;
 
+import com.dfdt.delivery.common.infrastructure.persistence.embedded.CreateAudit;
+import com.dfdt.delivery.common.infrastructure.persistence.embedded.SoftDeleteAudit;
+import com.dfdt.delivery.common.infrastructure.persistence.embedded.UpdateAudit;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -41,4 +44,13 @@ public class Address {
 
     @Column(length = 255)
     private String deliveryMemo;
+
+    @Embedded
+    private CreateAudit createAudit;
+
+    @Embedded
+    private UpdateAudit updateAudit;
+
+    @Embedded
+    private SoftDeleteAudit softDeleteAudit;
 }
