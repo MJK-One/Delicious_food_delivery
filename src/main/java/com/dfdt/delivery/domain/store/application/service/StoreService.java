@@ -165,15 +165,13 @@ public class StoreService {
         return StoreStatusResDto.from(store);
     }
 
-    public List<StoreStatusRequestResDto> getRequestedStores() {
-        List<Store> stores = storeRepository.findStoresByStatusNotDeleted(StoreStatus.REQUESTED);
-        if (stores.isEmpty()) {
-            return null;
-        }
+    public Page<StoreStatusRequestResDto> getRequestedStores(int page, int size, String sortBy, boolean isAsc) {
+        Pageable pageable = createPageable(page, size, sortBy, isAsc);
+        Page<StoreStatusRequestResDto> requestResDto = storeCustomRepository.searchRequestStores(pageable, StoreStatus.REQUESTED);
 
-        return stores.stream()
-                .map(StoreStatusRequestResDto::from)
-                .toList();
+        checkStores(requestResDto.getTotalElements());
+
+        return requestResDto;
     }
 
     private Pageable createPageable(int page, int size, String sortBy, boolean isAsc) {
