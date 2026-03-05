@@ -2,13 +2,12 @@ services:
   postgres:
     image: 'postgres:latest'
     environment:
-      - 'POSTGRES_DB=mydatabase2'
-      - 'POSTGRES_USER=myuser'
+      - 'POSTGRES_DB=mydatabase'
       - 'POSTGRES_PASSWORD=secret'
-
+      - 'POSTGRES_USER=myuser'
     ports:
-      - '5432:5432'  # '5432'만 쓰면 무작위 포트가 잡힐 수 있으므로 고정합니다.
+      - '5432'
   redis:
     image: 'redis:latest'
     ports:
-      - '6379:6379'
+      - '6379'
