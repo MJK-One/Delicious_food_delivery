@@ -84,7 +84,7 @@ public class UserController {
     @PatchMapping("/role")
     @PreAuthorize("hasRole('MASTER')")
     public ResponseEntity<ApiResponseDto<Void>> updateRole(
-            @RequestParam UserRoleUpdateRequestDto requestDto,
+            @RequestBody UserRoleUpdateRequestDto requestDto,
             @AuthenticationPrincipal CustomUserDetails adminDetails) {
         userService.updateRole(requestDto, adminDetails.getUsername());
         return ApiResponseDto.success(200, "권한 변경 성공", null);
