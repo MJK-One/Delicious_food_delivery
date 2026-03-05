@@ -18,6 +18,7 @@ public enum AuthErrorCode implements ErrorCode {
     EXPIRED_ACCESS_TOKEN(401, "AUTH-4013", "만료된 Access Token입니다."),
     INVALID_ACCESS_TOKEN(401, "AUTH-4014", "유효하지 않거나 손상된 Access Token입니다."),
     INVALID_REFRESH_TOKEN(401, "AUTH-4015", "유효하지 않거나 만료된 Refresh Token입니다."),
+    DUPLICATE_LOGIN(401, "AUTH-4016", "중복 로그인하여 현재 세션이 만료되었습니다."),
 
     // 403 FORBIDDEN
     FORBIDDEN(403, "AUTH-4030", "접근 권한이 없습니다."),

@@ -1,8 +1,10 @@
 package com.dfdt.delivery.domain.auth.infrastructure.jwt;
 
 import com.dfdt.delivery.common.util.RedisService;
+import com.dfdt.delivery.domain.auth.domain.exception.error.enums.AuthErrorCode;
 import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetailsService;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,16 +31,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
+
         String token = jwtProvider.resolveToken(request.getHeader(JwtProvider.AUTHORIZATION_HEADER));
 
         if (StringUtils.hasText(token)) {
-            // 블랙리스트 확인 (로그아웃 된 토큰인지)
+            // 1. 블랙리스트 확인 (로그아웃 된 토큰인지)
             if (redisService.hasKey("blacklist:" + token)) {
                 log.warn("Blacklisted token accessed: {}", token);
                 filterChain.doFilter(request, response);
                 return;
             }
 
+            // 2. JWT 유효성 및 만료 확인
             if (!jwtProvider.validateToken(token)) {
                 log.error("Token validation failed");
                 filterChain.doFilter(request, response);
@@ -46,7 +50,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             Claims info = jwtProvider.getUserInfoFromToken(token);
-            setAuthentication(info.getSubject());
+            String username = info.getSubject();
+
+            // 3. 중복 로그인 확인 (Redis에 저장된 최신 활성 토큰과 일치하는지)
+            String activeToken = (String) redisService.getData("active_token:" + username);
+            if (activeToken != null && !activeToken.equals(token)) {
+                log.warn("Duplicate login detected for user: {}. Current token is outdated.", username);
+                throw new JwtException(AuthErrorCode.DUPLICATE_LOGIN.name());
+            }
+
+            setAuthentication(username);
         }
 
         filterChain.doFilter(request, response);
