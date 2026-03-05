@@ -82,8 +82,49 @@ public class PaymentCommandServiceImpl implements PaymentCommandService {
     @Override
     @Transactional
     public PaymentDetailResDto approvePayment(UUID paymentId, PaymentApproveReqDto reqDto, String username) {
-        // TODO: 결제 승인
-        return null;
+        // 1. 결제 데이터 조회
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new BusinessException(PaymentErrorCode.PAYMENT_NOT_FOUND));
+
+        // 2. READY 상태일 때만 승인 가능
+        if (payment.getPaymentStatus() != PaymentStatus.READY) {
+            throw new BusinessException(PaymentErrorCode.INVALID_PAYMENT_STATUS);
+        }
+
+        PaymentStatus fromStatus = payment.getPaymentStatus();
+
+        // 3. 주문 정보 조회 (상태 변경을 위해)
+        Order order = orderRepository.findById(payment.getOrderId())
+                .orElseThrow(() -> new BusinessException(OrderErrorCode.ORDER_NOT_FOUND));
+
+        if (reqDto.getResult() == PaymentStatus.PAID) {
+            // 4-1. 승인 성공 처리
+            payment.markPaid(
+                    username,
+                    reqDto.getPgProvider(),
+                    reqDto.getPgTransactionId() != null ? reqDto.getPgTransactionId() : UUID.randomUUID().toString()
+            );
+            saveHistory(payment, username, fromStatus, PaymentStatus.PAID, "결제 승인 완료");
+
+            // 주문 상태를 PAID로 변경
+            order.updateStatus(OrderStatus.PAID, "결제 승인 완료로 인한 주문 상태 변경");
+
+            // Redis TTL 키 즉시 삭제 (타임아웃 방지)
+            redisService.deleteData(TIMEOUT_KEY_PREFIX + payment.getOrderId());
+        } else {
+            // 4-2. 승인 실패 처리
+            String reason = reqDto.getFailureReason() != null ? reqDto.getFailureReason() : "PG 승인 거절";
+            payment.markFailed(username, reason);
+            saveHistory(payment, username, fromStatus, PaymentStatus.FAILED, "결제 승인 거절: " + reason);
+
+            // 주문 상태를 CANCELED로 변경
+            order.updateStatus(OrderStatus.CANCELED, "결제 승인 거부로 인한 주문 취소");
+
+            // Redis TTL 키 삭제
+            redisService.deleteData(TIMEOUT_KEY_PREFIX + payment.getOrderId());
+        }
+
+        return PaymentConverter.toDetailResDto(payment);
     }
 
     @Override
