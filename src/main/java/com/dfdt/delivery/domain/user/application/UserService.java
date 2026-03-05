@@ -6,6 +6,7 @@ import com.dfdt.delivery.domain.user.domain.entity.User;
 import com.dfdt.delivery.domain.user.domain.enums.UserRole;
 import com.dfdt.delivery.domain.user.domain.exception.error.enums.UserErrorCode;
 import com.dfdt.delivery.domain.user.domain.repository.UserRepository;
+import com.dfdt.delivery.domain.user.infrastructure.persistence.repository.JpaUserRepository;
 import com.dfdt.delivery.domain.user.presentation.dto.SignupRequestDto;
 import com.dfdt.delivery.domain.user.presentation.dto.UserResponseDto;
 import com.dfdt.delivery.domain.user.presentation.dto.UserRoleUpdateRequestDto;
@@ -35,7 +36,8 @@ public class UserService {
      */
     @Transactional
     public UserResponseDto signup(SignupRequestDto requestDto) {
-        if (userRepository.findByUsername(requestDto.getUsername()).isPresent()) {
+        JpaUserRepository jpaRepository = (JpaUserRepository) userRepository;
+        if (jpaRepository.existsByUsernameIncludeDeleted(requestDto.getUsername())) {
             throw new BusinessException(UserErrorCode.DUPLICATE_USERNAME);
         }
 
