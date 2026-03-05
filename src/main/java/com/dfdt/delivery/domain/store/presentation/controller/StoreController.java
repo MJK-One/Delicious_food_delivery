@@ -7,7 +7,9 @@ import com.dfdt.delivery.domain.store.presentation.dto.request.StoreStatusReqDto
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreUpdateReqDto;
 import com.dfdt.delivery.domain.store.application.service.StoreService;
 import com.dfdt.delivery.domain.store.presentation.dto.response.*;
-import com.dfdt.delivery.domain.user.entity.User;
+import com.dfdt.delivery.domain.user.domain.entity.User;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -22,7 +24,7 @@ import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1")
+@RequestMapping("/stores")
 public class StoreController {
 
     private final StoreService storeService;
@@ -31,7 +33,7 @@ public class StoreController {
      * 가게 단일 조회
      * GET /api/v1/stores/{store_id}
      */
-    @GetMapping("/stores/{storeId}")
+    @GetMapping("/{storeId}")
     public ResponseEntity<ApiResponseDto<StoreResDto>> getStore(@PathVariable("storeId") UUID storeId) {
         StoreResDto store = storeService.getStore(storeId);
 
@@ -43,17 +45,17 @@ public class StoreController {
     }
 
     /**
-     * 가게 목록 조회
+     * 가게 조회
      * GET /api/v1/stores
      */
-    @GetMapping("/stores")
+    @GetMapping()
     public ResponseEntity<ApiResponseDto<StorePageResDto>> getStores(
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "10") int size,
             @RequestParam(value = "sortBy", defaultValue = "createdAt") String sortBy,
-            @RequestParam(value = "isAsc", defaultValue = "false") boolean isAsc,
-            @RequestParam(value = "category") UUID category,
-            @RequestParam(value = "name") String name
+            @RequestParam(value = "isAsc", defaultValue = "true") boolean isAsc,
+            @RequestParam(value = "category", required = false) UUID category,
+            @RequestParam(value = "name", required = false) String name
     ) {
         Page<StoreResDto> stores = storeService.getStores(page, size, sortBy, isAsc, category, name);
         StorePageResDto response = new StorePageResDto(stores);
@@ -66,10 +68,36 @@ public class StoreController {
     }
 
     /**
+     * 가게 목록 조회(관리자용)
+     * 주문 가능 지역, 승인 여부, 삭제 여부 상관 없이 불러옴
+     * GET /api/v1/stores/admin
+     */
+    @PreAuthorize("hasAnyRole('MASTER')")
+    @GetMapping("/admin")
+    public ResponseEntity<ApiResponseDto<StoreAdminPageResDto>> getStoresAdmin(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "sortBy", defaultValue = "createdAt") String sortBy,
+            @RequestParam(value = "isAsc", defaultValue = "true") boolean isAsc,
+            @RequestParam(value = "category", required = false) UUID category,
+            @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "isDeleted", defaultValue = "false") Boolean isDeleted
+    ) {
+        Page<StoreAdminResDto> stores = storeService.getStoresAdmin(page, size, sortBy, isAsc, category, name, isDeleted);
+        StoreAdminPageResDto response = new StoreAdminPageResDto(stores);
+
+        return ApiResponseDto.success(
+                HttpStatus.OK.value(),
+                "가게 목록이 성공적으로 조회되었습니다.",
+                response
+        );
+    }
+
+    /**
      * 가게 생성
      * POST /api/v1/stores
      */
-    @PostMapping("/stores")
+    @PostMapping()
     public ResponseEntity<ApiResponseDto<StoreCreateResDto>> createStore(@Valid @RequestBody StoreCreateReqDto request, @AuthenticationPrincipal User user) {
         StoreCreateResDto createdStore = storeService.createStore(request, user);
 
@@ -85,12 +113,8 @@ public class StoreController {
      * PUT /api/v1/stores/{store_id}
      */
     @PreAuthorize("hasAnyRole('OWNER','MASTER')")
-    @PutMapping("/stores/{storeId}")
-    public ResponseEntity<ApiResponseDto<StoreUpdateResDto>> updateStore(
-            @PathVariable("storeId") UUID storeId,
-            @Valid @RequestBody StoreUpdateReqDto request,
-            @AuthenticationPrincipal User user
-    ) {
+    @PutMapping("/{storeId}")
+    public ResponseEntity<ApiResponseDto<StoreUpdateResDto>> updateStore(@PathVariable("storeId") UUID storeId, @Valid @RequestBody StoreUpdateReqDto request, @AuthenticationPrincipal User user) {
         StoreUpdateResDto updatedStore = storeService.updateStore(storeId, request, user);
 
         return ApiResponseDto.success(
@@ -105,7 +129,7 @@ public class StoreController {
      * DELETE /api/v1/stores/{store_id}
      */
     @PreAuthorize("hasAnyRole('OWNER','MASTER')")
-    @DeleteMapping("/stores/{storeId}")
+    @DeleteMapping("/{storeId}")
     public ResponseEntity<ApiResponseDto<Object>> deleteStore(@PathVariable("storeId") UUID storeId, @AuthenticationPrincipal User user) {
         storeService.deleteStore(storeId, user);
 
@@ -119,10 +143,10 @@ public class StoreController {
     /**
      * 영업 상태 변경
      * PATCH /api/v1/stores/{store_id}
-     * 예: 영업중/휴무/폐업 등 상태 변경
+     * isOpen 변경
      */
     @PreAuthorize("hasAnyRole('OWNER','MASTER')")
-    @PatchMapping("/stores/{storeId}")
+    @PatchMapping("/{storeId}/open")
     public ResponseEntity<ApiResponseDto<Object>> changeStoreOpenStatus(@PathVariable("storeId") UUID storeId, @AuthenticationPrincipal User user) {
         storeService.changeIsOpen(storeId, user);
 
@@ -135,11 +159,11 @@ public class StoreController {
 
     /**
      * 본인 가게 조회
-     * GET /api/v1/me/stores
+     * GET /api/v1/stores/me
      * (인증 정보에서 회원 id를 꺼내온다고 가정)
      */
     @PreAuthorize("hasAnyRole('OWNER','MASTER')")
-    @GetMapping("/me/stores")
+    @GetMapping("/me")
     public ResponseEntity<ApiResponseDto<List<MyStoreResDto>>> getMyStores(@AuthenticationPrincipal User user) {
         List<MyStoreResDto> stores = storeService.getMyStores(user.getUsername());
 
@@ -155,9 +179,9 @@ public class StoreController {
      * PATCH /api/v1/stores/{store_id}/restore
      */
     @PreAuthorize("hasRole('MASTER')")
-    @PatchMapping("/stores/{storeId}/restore")
+    @PatchMapping("/{storeId}/restore")
     public ResponseEntity<ApiResponseDto<Object>> restoreStore(@PathVariable("storeId") UUID storeId, @AuthenticationPrincipal User user) {
-        storeService.restoreStore(storeId);
+        storeService.restoreStore(storeId, user);
 
         return ApiResponseDto.success(
                     HttpStatus.OK.value(),
@@ -172,18 +196,29 @@ public class StoreController {
      * 예: APPROVED / REJECTED 등
      */
     @PreAuthorize("hasRole('MASTER')")
-    @PatchMapping("/stores/{storeId}/status")
-    public ResponseEntity<ApiResponseDto<Object>> changeStoreApprovalStatus(
-            @PathVariable("storeId") UUID storeId,
-            @RequestBody StoreStatusReqDto request,
-            @AuthenticationPrincipal User user
-    ) {
-        StoreStatusResDto storeStatus = storeService.changeStatus(storeId, request);
+    @PatchMapping("/{storeId}/status")
+    public ResponseEntity<ApiResponseDto<Object>> changeStoreApprovalStatus(@PathVariable("storeId") UUID storeId, @RequestBody StoreStatusReqDto request, @AuthenticationPrincipal User user) {
+        StoreStatusResDto storeStatus = storeService.changeStatus(storeId, request, user);
 
         return ApiResponseDto.success(
                     HttpStatus.OK.value(),
                     request.getMessage(),
                     storeStatus
+        );
+    }
+
+    /**
+     * 가게 승인 대기 목록 조회
+     * GET /api/v1/stores/status/request
+     */
+    @GetMapping("/status/request")
+    public ResponseEntity<ApiResponseDto<List<StoreStatusRequestResDto>>> getRequestedStores() {
+        List<StoreStatusRequestResDto> stores = storeService.getRequestedStores();
+
+        return ApiResponseDto.success(
+                HttpStatus.OK.value(),
+                "승인 대기 가게가 성공적으로 조회되었습니다.",
+                stores
         );
     }
 }

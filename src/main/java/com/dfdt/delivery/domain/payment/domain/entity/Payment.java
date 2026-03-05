@@ -56,6 +56,12 @@ public class Payment {
     @Column(name = "failure_reason", length = 255)
     private String failureReason;
 
+    @Column(name = "hidden_at")
+    private OffsetDateTime hiddenAt;
+
+    @Column(name = "hidden_by", length = 50)
+    private String hiddenBy;
+
     @Embedded
     private CreateAudit createAudit;
 
@@ -108,5 +114,21 @@ public class Payment {
 
     public void softDelete(String deletedBy) {
         this.softDeleteAudit.softDelete(deletedBy);
+    }
+
+    public void hide(String username) {
+        this.hiddenAt = OffsetDateTime.now();
+        this.hiddenBy = username;
+        this.updateAudit.touch(username);
+    }
+
+    public void unhide(String username) {
+        this.hiddenAt = null;
+        this.hiddenBy = null;
+        this.updateAudit.touch(username);
+    }
+
+    public boolean isHidden() {
+        return this.hiddenAt != null;
     }
 }

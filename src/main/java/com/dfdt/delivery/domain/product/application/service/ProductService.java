@@ -7,7 +7,7 @@ import com.dfdt.delivery.domain.product.presentation.dto.request.ProductCreateRe
 import com.dfdt.delivery.domain.product.presentation.dto.request.ProductUpdateReqDto;
 import com.dfdt.delivery.domain.product.presentation.dto.response.ProductResDto;
 import com.dfdt.delivery.domain.store.domain.entity.Store;
-import com.dfdt.delivery.domain.user.entity.User;
+import com.dfdt.delivery.domain.user.domain.entity.User;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
