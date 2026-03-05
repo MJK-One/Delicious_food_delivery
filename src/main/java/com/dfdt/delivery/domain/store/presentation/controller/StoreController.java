@@ -2,7 +2,8 @@ package com.dfdt.delivery.domain.store.presentation.controller;
 
 import com.dfdt.delivery.common.response.ApiResponseDto;
 import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
-import com.dfdt.delivery.domain.store.application.service.StoreService;
+import com.dfdt.delivery.domain.store.application.service.command.StoreCommandService;
+import com.dfdt.delivery.domain.store.application.service.query.StoreQueryService;
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreCreateReqDto;
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreStatusReqDto;
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreUpdateReqDto;
@@ -24,7 +25,8 @@ import java.util.UUID;
 @RequestMapping("/stores")
 public class StoreController implements StoreControllerDocs{
 
-    private final StoreService storeService;
+    private final StoreQueryService storeQueryService;
+    private final StoreCommandService storeCommandService;
 
     /**
      * 가게 단일 조회
@@ -32,7 +34,7 @@ public class StoreController implements StoreControllerDocs{
      */
     @GetMapping("/{storeId}")
     public ResponseEntity<ApiResponseDto<StoreResDto>> getStore(@PathVariable("storeId") UUID storeId) {
-        StoreResDto store = storeService.getStore(storeId);
+        StoreResDto store = storeQueryService.getStore(storeId);
 
         return ApiResponseDto.success(
                     HttpStatus.OK.value(),
@@ -54,7 +56,7 @@ public class StoreController implements StoreControllerDocs{
             @RequestParam(value = "category", required = false) UUID category,
             @RequestParam(value = "name", required = false) String name
     ) {
-        Page<StoreResDto> stores = storeService.getStores(page, size, sortBy, isAsc, category, name);
+        Page<StoreResDto> stores = storeQueryService.getStores(page, size, sortBy, isAsc, category, name);
         StorePageResDto response = new StorePageResDto(stores);
 
         return ApiResponseDto.success(
@@ -80,7 +82,7 @@ public class StoreController implements StoreControllerDocs{
             @RequestParam(value = "name", required = false) String name,
             @RequestParam(value = "isDeleted", defaultValue = "false") Boolean isDeleted
     ) {
-        Page<StoreAdminResDto> stores = storeService.getStoresAdmin(page, size, sortBy, isAsc, category, name, isDeleted);
+        Page<StoreAdminResDto> stores = storeQueryService.getStoresAdmin(page, size, sortBy, isAsc, category, name, isDeleted);
         StoreAdminPageResDto response = new StoreAdminPageResDto(stores);
 
         return ApiResponseDto.success(
@@ -96,7 +98,7 @@ public class StoreController implements StoreControllerDocs{
      */
     @PostMapping()
     public ResponseEntity<ApiResponseDto<StoreCreateResDto>> createStore(@Valid @RequestBody StoreCreateReqDto request, @AuthenticationPrincipal CustomUserDetails userDetails) {
-        StoreCreateResDto createdStore = storeService.createStore(request, userDetails);
+        StoreCreateResDto createdStore = storeCommandService.createStore(request, userDetails);
 
         return ApiResponseDto.success(
                     HttpStatus.CREATED.value(),
@@ -113,7 +115,7 @@ public class StoreController implements StoreControllerDocs{
     @PutMapping("/{storeId}")
     public ResponseEntity<ApiResponseDto<StoreUpdateResDto>> updateStore(@PathVariable("storeId") UUID storeId, @Valid @RequestBody StoreUpdateReqDto request,
                                                                          @AuthenticationPrincipal CustomUserDetails userDetails) {
-        StoreUpdateResDto updatedStore = storeService.updateStore(storeId, request, userDetails);
+        StoreUpdateResDto updatedStore = storeCommandService.updateStore(storeId, request, userDetails);
 
         return ApiResponseDto.success(
                     HttpStatus.OK.value(),
@@ -129,7 +131,7 @@ public class StoreController implements StoreControllerDocs{
     @PreAuthorize("hasAnyRole('OWNER','MASTER')")
     @DeleteMapping("/{storeId}")
     public ResponseEntity<ApiResponseDto<Object>> deleteStore(@PathVariable("storeId") UUID storeId, @AuthenticationPrincipal CustomUserDetails userDetails) {
-        storeService.deleteStore(storeId, userDetails);
+        storeCommandService.deleteStore(storeId, userDetails);
 
         return ApiResponseDto.success(
                     HttpStatus.OK.value(),
@@ -146,7 +148,7 @@ public class StoreController implements StoreControllerDocs{
     @PreAuthorize("hasAnyRole('OWNER','MASTER')")
     @PatchMapping("/{storeId}/open")
     public ResponseEntity<ApiResponseDto<Object>> changeStoreOpenStatus(@PathVariable("storeId") UUID storeId, @AuthenticationPrincipal CustomUserDetails userDetails) {
-        storeService.changeIsOpen(storeId, userDetails);
+        storeCommandService.changeIsOpen(storeId, userDetails);
 
         return ApiResponseDto.success(
                     HttpStatus.OK.value(),
@@ -163,7 +165,7 @@ public class StoreController implements StoreControllerDocs{
     @PreAuthorize("hasAnyRole('OWNER','MASTER')")
     @GetMapping("/me")
     public ResponseEntity<ApiResponseDto<List<MyStoreResDto>>> getMyStores(@AuthenticationPrincipal CustomUserDetails userDetails) {
-        List<MyStoreResDto> stores = storeService.getMyStores(userDetails.getUsername());
+        List<MyStoreResDto> stores = storeCommandService.getMyStores(userDetails.getUsername());
 
         return ApiResponseDto.success(
                     HttpStatus.OK.value(),
@@ -179,7 +181,7 @@ public class StoreController implements StoreControllerDocs{
     @PreAuthorize("hasRole('MASTER')")
     @PatchMapping("/{storeId}/restore")
     public ResponseEntity<ApiResponseDto<Object>> restoreStore(@PathVariable("storeId") UUID storeId, @AuthenticationPrincipal CustomUserDetails userDetails) {
-        storeService.restoreStore(storeId, userDetails);
+        storeCommandService.restoreStore(storeId, userDetails);
 
         return ApiResponseDto.success(
                     HttpStatus.OK.value(),
@@ -197,7 +199,7 @@ public class StoreController implements StoreControllerDocs{
     @PatchMapping("/{storeId}/status")
     public ResponseEntity<ApiResponseDto<Object>> changeStoreApprovalStatus(@PathVariable("storeId") UUID storeId, @RequestBody StoreStatusReqDto request,
                                                                             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        StoreStatusResDto storeStatus = storeService.changeStatus(storeId, request, userDetails);
+        StoreStatusResDto storeStatus = storeCommandService.changeStatus(storeId, request, userDetails);
 
         return ApiResponseDto.success(
                     HttpStatus.OK.value(),
@@ -217,7 +219,7 @@ public class StoreController implements StoreControllerDocs{
             @RequestParam(value = "sortBy", defaultValue = "createdAt") String sortBy,
             @RequestParam(value = "isAsc", defaultValue = "true") boolean isAsc
     ) {
-        Page<StoreStatusRequestResDto> stores = storeService.getRequestedStores(page, size, sortBy, isAsc);
+        Page<StoreStatusRequestResDto> stores = storeQueryService.getRequestedStores(page, size, sortBy, isAsc);
         StoreRequestPageResDto response = new StoreRequestPageResDto(stores);
 
         return ApiResponseDto.success(

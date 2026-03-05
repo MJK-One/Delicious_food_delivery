@@ -8,28 +8,25 @@ import com.dfdt.delivery.domain.category.domain.repository.CategoryRepository;
 import com.dfdt.delivery.domain.region.domain.entity.Region;
 import com.dfdt.delivery.domain.region.domain.enums.RegionErrorCode;
 import com.dfdt.delivery.domain.region.domain.repository.RegionRepository;
+import com.dfdt.delivery.domain.store.application.service.command.StoreCommandService;
 import com.dfdt.delivery.domain.store.domain.entity.Store;
 import com.dfdt.delivery.domain.store.domain.entity.StoreCategory;
-import com.dfdt.delivery.domain.store.domain.entity.StoreRating;
 import com.dfdt.delivery.domain.store.domain.enums.StoreErrorCode;
 import com.dfdt.delivery.domain.store.domain.enums.StoreStatus;
 import com.dfdt.delivery.domain.store.domain.repository.StoreCategoryRepository;
-import com.dfdt.delivery.domain.store.domain.repository.StoreCustomRepository;
-import com.dfdt.delivery.domain.store.domain.repository.StoreRatingRepository;
 import com.dfdt.delivery.domain.store.domain.repository.StoreRepository;
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreCreateReqDto;
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreStatusReqDto;
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreUpdateReqDto;
-import com.dfdt.delivery.domain.store.presentation.dto.response.*;
+import com.dfdt.delivery.domain.store.presentation.dto.response.MyStoreResDto;
+import com.dfdt.delivery.domain.store.presentation.dto.response.StoreCreateResDto;
+import com.dfdt.delivery.domain.store.presentation.dto.response.StoreStatusResDto;
+import com.dfdt.delivery.domain.store.presentation.dto.response.StoreUpdateResDto;
 import com.dfdt.delivery.domain.user.domain.entity.User;
 import com.dfdt.delivery.domain.user.domain.enums.UserRole;
 import com.dfdt.delivery.domain.user.domain.exception.error.enums.UserErrorCode;
 import com.dfdt.delivery.domain.user.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,43 +36,13 @@ import java.util.UUID;
 @Service
 @Transactional
 @RequiredArgsConstructor
-public class StoreService {
+public class StoreCommandServiceImpl implements StoreCommandService {
 
     private final StoreRepository storeRepository;
-    private final StoreCustomRepository storeCustomRepository;
     private final CategoryRepository categoryRepository;
     private final StoreCategoryRepository storeCategoryRepository;
-    private final StoreRatingRepository storeRatingRepository;
     private final RegionRepository regionRepository;
     private final UserRepository userRepository;
-
-    @Transactional(readOnly = true)
-    public StoreResDto getStore(UUID storeId) {
-        Store store = findStoreById(storeId);
-        StoreRating rating = storeRatingRepository.findById(storeId).orElse(null);
-
-        return StoreResDto.from(store, rating);
-    }
-
-    @Transactional(readOnly = true)
-    public Page<StoreResDto> getStores(int page, int size, String sortBy, boolean isAsc, UUID category, String name) {
-        Pageable pageable = createPageable(page, size, sortBy, isAsc);
-        Page<StoreResDto> storeResDto = storeCustomRepository.searchStores(pageable, category, name);
-
-        checkStores(storeResDto.getTotalElements());
-
-        return storeResDto;
-    }
-
-    @Transactional(readOnly = true)
-    public Page<StoreAdminResDto> getStoresAdmin(int page, int size, String sortBy, boolean isAsc, UUID category, String name, Boolean isDeleted) {
-        Pageable pageable = createPageable(page, size, sortBy, isAsc);
-        Page<StoreAdminResDto> storeAdminResDto = storeCustomRepository.searchStoresAdmin(pageable, category, name, isDeleted);
-
-        checkStores(storeAdminResDto.getTotalElements());
-
-        return storeAdminResDto;
-    }
 
     public StoreCreateResDto createStore(StoreCreateReqDto request, CustomUserDetails userDetails) {
         List<Category> categories = categoryRepository.findAllById(request.getCategoryIds());
@@ -165,21 +132,6 @@ public class StoreService {
         return StoreStatusResDto.from(store);
     }
 
-    public Page<StoreStatusRequestResDto> getRequestedStores(int page, int size, String sortBy, boolean isAsc) {
-        Pageable pageable = createPageable(page, size, sortBy, isAsc);
-        Page<StoreStatusRequestResDto> requestResDto = storeCustomRepository.searchRequestStores(pageable, StoreStatus.REQUESTED);
-
-        checkStores(requestResDto.getTotalElements());
-
-        return requestResDto;
-    }
-
-    private Pageable createPageable(int page, int size, String sortBy, boolean isAsc) {
-        Sort.Direction direction = isAsc ? Sort.Direction.ASC : Sort.Direction.DESC;
-        Sort sort = Sort.by(direction, sortBy);
-        return PageRequest.of(page, size, sort);
-    }
-
     // 해당 가게가 존재하는지 확인
     private Store findStoreById(UUID storeId) {
         return storeRepository.findById(storeId).orElseThrow(() -> new BusinessException(StoreErrorCode.NOT_FOUND_STORE));
@@ -189,13 +141,6 @@ public class StoreService {
     private void checkExistCategory(Integer size, List<Category> categories) {
         if (categories.isEmpty() || categories.size() != size) {
             throw new BusinessException(CategoryErrorCode.NOT_FOUND_CATEGORY);
-        }
-    }
-
-    // 등록된 가게가 있는지 확인
-    private static void checkStores(long totalElements) {
-        if (totalElements == 0) {
-            throw new BusinessException(StoreErrorCode.NOT_FOUND_STORES);
         }
     }
 
