@@ -125,7 +125,6 @@ public class Order {
         if (orderRequestMessage != null && !orderRequestMessage.isBlank()) {
             this.orderRequestMessage = orderRequestMessage;
         }
-        this.orderRequestMessage = orderRequestMessage;
     }
     public void deleteOrder(String deleteBy) {
         if (this.softDeleteAudit == null) {
