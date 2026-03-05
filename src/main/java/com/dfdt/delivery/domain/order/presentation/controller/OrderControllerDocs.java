@@ -1,6 +1,7 @@
 package com.dfdt.delivery.domain.order.presentation.controller;
 
 import com.dfdt.delivery.common.response.ApiResponseDto;
+import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
 import com.dfdt.delivery.domain.order.presentation.dto.OrderReqDto;
 import com.dfdt.delivery.domain.order.presentation.dto.OrderResDto;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,8 +12,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+
+import java.util.UUID;
 
 @Tag(name = "Order (주문)", description = "주문 생성 및 상태 관리를 담당합니다.")
 public interface OrderControllerDocs {
@@ -36,7 +40,7 @@ public interface OrderControllerDocs {
             })),
     })
     ResponseEntity<ApiResponseDto<OrderResDto.OrderMutationResponse>> createOrder(
-            @PathVariable(value = "user_id") String userId,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @Valid @RequestBody OrderReqDto.Create createDTO);
 
 
@@ -46,7 +50,7 @@ public interface OrderControllerDocs {
             @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
     })
     ResponseEntity<ApiResponseDto<OrderResDto.CustomerOrderResponse>> getOrders(
-            @PathVariable(value = "user_id") String userId);
+            @AuthenticationPrincipal CustomUserDetails customUserDetails);
 
 
     @Operation(summary = "API-003 주문 상세 조회", description = "특정 주문에 대한 상세 정보를 조회합니다.")
@@ -60,8 +64,8 @@ public interface OrderControllerDocs {
             }))
     })
     ResponseEntity<ApiResponseDto<OrderResDto.GetOrderDetailResponse>> getOrderDetail(
-            @PathVariable(value = "order_id") String orderId,
-            @PathVariable(value = "user_id") String userId);
+            @PathVariable(value = "orderId") UUID orderId,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails);
 
 
     @Operation(summary = "API-004 주문 수정하기", description = "배달지 정보나 요청사항 등 주문 내용을 수정합니다.")
@@ -78,8 +82,8 @@ public interface OrderControllerDocs {
             })),
     })
     ResponseEntity<ApiResponseDto<OrderResDto.OrderMutationResponse>> updateOrder(
-            @PathVariable(value = "order_id") String orderId,
-            @PathVariable(value = "user_id") String userId,
+            @PathVariable(value = "orderId") UUID orderId,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @Valid @RequestBody OrderReqDto.UpdateOrder updateDTO
     );
 
@@ -98,8 +102,8 @@ public interface OrderControllerDocs {
             })),
     })
     ResponseEntity<ApiResponseDto<Void>> deleteOrder(
-            @PathVariable(value = "order_id") String orderId,
-            @PathVariable(value = "user_id") String userId);
+            @PathVariable(value = "orderId") UUID orderId,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails);
 
 
     
@@ -117,8 +121,8 @@ public interface OrderControllerDocs {
             })),
     })
     ResponseEntity<ApiResponseDto<OrderResDto.OrderMutationResponse>> updateOrderStatus(
-            @PathVariable(value = "order_id") String orderId,
-            @PathVariable(value = "user_id") String userId,
+            @PathVariable(value = "orderId") UUID orderId,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @Valid @RequestBody OrderReqDto.UpdateStatus updateStatusDTO
     );
 
@@ -129,5 +133,5 @@ public interface OrderControllerDocs {
             @ApiResponse(responseCode = "404", description = "가게 정보를 찾을 수 없음")
     })
     ResponseEntity<ApiResponseDto<OrderResDto.OwnerDashboardResponse>> getOrdersByOwner(
-            @PathVariable(value = "store_id") String store_id);
+            @PathVariable(value = "storeId") UUID storeId);
 }

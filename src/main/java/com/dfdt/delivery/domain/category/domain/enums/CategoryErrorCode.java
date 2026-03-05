@@ -12,6 +12,9 @@ public enum CategoryErrorCode implements ErrorCode {
     INVALID_REQUEST(400, "CATEGORY-4000", "요청 형식이 올바르지 않습니다."),
     ALREADY_EXIST(400, "CATEGORY-4001", "이미 존재하는 카테고리명입니다."),
     CATEGORY_BE_USED(400, "CATEGORY-4002", "해당 카테고리를 사용하는 가게가 존재합니다."),
+    NOT_DELETED(400, "CATEGORY-4003", "삭제된 카테고리가 아닙니다."),
+    ALREADY_DELETED(400, "CATEGORY-4004", "이미 삭제된 카테고리입니다."),
+    NOT_MODIFIED(400, "CATEGORY-4005", "삭제된 카테고리는 정보를 변경할 수 없습니다."),
 
     // 404 NOT FOUND
     NOT_FOUND_CATEGORY(404, "CATEGORY-4040", "해당 카테고리가 존재하지 않습니다."),
