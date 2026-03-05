@@ -91,8 +91,12 @@ public class AuthService {
         String newAccessToken = jwtProvider.createAccessToken(username, role);
         String newRefreshToken = jwtProvider.createRefreshToken(username, role);
 
-        // Redis 갱신
-        redisService.setData(REFRESH_TOKEN_PREFIX + username, jwtProvider.resolveToken(newRefreshToken), 7 * 24 * 60 * 60 * 1000L);
+        String pureNewAccessToken = jwtProvider.resolveToken(newAccessToken);
+        String pureNewRefreshToken = jwtProvider.resolveToken(newRefreshToken);
+
+        // Redis 갱신 (RT와 AT 모두 갱신)
+        redisService.setData(ACTIVE_TOKEN_PREFIX + username, pureNewAccessToken, 60 * 60 * 1000L);
+        redisService.setData(REFRESH_TOKEN_PREFIX + username, pureNewRefreshToken, 7 * 24 * 60 * 60 * 1000L);
 
         return TokenResponseDto.of(newAccessToken, newRefreshToken);
     }
