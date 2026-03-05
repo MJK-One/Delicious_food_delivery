@@ -21,6 +21,14 @@ public class ErrorResponseDto {
     private final String message;
     private List<ValidationError> errorList; // @Valid 예외 처리용
 
+    public static ErrorResponseDto of(ErrorCode errorCode) {
+        return ErrorResponseDto.builder()
+                .status(errorCode.getStatus())
+                .errorCode(errorCode.getErrorCode())
+                .message(errorCode.getMessage())
+                .build();
+    }
+
     public static <T> ResponseEntity<ErrorResponseDto> fail(ErrorCode errorCode) {
         return ResponseEntity
                 .status(errorCode.getStatus())
