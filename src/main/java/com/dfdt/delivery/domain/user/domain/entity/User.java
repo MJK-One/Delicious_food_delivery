@@ -65,4 +65,18 @@ public class User {
     public void recordLogin() {
         this.lastLoginAt = LocalDateTime.now();
     }
-}
+
+    public void updateProfile(String name, String updatedBy) {
+        this.name = name;
+        this.updateAudit.touch(updatedBy);
+    }
+
+    public void updateRole(UserRole role, String updatedBy) {
+        this.role = role;
+        this.updateAudit.touch(updatedBy);
+    }
+
+    public void delete(String deletedBy) {
+        this.softDeleteAudit.softDelete(deletedBy);
+    }
+    }
