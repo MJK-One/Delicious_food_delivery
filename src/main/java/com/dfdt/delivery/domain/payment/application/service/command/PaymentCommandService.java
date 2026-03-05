@@ -19,5 +19,5 @@ public interface PaymentCommandService {
 
     PaymentHiddenToggleResDto toggleHidden(UUID paymentId, Boolean hidden);
 
-    void failPayment(UUID orderId);
+    void timeoutPayment(UUID orderId);
 }

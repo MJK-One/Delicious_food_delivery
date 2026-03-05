@@ -8,6 +8,8 @@ import com.dfdt.delivery.domain.payment.domain.enums.PaymentStatus;
 import com.dfdt.delivery.domain.payment.presentation.dto.request.PaymentCreateReqDto;
 import com.dfdt.delivery.domain.payment.presentation.dto.response.PaymentDetailResDto;
 
+import com.dfdt.delivery.domain.payment.domain.entity.PaymentStatusHistory;
+
 public class PaymentConverter {
 
     public static Payment toEntity(PaymentCreateReqDto reqDto, String username) {
@@ -36,5 +38,22 @@ public class PaymentConverter {
                 .hidden(payment.isHidden())
                 .hiddenAt(payment.getHiddenAt())
                 .build();
+    }
+
+    public static PaymentStatusHistory toStatusHistoryEntity(
+            Payment payment,
+            String username,
+            PaymentStatus from,
+            PaymentStatus to,
+            String reason
+    ) {
+        return PaymentStatusHistory.create(
+                payment.getPaymentId(),
+                payment.getOrderId(),
+                username,
+                from,
+                to,
+                reason
+        );
     }
 }
