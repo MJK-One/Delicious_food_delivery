@@ -276,7 +276,7 @@ public final class StoreSuccessDocs {
     {
       "status": 200,
       "message": "승인 대기 가게가 성공적으로 조회되었습니다.",
-      "data": {
+      "data": [
             "storeId": "32059350-0d40-4236-b1ca-0e7b3fa5313b",
             "regionId": "26d953ec-b216-42e4-b9f6-5bdc3cd3f423",
             "categories":[
@@ -292,7 +292,11 @@ public final class StoreSuccessDocs {
             "status": "REQUESTED",
             "isOpen": true,
             "createdAt": "2026-03-03T04:18:01.681261Z"
-      }
+      ],
+      "page": 0,
+      "size": 10,
+      "totalElements": 25,
+      "totalPages": 3
     }
     """;
 }

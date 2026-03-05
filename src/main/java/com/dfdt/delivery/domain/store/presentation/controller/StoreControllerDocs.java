@@ -198,5 +198,10 @@ public interface StoreControllerDocs {
             @ApiResponse(responseCode = "403", description = "권한 없음",
                     content = @Content(mediaType = "application/json", examples = @ExampleObject(value = StoreErrorDocs.FORBIDDEN)))
     })
-    ResponseEntity<ApiResponseDto<List<StoreStatusRequestResDto>>> getRequestedStores();
+    public ResponseEntity<ApiResponseDto<StoreRequestPageResDto>> getRequestedStores(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "sortBy", defaultValue = "createdAt") String sortBy,
+            @RequestParam(value = "isAsc", defaultValue = "true") boolean isAsc
+    );
 }

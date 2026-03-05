@@ -2,15 +2,11 @@ package com.dfdt.delivery.domain.store.presentation.controller;
 
 import com.dfdt.delivery.common.response.ApiResponseDto;
 import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
-import com.dfdt.delivery.domain.store.presentation.dto.response.StorePageResDto;
+import com.dfdt.delivery.domain.store.application.service.StoreService;
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreCreateReqDto;
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreStatusReqDto;
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreUpdateReqDto;
-import com.dfdt.delivery.domain.store.application.service.StoreService;
 import com.dfdt.delivery.domain.store.presentation.dto.response.*;
-import com.dfdt.delivery.domain.user.domain.entity.User;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -215,13 +211,19 @@ public class StoreController implements StoreControllerDocs{
      * GET /api/v1/stores/status/request
      */
     @GetMapping("/status/request")
-    public ResponseEntity<ApiResponseDto<List<StoreStatusRequestResDto>>> getRequestedStores() {
-        List<StoreStatusRequestResDto> stores = storeService.getRequestedStores();
+    public ResponseEntity<ApiResponseDto<StoreRequestPageResDto>> getRequestedStores(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "sortBy", defaultValue = "createdAt") String sortBy,
+            @RequestParam(value = "isAsc", defaultValue = "true") boolean isAsc
+    ) {
+        Page<StoreStatusRequestResDto> stores = storeService.getRequestedStores(page, size, sortBy, isAsc);
+        StoreRequestPageResDto response = new StoreRequestPageResDto(stores);
 
         return ApiResponseDto.success(
                 HttpStatus.OK.value(),
                 "승인 대기 가게가 성공적으로 조회되었습니다.",
-                stores
+                response
         );
     }
 }
