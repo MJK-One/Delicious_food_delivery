@@ -24,7 +24,7 @@ services:
     ports:
       - '${SERVER_PORT}'
     environment:
-      - SPRING_DATASOURCE_URL=${DB_URL} // /delivery
+      - SPRING_DATASOURCE_URL=${DB_URL}
       - SPRING_DATASOURCE_USERNAME=${DB_USER}
       - SPRING_DATASOURCE_PASSWORD=${DB_PW}
       - SPRING_DATA_REDIS_HOST=${REDIS_HOST}
