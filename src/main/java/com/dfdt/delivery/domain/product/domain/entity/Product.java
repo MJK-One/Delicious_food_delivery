@@ -74,26 +74,27 @@ public class Product {
         this.price = request.getPrice();
         this.displayOrder = request.getDisplayOrder();
         this.isHidden = request.getIsHidden();
-        this.updateAudit = UpdateAudit.empty();
-        this.updateAudit.touch(username);
+        makeUpdateAudit(username);
     }
 
     public void delete(String username) {
-        this.updateAudit = UpdateAudit.empty();
-        this.updateAudit.touch(username);
+        makeUpdateAudit(username);
         this.softDeleteAudit = SoftDeleteAudit.active();
         this.softDeleteAudit.softDelete(username);
     }
 
     public void soldOut(String username) {
-        this.updateAudit = UpdateAudit.empty();
-        this.updateAudit.touch(username);
+        makeUpdateAudit(username);
         this.isHidden = !this.isHidden;
     }
 
     public void restore(int maxOrder, String username) {
         this.displayOrder = maxOrder;
         this.softDeleteAudit.restore();
+        makeUpdateAudit(username);
+    }
+
+    private void makeUpdateAudit(String username) {
         this.updateAudit = UpdateAudit.empty();
         this.updateAudit.touch(username);
     }

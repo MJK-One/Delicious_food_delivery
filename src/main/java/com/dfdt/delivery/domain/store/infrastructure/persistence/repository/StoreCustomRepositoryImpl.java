@@ -4,6 +4,7 @@ import com.dfdt.delivery.domain.store.domain.enums.StoreStatus;
 import com.dfdt.delivery.domain.store.domain.repository.StoreCustomRepository;
 import com.dfdt.delivery.domain.store.presentation.dto.response.StoreAdminResDto;
 import com.dfdt.delivery.domain.store.presentation.dto.response.StoreResDto;
+import com.dfdt.delivery.domain.store.presentation.dto.response.StoreStatusRequestResDto;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Projections;
@@ -80,33 +81,24 @@ public class StoreCustomRepositoryImpl implements StoreCustomRepository {
     }
 
     @Override
-    public Page<StoreAdminResDto> searchStoresAdmin(Pageable pageable, UUID categoryId, String name, Boolean isDeleted) {
+    public Page<StoreStatusRequestResDto> searchRequestStores(Pageable pageable, StoreStatus requested) {
 
-        List<StoreAdminResDto> fetch = queryFactory
-                .select(Projections.constructor(StoreAdminResDto.class,
+        List<StoreStatusRequestResDto> fetch = queryFactory
+                .select(Projections.fields(StoreStatusRequestResDto.class,
                                 store.storeId,
-                                store.user.name,
                                 store.region.regionId,
+                                store.user.name.as("ownerName"),
                                 store.name,
-                                store.addressText,
-                                store.phone,
                                 store.description,
+                                store.phone,
+                                store.addressText,
                                 store.isOpen,
-                                store.status.stringValue(),
-                                storeRating.ratingAvg.coalesce(BigDecimal.ZERO),
-                                storeRating.ratingCount.coalesce(0),
-                                store.createAudit.createdAt,
-                                store.updateAudit.updatedAt,
-                                store.softDeleteAudit.deletedAt
+                                store.status,
+                                store.createAudit.createdAt
                         )
                 )
                 .from(store)
-                .leftJoin(storeRating).on(storeRating.store.eq(store))
-                .where(
-                        nameContains(name),
-                        categoryIdIn(categoryId),
-                        isDeletedEq(isDeleted)
-                )
+                .where(store.status.eq(StoreStatus.REQUESTED))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .orderBy(getAllOrderSpecifiers(pageable).toArray(new OrderSpecifier[0]))
@@ -115,11 +107,40 @@ public class StoreCustomRepositoryImpl implements StoreCustomRepository {
         Long total = queryFactory
                 .select(store.count())
                 .from(store)
-                .where(
-                        nameContains(name),
-                        categoryIdIn(categoryId)
+                .where(store.status.eq(StoreStatus.REQUESTED))
+                .fetchOne();
 
+        return new PageImpl<>(fetch, pageable, total);
+    }
+
+    @Override
+    public Page<StoreStatusRequestResDto> searchRequestStores(Pageable pageable, StoreStatus requested) {
+
+        List<StoreStatusRequestResDto> fetch = queryFactory
+                .select(Projections.fields(StoreStatusRequestResDto.class,
+                                store.storeId,
+                                store.region.regionId,
+                                store.user.name.as("ownerName"),
+                                store.name,
+                                store.description,
+                                store.phone,
+                                store.addressText,
+                                store.isOpen,
+                                store.status.stringValue().as("status"),
+                                store.createAudit.createdAt
+                        )
                 )
+                .from(store)
+                .where(store.status.eq(StoreStatus.REQUESTED))
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .orderBy(getAllOrderSpecifiers(pageable).toArray(new OrderSpecifier[0]))
+                .fetch();
+
+        Long total = queryFactory
+                .select(store.count())
+                .from(store)
+                .where(store.status.eq(StoreStatus.REQUESTED))
                 .fetchOne();
 
         return new PageImpl<>(fetch, pageable, total);
