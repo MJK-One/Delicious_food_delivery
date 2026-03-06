@@ -60,7 +60,6 @@ public class OrderPreConditionChecker {
     }
 
     public void validateDeletable(Order order) {
-        // PAID(결제완료) 이상이면서 COMPLETED(배송완료)가 아닌 '진행 중'인 상태일 때
         // (예: 결제완료, 상품준비중, 배송중 등)
         if (isProcessing(order)) {
             throw new BusinessException(OrderErrorCode.ALREADY_PROCESSED);
@@ -93,6 +92,7 @@ public class OrderPreConditionChecker {
         }
         // 이미 삭제 되었거나 완료되었으면
         if (nowStatus == OrderStatus.COMPLETED
+                || nowStatus == OrderStatus.REJECTED
                 || nowStatus == OrderStatus.CANCELED
                 || nowStatus == OrderStatus.HIDDEN)
             throw new BusinessException(OrderErrorCode.ACCESS_DENIED);
