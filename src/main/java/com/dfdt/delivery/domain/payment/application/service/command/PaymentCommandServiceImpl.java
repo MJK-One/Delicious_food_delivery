@@ -176,8 +176,28 @@ public class PaymentCommandServiceImpl implements PaymentCommandService {
 
     @Override
     @Transactional
-    public PaymentHiddenToggleResDto toggleHidden(UUID paymentId, Boolean hidden, String username) {
-        // TODO: 숨김 토글
-        return null;
+    public PaymentHiddenToggleResDto toggleHidden(UUID paymentId, Boolean isHidden, String username) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new BusinessException(PaymentErrorCode.PAYMENT_NOT_FOUND));
+
+        Order order = orderRepository.findById(payment.getOrderId())
+                .orElseThrow(() -> new BusinessException(OrderErrorCode.ORDER_NOT_FOUND));
+
+        // 주문 소유자 본인 확인
+        if (!order.getUser().getUsername().equals(username)) {
+            throw new BusinessException(PaymentErrorCode.ACCESS_DENIED);
+        }
+
+        if (isHidden) {
+            payment.hide(username);
+        } else {
+            payment.unhide(username);
+        }
+
+        return PaymentHiddenToggleResDto.builder()
+                .paymentId(payment.getPaymentId())
+                .hiddenAt(payment.getHiddenAt())
+                .hiddenBy(payment.getHiddenBy())
+                .build();
     }
 }
