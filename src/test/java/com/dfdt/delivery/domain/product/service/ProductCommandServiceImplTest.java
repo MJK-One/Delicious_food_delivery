@@ -585,7 +585,6 @@ public class ProductCommandServiceImplTest {
             // given
             UUID storeId = store.getStoreId();
             UUID productId = product.getProductId();
-            Integer displayOrder = product.getDisplayOrder();
 
             when(storeRepository.findByStoreIdAndNotDeleted(storeId)).thenReturn(Optional.of(store));
             when(productRepository.findByProductIdAndStoreId(productId, storeId)).thenReturn(Optional.of(product));
