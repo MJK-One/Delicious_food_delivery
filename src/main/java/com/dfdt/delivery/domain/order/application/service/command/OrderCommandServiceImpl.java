@@ -7,11 +7,13 @@ import com.dfdt.delivery.domain.order.application.service.checker.OrderPreCondit
 import com.dfdt.delivery.domain.order.domain.entity.Order;
 import com.dfdt.delivery.domain.order.domain.entity.OrderItem;
 import com.dfdt.delivery.domain.order.domain.enums.OrderStatus;
-import com.dfdt.delivery.domain.order.domain.repository.OrderCacheManager;
+import com.dfdt.delivery.domain.order.infrastructure.persistence.redis.OrderRedisService;
 import com.dfdt.delivery.domain.order.domain.repository.OrderRepository;
 import com.dfdt.delivery.domain.order.presentation.dto.OrderReqDto;
 import com.dfdt.delivery.domain.order.presentation.dto.OrderResDto;
 import com.dfdt.delivery.domain.payment.application.service.command.PaymentCommandService;
+import com.dfdt.delivery.domain.payment.domain.entity.Payment;
+import com.dfdt.delivery.domain.payment.presentation.dto.request.PaymentCreateReqDto;
 import com.dfdt.delivery.domain.product.domain.entity.Product;
 import com.dfdt.delivery.domain.store.domain.entity.Store;
 import com.dfdt.delivery.domain.user.domain.entity.User;
@@ -25,7 +27,7 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class OrderCommandServiceImpl implements OrderCommandService {
-    private final OrderCacheManager orderCacheManager;
+    private final OrderRedisService orderRedisService;
     private final OrderRepository orderRepository;
     private final OrderPreConditionChecker orderPreConditionChecker;
     private final OrderDataFinder orderDataFinder;
@@ -57,9 +59,13 @@ public class OrderCommandServiceImpl implements OrderCommandService {
         // DB 저장
         Order savedOrder = orderRepository.save(order);
         // 결제 생성 로직 넣기
-        paymentCommandService.createPayment(null);
+        paymentCommandService.createPayment(
+                PaymentCreateReqDto.builder().orderId(savedOrder.getOrderId())
+                        .amount(savedOrder.getTotalPrice())
+                        .paymentMethod(createDTO.paymentMethod()).build(),
+                username);
         // Redis TTL 설정하여 결제 대기 시간 제한
-        orderCacheManager.setPaymentTimeout(savedOrder.getOrderId(), Duration.ofMinutes(5));
+        orderRedisService.setPaymentTimeout(savedOrder.getOrderId());
         // 응답 반환
         return OrderConverter.toMutationResponse(savedOrder);
     }
@@ -80,23 +86,6 @@ public class OrderCommandServiceImpl implements OrderCommandService {
             Address orderAddress = orderDataFinder.findAddress(updateOrderDTO.addressId());
             order.updateAddress(orderAddress);
         }
-        // 주문 상품 처리
-        order.removeOrderItems(updateOrderDTO.removeOrderItemIds());
-        if (updateOrderDTO.addOrderItems()!=null && !updateOrderDTO.addOrderItems().isEmpty()) {
-            List<UUID> productIds = updateOrderDTO.addOrderItems().stream().map(OrderReqDto.OrderItem::productId).toList();
-            Map<UUID, Product> stockMap = orderDataFinder.getProductMap(productIds);
-            for (OrderReqDto.OrderItem productItem : updateOrderDTO.addOrderItems()) {
-                Product stock = stockMap.get(productItem.productId());
-                // 매장의 상품이 존재하는 지, 재고가 있는지 확인하는 함수
-                orderPreConditionChecker.validateProduct(stock, order.getStore(), productItem);
-                // 주문 아이템 생성
-                OrderItem orderItem = OrderConverter.toOrderItem(stock, productItem.quantity());
-                order.addOrderItem(orderItem);
-            }
-        }
-        // 주문 상품 처리 후 상품 리스트에 상품이 하나도 안 남았다면 오류
-        orderPreConditionChecker.validateQuantity(order);
-
         if (updateOrderDTO.requestMemo()!=null)
             order.updateOrderMessage(updateOrderDTO.requestMemo());
         Order savedOrder = orderRepository.save(order);
@@ -135,6 +124,13 @@ public class OrderCommandServiceImpl implements OrderCommandService {
         orderPreConditionChecker.authoriseOrder(order,user);
         orderPreConditionChecker.validateStatusUpdatable(user,order,updateStatusDTO.orderStatus());
 
+        if (order.getStatus() == OrderStatus.PAID && updateStatusDTO.orderStatus() == OrderStatus.REJECTED)
+        {
+            orderRepository.findPaymentOrderId(orderId)
+                    .ifPresent(payment -> {
+                        paymentCommandService.cancelPayment(payment.getPaymentId());
+                    });
+        }
         // 권한 수정
         order.updateStatus(updateStatusDTO.orderStatus(), updateStatusDTO.changedReason());
         Order saveOrder = orderRepository.save(order);
