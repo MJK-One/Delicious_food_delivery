@@ -19,13 +19,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
 
 @Service
-@Transactional
 @RequiredArgsConstructor
 public class StoreQueryServiceImpl implements StoreQueryService {
 
@@ -33,7 +31,6 @@ public class StoreQueryServiceImpl implements StoreQueryService {
     private final StoreCustomRepository storeCustomRepository;
     private final StoreRatingRepository storeRatingRepository;
 
-    @Transactional(readOnly = true)
     public StoreResDto getStore(UUID storeId) {
         Store store = findStoreById(storeId);
         StoreRating rating = storeRatingRepository.findById(storeId).orElse(null);
@@ -41,7 +38,6 @@ public class StoreQueryServiceImpl implements StoreQueryService {
         return StoreResDto.from(store, rating);
     }
 
-    @Transactional(readOnly = true)
     public Page<StoreResDto> getStores(int page, int size, String sortBy, boolean isAsc, UUID category, String name) {
         Pageable pageable = createPageable(page, size, sortBy, isAsc);
         Page<StoreResDto> storeResDto = storeCustomRepository.searchStores(pageable, category, name);
@@ -51,7 +47,6 @@ public class StoreQueryServiceImpl implements StoreQueryService {
         return storeResDto;
     }
 
-    @Transactional(readOnly = true)
     public Page<StoreAdminResDto> getStoresAdmin(int page, int size, String sortBy, boolean isAsc, UUID category, String name, Boolean isDeleted) {
         Pageable pageable = createPageable(page, size, sortBy, isAsc);
         Page<StoreAdminResDto> storeAdminResDto = storeCustomRepository.searchStoresAdmin(pageable, category, name, isDeleted);
