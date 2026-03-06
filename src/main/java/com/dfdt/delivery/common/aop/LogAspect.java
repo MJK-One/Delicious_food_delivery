@@ -13,8 +13,9 @@ import org.springframework.stereotype.Component;
 public class LogAspect {
     @Before("@within(org.springframework.stereotype.Service)")
     public void logBefore(JoinPoint joinPoint) {
+        String className = joinPoint.getTarget().getClass().getSimpleName();
         String methodName = joinPoint.getSignature().toShortString();
-        log.info("[실행] 서비스 실행 중: {}", methodName);
+        log.info("[실행]{}/{}",className,methodName);
     }
 
 
