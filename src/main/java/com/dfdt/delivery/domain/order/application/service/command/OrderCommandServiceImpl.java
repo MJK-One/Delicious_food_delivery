@@ -12,6 +12,7 @@ import com.dfdt.delivery.domain.order.domain.repository.OrderRepository;
 import com.dfdt.delivery.domain.order.presentation.dto.OrderReqDto;
 import com.dfdt.delivery.domain.order.presentation.dto.OrderResDto;
 import com.dfdt.delivery.domain.payment.application.service.command.PaymentCommandService;
+import com.dfdt.delivery.domain.payment.domain.entity.Payment;
 import com.dfdt.delivery.domain.payment.presentation.dto.request.PaymentCreateReqDto;
 import com.dfdt.delivery.domain.product.domain.entity.Product;
 import com.dfdt.delivery.domain.store.domain.entity.Store;
@@ -123,6 +124,13 @@ public class OrderCommandServiceImpl implements OrderCommandService {
         orderPreConditionChecker.authoriseOrder(order,user);
         orderPreConditionChecker.validateStatusUpdatable(user,order,updateStatusDTO.orderStatus());
 
+        if (order.getStatus() == OrderStatus.PAID && updateStatusDTO.orderStatus() == OrderStatus.REJECTED)
+        {
+            orderRepository.findPaymentOrderId(orderId)
+                    .ifPresent(payment -> {
+                        paymentCommandService.cancelPayment(payment.getPaymentId());
+                    });
+        }
         // 권한 수정
         order.updateStatus(updateStatusDTO.orderStatus(), updateStatusDTO.changedReason());
         Order saveOrder = orderRepository.save(order);
