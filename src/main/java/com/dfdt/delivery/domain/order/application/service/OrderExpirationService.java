@@ -41,7 +41,7 @@ public class OrderExpirationService {
     }
 
     /**
-     * [1] 결제 시간 초과 이벤트 처리 (5분 만료)
+     * [1] 결제 시간 초과 이벤트 처리 (10분 만료)
      */
     @EventListener
     @Transactional
