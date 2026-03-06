@@ -26,6 +26,7 @@ public class SwaggerConfig {
     public OpenAPI openAPI() {
         return new OpenAPI()
                 .addServersItem(new Server().url("http://localhost:8080").description("Local Server"))
+                .addServersItem(new Server().url("http://43.202.2.0").description("Dev Server"))
                 .info(new Info()
                         .title("API 명세서"))
                 .addSecurityItem(securityRequirement)
