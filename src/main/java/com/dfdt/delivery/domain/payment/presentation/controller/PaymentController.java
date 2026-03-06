@@ -26,11 +26,12 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/payments")
 @RequiredArgsConstructor
-public class PaymentController {
+public class PaymentController implements PaymentControllerDocs {
 
     private final PaymentCommandService paymentCommandService;
     private final PaymentQueryService paymentQueryService;
 
+    @Override
     @PostMapping("/{paymentId}/approve")
     public ResponseEntity<ApiResponseDto<PaymentDetailResDto>> approvePayment(
             @PathVariable UUID paymentId,
@@ -43,6 +44,7 @@ public class PaymentController {
         return ApiResponseDto.success(200, "결제가 승인되었습니다.", response);
     }
 
+    @Override
     @PostMapping("/{paymentId}/cancel")
     public ResponseEntity<ApiResponseDto<PaymentDetailResDto>> cancelPayment(
             @PathVariable UUID paymentId,
@@ -52,6 +54,7 @@ public class PaymentController {
         return ApiResponseDto.success(200, "결제가 취소되었습니다.", response);
     }
 
+    @Override
     @PreAuthorize("hasRole('MASTER')")
     @DeleteMapping("/{paymentId}")
     public ResponseEntity<ApiResponseDto<Void>> deletePayment(
@@ -62,6 +65,7 @@ public class PaymentController {
         return ApiResponseDto.success(200, "결제가 삭제되었습니다.", null);
     }
 
+    @Override
     @PostMapping("/{paymentId}/hidden")
     public ResponseEntity<ApiResponseDto<PaymentHiddenToggleResDto>> toggleHidden(
             @PathVariable UUID paymentId,
@@ -73,6 +77,7 @@ public class PaymentController {
         return ApiResponseDto.success(200, msg, response);
     }
 
+    @Override
     @GetMapping("/{paymentId}")
     public ResponseEntity<ApiResponseDto<PaymentDetailResDto>> getPayment(
             @PathVariable UUID paymentId,
@@ -86,6 +91,7 @@ public class PaymentController {
         return ApiResponseDto.success(200, "결제 조회가 완료되었습니다.", response);
     }
 
+    @Override
     @GetMapping
     public ResponseEntity<ApiResponseDto<Page<PaymentListItemResDto>>> listPayments(
             PaymentListSearchReqDto reqDto,
@@ -101,6 +107,7 @@ public class PaymentController {
         return ApiResponseDto.success(200, "결제 목록 조회가 완료되었습니다.", page);
     }
 
+    @Override
     @PreAuthorize("hasRole('MASTER')")
     @GetMapping("/history")
     public ResponseEntity<ApiResponseDto<Page<PaymentHistoryResDto>>> listPaymentHistory(
