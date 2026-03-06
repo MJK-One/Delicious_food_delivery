@@ -1,5 +1,6 @@
 package com.dfdt.delivery.domain.review.application.service.query;
 
+import com.dfdt.delivery.domain.review.presentation.dto.request.MyReviewSearchReqDto;
 import com.dfdt.delivery.domain.review.presentation.dto.request.ReviewSearchReqDto;
 import com.dfdt.delivery.domain.review.presentation.dto.response.ReviewListResDto;
 import com.dfdt.delivery.domain.review.presentation.dto.response.ReviewResDto;
@@ -32,15 +33,15 @@ public class ReviewQueryServiceImpl implements ReviewQueryService {
     }
 
     @Override
-    public ReviewListResDto getMyReviews(String username, Pageable pageable) {
+    public ReviewListResDto getMyReviews(String username, MyReviewSearchReqDto request) {
 
-        // TODO 1. 내 리뷰 목록 조회
+        // 10, 30, 50 제약 조건 강제 적용
+        int size = request.getSize();
+        if (size != 10 && size != 30 && size != 50) {
+            request.setSize(10);
+        }
 
-        // TODO 2. 리뷰 이미지 조회
-
-        // TODO 3. DTO 변환
-
-        // TODO 4. ReviewListResponse 생성
+        // TODO: 내 리뷰 목록 조회
 
         return null;
     }
