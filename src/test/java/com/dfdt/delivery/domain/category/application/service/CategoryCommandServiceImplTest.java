@@ -65,7 +65,7 @@ public class CategoryCommandServiceImplTest {
     class CreateCategoryTest {
 
         @Test
-        @DisplayName("성공: 중복이 아니면 maxSortOrder+1로 생성 후 저장하고 DTO를 반환한다")
+        @DisplayName("성공: 중복이 아니면 maxSortOrder+1로 생성 후 저장하고 DTO를 반환")
         void success() {
             // given
             CategoryCreateReqDto request = new CategoryCreateReqDto();
@@ -86,7 +86,7 @@ public class CategoryCommandServiceImplTest {
         }
 
         @Test
-        @DisplayName("실패: 카테고리명이 이미 존재하면 ALREADY_EXIST 예외가 발생한다")
+        @DisplayName("실패: 카테고리명이 이미 존재하면 ALREADY_EXIST 예외가 발생")
         void fail_alreadyExist() {
             // given
             CategoryCreateReqDto request = new CategoryCreateReqDto();
@@ -107,7 +107,7 @@ public class CategoryCommandServiceImplTest {
     @DisplayName("카테고리 수정")
     class UpdateCategoryTest {
         @Test
-        @DisplayName("성공: sortOrder를 아래(0 -> 1)로 이동하면 shiftSortOrdersDown이 호출된다")
+        @DisplayName("성공: sortOrder를 아래(0 -> 1)로 이동하면 shiftSortOrdersDown이 호출")
         void successOrdersDown() {
             // given
             UUID categoryId = category.getCategoryId();
@@ -131,7 +131,7 @@ public class CategoryCommandServiceImplTest {
         }
 
         @Test
-        @DisplayName("성공: sortOrder를 위(1 -> 0)로 이동하면 shiftSortOrdersUp이 호출된다")
+        @DisplayName("성공: sortOrder를 위(1 -> 0)로 이동하면 shiftSortOrdersUp이 호출")
         void successOrdersUp() {
             // given
             Category category = Category.builder()
@@ -223,10 +223,9 @@ public class CategoryCommandServiceImplTest {
     @DisplayName("카테고리 삭제")
     class DeleteCategoryTest {
         @Test
-        @DisplayName("성공: 사용 중인 가게가 없으면 카테고리를 삭제하고 이후 sortOrder를 감소시킨다")
+        @DisplayName("성공: 사용 중인 가게가 없으면 카테고리를 삭제하고 이후 sortOrder를 감소")
         void success() {
             // given
-            Category category = CategoryFixture.deleteCategory();
             UUID categoryId = category.getCategoryId();
 
             when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
@@ -241,7 +240,7 @@ public class CategoryCommandServiceImplTest {
         }
 
         @Test
-        @DisplayName("실패: 이미 삭제된 카테고리이면 예외가 발생한다")
+        @DisplayName("실패: 이미 삭제된 카테고리이면 예외가 발생")
         void failAlreadyDeleted() {
             // given
             UUID categoryId = category.getCategoryId();
@@ -259,10 +258,9 @@ public class CategoryCommandServiceImplTest {
         }
 
         @Test
-        @DisplayName("실패: 해당 카테고리를 사용 중인 가게가 있으면 예외가 발생한다")
+        @DisplayName("실패: 해당 카테고리를 사용 중인 가게가 있으면 예외가 발생")
         void failCategoryBeUsed() {
             // given
-            Category category = CategoryFixture.deleteCategory();
             UUID categoryId = category.getCategoryId();
 
             when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
@@ -280,7 +278,7 @@ public class CategoryCommandServiceImplTest {
     @DisplayName("카테고리 복구")
     class RestoreCategoryTest {
         @Test
-        @DisplayName("성공: 삭제된 카테고리를 마지막 sortOrder + 1로 복구한다")
+        @DisplayName("성공: 삭제된 카테고리를 마지막 sortOrder + 1로 복구")
         void success() {
             // given
             UUID categoryId = category.getCategoryId();
@@ -301,7 +299,7 @@ public class CategoryCommandServiceImplTest {
         }
 
         @Test
-        @DisplayName("실패: 삭제되지 않은 카테고리이면 예외가 발생한다")
+        @DisplayName("실패: 삭제되지 않은 카테고리이면 예외가 발생")
         void failNotDeleted() {
             // given
             UUID categoryId = category.getCategoryId();
@@ -316,7 +314,7 @@ public class CategoryCommandServiceImplTest {
         }
 
         @Test
-        @DisplayName("실패: 복구하려는 카테고리 이름이 이미 존재하면 예외가 발생한다")
+        @DisplayName("실패: 복구하려는 카테고리 이름이 이미 존재하면 예외가 발생")
         void failDuplicatedName() {
             // given
             UUID categoryId = category.getCategoryId();
