@@ -1,8 +1,10 @@
 package com.dfdt.delivery.domain.review.domain.entity;
 
+import com.dfdt.delivery.common.exception.BusinessException;
 import com.dfdt.delivery.common.infrastructure.persistence.embedded.CreateAudit;
 import com.dfdt.delivery.common.infrastructure.persistence.embedded.SoftDeleteAudit;
 import com.dfdt.delivery.common.infrastructure.persistence.embedded.UpdateAudit;
+import com.dfdt.delivery.domain.review.domain.enums.ReviewErrorCode;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.UuidGenerator;
@@ -39,6 +41,7 @@ public class Review {
     @Column(name = "content", length = 500)
     private String content;
 
+    @Builder.Default
     @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReviewImage> images = new ArrayList<>();
 
@@ -86,10 +89,12 @@ public class Review {
         return this.softDeleteAudit.isDeleted();
     }
 
-    public void addImage(String imageUrl, int order) {
+    public void addImage(String imageUrl) {
         if (this.images.size() >= 5) {
-            throw new IllegalStateException("리뷰 이미지는 최대 5장까지 등록 가능합니다.");
+            throw new BusinessException(ReviewErrorCode.IMAGE_LIMIT_EXCEEDED);
         }
+
+        int order = this.images.size() + 1;
 
         ReviewImage image = ReviewImage.create(imageUrl, order);
         image.assignReview(this);
