@@ -11,13 +11,13 @@ public interface PaymentCommandService {
 
     PaymentDetailResDto createPayment(PaymentCreateReqDto reqDto, String username);
 
-    PaymentDetailResDto approvePayment(UUID paymentId, PaymentApproveReqDto reqDto);
+    PaymentDetailResDto approvePayment(UUID paymentId, PaymentApproveReqDto reqDto, String username);
 
-    PaymentDetailResDto cancelPayment(UUID paymentId);
+    PaymentDetailResDto cancelPayment(UUID paymentId, String username);
 
-    void deletePayment(UUID paymentId);
+    void deletePayment(UUID paymentId, String username);
 
-    PaymentHiddenToggleResDto toggleHidden(UUID paymentId, Boolean hidden);
+    PaymentHiddenToggleResDto toggleHidden(UUID paymentId, Boolean hidden, String username);
 
     void timeoutPayment(UUID orderId);
 }
