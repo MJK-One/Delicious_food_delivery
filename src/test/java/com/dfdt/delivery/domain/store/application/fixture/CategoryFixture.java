@@ -2,10 +2,6 @@ package com.dfdt.delivery.domain.store.application.fixture;
 
 import com.dfdt.delivery.common.infrastructure.persistence.embedded.CreateAudit;
 import com.dfdt.delivery.domain.category.domain.entity.Category;
-import com.dfdt.delivery.domain.region.domain.entity.Region;
-import com.dfdt.delivery.domain.store.domain.entity.Store;
-import com.dfdt.delivery.domain.store.domain.enums.StoreStatus;
-import com.dfdt.delivery.domain.user.domain.entity.User;
 
 import java.util.UUID;
 
@@ -17,6 +13,16 @@ public class CategoryFixture {
                 .name("테스트 카테고리")
                 .description("카테고리 설명")
                 .sortOrder(0)
+                .isActive(true)
+                .createAudit(CreateAudit.now("테스트 유저"))
+                .build();
+    }
+
+    public static Category repoCategory(String name, Integer sortOrder) {
+        return Category.builder()
+                .name(name)
+                .description("카테고리 설명")
+                .sortOrder(sortOrder)
                 .isActive(true)
                 .createAudit(CreateAudit.now("테스트 유저"))
                 .build();

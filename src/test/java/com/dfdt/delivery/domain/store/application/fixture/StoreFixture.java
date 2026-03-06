@@ -55,4 +55,18 @@ public class StoreFixture {
 
         return List.of(store1, store2);
     }
+
+    public static Store createRepoStore(User user, Region region, String name, StoreStatus storeStatus) {
+        return Store.builder()
+                .name(name)
+                .phone("010-1234-5678")
+                .description("테스트 설명")
+                .addressText("광화문")
+                .isOpen(true)
+                .status(storeStatus)
+                .user(user)
+                .region(region)
+                .createAudit(CreateAudit.now("테스트 유저"))
+                .build();
+    }
 }

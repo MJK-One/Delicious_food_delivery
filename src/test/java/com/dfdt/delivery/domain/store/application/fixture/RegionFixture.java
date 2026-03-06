@@ -1,5 +1,6 @@
 package com.dfdt.delivery.domain.store.application.fixture;
 
+import com.dfdt.delivery.common.infrastructure.persistence.embedded.CreateAudit;
 import com.dfdt.delivery.domain.region.domain.entity.Region;
 
 import java.util.UUID;
@@ -19,6 +20,17 @@ public class RegionFixture {
                 null,
                 null
         );
+    }
+
+    public static Region createNoIdRegion() {
+        return Region.builder()
+                .name("서울")
+                .level((short) 1)
+                .code("1101000")
+                .isOrderEnabled(true)
+                .isOrderEnabled(true)
+                .createAudit(CreateAudit.now("test"))
+                .build();
     }
 
 }
