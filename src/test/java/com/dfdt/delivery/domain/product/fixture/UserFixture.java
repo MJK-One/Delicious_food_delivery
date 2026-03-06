@@ -1,7 +1,9 @@
 package com.dfdt.delivery.domain.product.fixture;
 
+import com.dfdt.delivery.common.infrastructure.persistence.embedded.CreateAudit;
 import com.dfdt.delivery.domain.user.domain.entity.User;
 import com.dfdt.delivery.domain.user.domain.enums.UserRole;
+import org.springframework.test.util.ReflectionTestUtils;
 
 public class UserFixture {
 
@@ -30,5 +32,18 @@ public class UserFixture {
                 .role(UserRole.OWNER)
                 .name("testerAnotherName")
                 .build();
+    }
+
+    public static User createRepoUser() {
+        User user = User.builder()
+                .username("repoUser")
+                .name("repoUserName")
+                .password("password")
+                .role(UserRole.OWNER)
+                .build();
+
+        ReflectionTestUtils.setField(user, "createAudit", CreateAudit.now("master"));
+
+        return user;
     }
 }

@@ -25,4 +25,18 @@ public class StoreFixture {
                 .createAudit(CreateAudit.now("테스트 유저"))
                 .build();
     }
+
+    public static Store createNoIdStore(User user, Region region) {
+        return Store.builder()
+                .name("테스트 가게")
+                .phone("010-1234-5678")
+                .description("테스트 설명")
+                .addressText("광화문")
+                .isOpen(true)
+                .status(StoreStatus.APPROVED)
+                .user(user)
+                .region(region)
+                .createAudit(CreateAudit.now("테스트 유저"))
+                .build();
+    }
 }
