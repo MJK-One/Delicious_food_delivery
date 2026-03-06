@@ -57,7 +57,7 @@ public class OrderCommandServiceImpl implements OrderCommandService {
         // DB 저장
         Order savedOrder = orderRepository.save(order);
         // 결제 생성 로직 넣기
-        paymentCommandService.createPayment(null);
+        paymentCommandService.createPayment(null,null);
         // Redis TTL 설정하여 결제 대기 시간 제한
         orderCacheManager.setPaymentTimeout(savedOrder.getOrderId(), Duration.ofMinutes(5));
         // 응답 반환
