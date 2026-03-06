@@ -30,4 +30,14 @@ public class CategoryFixture {
                 .softDeleteAudit(SoftDeleteAudit.active())
                 .build();
     }
+
+    public static Category repoCategory(String name, Integer sortOrder) {
+        return Category.builder()
+                .name(name)
+                .description("카테고리 설명")
+                .sortOrder(sortOrder)
+                .isActive(true)
+                .createAudit(CreateAudit.now("테스트 유저"))
+                .build();
+    }
 }
