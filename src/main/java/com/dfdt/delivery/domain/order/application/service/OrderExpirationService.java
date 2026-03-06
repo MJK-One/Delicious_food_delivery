@@ -8,6 +8,7 @@ import com.dfdt.delivery.domain.order.domain.event.OrderEvent;
 import com.dfdt.delivery.domain.order.domain.repository.OrderRepository;
 import com.dfdt.delivery.domain.order.infrastructure.persistence.redis.OrderRedisService;
 import com.dfdt.delivery.domain.payment.application.service.command.PaymentCommandService;
+import com.dfdt.delivery.domain.payment.domain.enums.PaymentErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -72,17 +73,19 @@ public class OrderExpirationService {
         // 가게 미접수 처리 , 환불
         orderRepository.findByIdWithLock(event.orderId())
                 .ifPresent(order -> {
-                    if (order.getStatus().ordinal() < OrderStatus.ACCEPTED.ordinal())
+                    if (order.getStatus().isBeforeAcceptance())
                     {
                         // 주문 상태를 REJECTED로 변경
                         order.updateStatus(OrderStatus.REJECTED, "주문 후 가게 미수락 취소");
 
                         // 결제 정보 조회 및 환불 로직 실행
                         orderRepository.findPaymentOrderId(event.orderId())
-                                .ifPresent(payment -> {
+                                .ifPresentOrElse(payment -> {
                                     log.info("결제 취소 요청 실행: 결제ID {}", payment.getPaymentId());
                                     paymentCommandService.cancelPayment(payment.getPaymentId());
-                                });
+                                }
+                                , () -> {
+                                    throw new BusinessException(PaymentErrorCode.INVALID_PAYMENT_STATUS);});
                     }
                 });
     }
