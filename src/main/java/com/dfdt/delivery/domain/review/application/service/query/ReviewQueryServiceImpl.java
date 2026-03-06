@@ -2,10 +2,10 @@ package com.dfdt.delivery.domain.review.application.service.query;
 
 import com.dfdt.delivery.domain.review.presentation.dto.request.MyReviewSearchReqDto;
 import com.dfdt.delivery.domain.review.presentation.dto.request.ReviewSearchReqDto;
+import com.dfdt.delivery.domain.review.presentation.dto.request.StoreReviewSearchReqDto;
 import com.dfdt.delivery.domain.review.presentation.dto.response.ReviewListResDto;
 import com.dfdt.delivery.domain.review.presentation.dto.response.ReviewResDto;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -15,19 +15,15 @@ import java.util.UUID;
 public class ReviewQueryServiceImpl implements ReviewQueryService {
 
     @Override
-    public ReviewListResDto getStoreReviews(UUID storeId, Pageable pageable) {
+    public ReviewListResDto getStoreReviews(UUID storeId, StoreReviewSearchReqDto request) {
 
-        // TODO 1. 가게 존재 여부 확인
+        // 10, 30, 50 제약 조건 강제 적용
+        int size = request.getSize();
+        if (size != 10 && size != 30 && size != 50) {
+            request.setSize(10);
+        }
 
-        // TODO 2. 리뷰 목록 조회 (Page)
-
-        // TODO 3. 리뷰 이미지 조회
-
-        // TODO 4. DTO 변환
-
-        // TODO 5. 가게 평점 요약 조회
-
-        // TODO 6. ReviewListResponse 생성
+        // TODO : 가게 리뷰 목록 조회
 
         return null;
     }
