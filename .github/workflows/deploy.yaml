@@ -17,7 +17,6 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      # 2. 최신 소스코드로 JAR 파일 빌드 (clean으로 찌꺼기 제거)
       - name: Build with Gradle
         run: |
           chmod +x gradlew
@@ -30,8 +29,6 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # 4. 도커 이미지 빌드 및 푸시
-      # (이 단계에서 Dockerfile이 실행되며, 위에서 만든 JAR를 이미지에 넣습니다)
       - name: Build and Push Docker_Image
         run: |
           docker build -t ${{ secrets.SERVER_IMAGE }} .
