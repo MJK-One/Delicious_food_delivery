@@ -7,6 +7,7 @@ import com.dfdt.delivery.domain.order.domain.enums.OrderErrorCode;
 import com.dfdt.delivery.domain.order.domain.enums.OrderStatus;
 import com.dfdt.delivery.domain.order.domain.repository.OrderRepository;
 import com.dfdt.delivery.domain.payment.application.converter.PaymentConverter;
+import com.dfdt.delivery.domain.payment.application.service.validator.PaymentValidator;
 import com.dfdt.delivery.domain.payment.domain.entity.Payment;
 import com.dfdt.delivery.domain.payment.domain.entity.PaymentStatusHistory;
 import com.dfdt.delivery.domain.payment.domain.enums.PaymentErrorCode;
@@ -31,6 +32,7 @@ public class PaymentCommandServiceImpl implements PaymentCommandService {
     private final PaymentStatusHistoryRepository historyRepository;
     private final OrderRepository orderRepository;
     private final RedisService redisService;
+    private final PaymentValidator paymentValidator;
 
     private static final String TIMEOUT_KEY_PREFIX = "payment:timeout:";
     private static final long FIVE_MINUTES_MS = 5 * 60 * 1000L;
@@ -87,9 +89,7 @@ public class PaymentCommandServiceImpl implements PaymentCommandService {
                 .orElseThrow(() -> new BusinessException(PaymentErrorCode.PAYMENT_NOT_FOUND));
 
         // 2. READY 상태일 때만 승인 가능
-        if (payment.getPaymentStatus() != PaymentStatus.READY) {
-            throw new BusinessException(PaymentErrorCode.INVALID_PAYMENT_STATUS);
-        }
+        paymentValidator.validateApproveCondition(payment);
 
         PaymentStatus fromStatus = payment.getPaymentStatus();
 
@@ -135,18 +135,14 @@ public class PaymentCommandServiceImpl implements PaymentCommandService {
                 .orElseThrow(() -> new BusinessException(PaymentErrorCode.PAYMENT_NOT_FOUND));
 
         // 2. 결제 상태 확인 (이미 취소되었거나 실패한 경우 제외)
-        if (payment.getPaymentStatus() == PaymentStatus.CANCELED || payment.getPaymentStatus() == PaymentStatus.FAILED) {
-            throw new BusinessException(PaymentErrorCode.INVALID_PAYMENT_STATUS);
-        }
+        paymentValidator.validateCancelStatus(payment);
 
         // 3. 주문 정보 조회 및 상태 체크
         Order order = orderRepository.findById(payment.getOrderId())
                 .orElseThrow(() -> new BusinessException(OrderErrorCode.ORDER_NOT_FOUND));
 
         // PENDING, PAID 상태일 때만 취소 가능 (ACCEPTED 이후로는 취소 불가)
-        if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.PAID) {
-            throw new BusinessException(PaymentErrorCode.INVALID_PAYMENT_STATUS);
-        }
+        paymentValidator.validateOrderCancelable(order);
 
         PaymentStatus fromStatus = payment.getPaymentStatus();
 
@@ -184,11 +180,9 @@ public class PaymentCommandServiceImpl implements PaymentCommandService {
                 .orElseThrow(() -> new BusinessException(OrderErrorCode.ORDER_NOT_FOUND));
 
         // 주문 소유자 본인 확인
-        if (!order.getUser().getUsername().equals(username)) {
-            throw new BusinessException(PaymentErrorCode.ACCESS_DENIED);
-        }
+        paymentValidator.validateOwnership(order, username);
 
-        if (isHidden) {
+        if (Boolean.TRUE.equals(isHidden)) {
             payment.hide(username);
         } else {
             payment.unhide(username);
