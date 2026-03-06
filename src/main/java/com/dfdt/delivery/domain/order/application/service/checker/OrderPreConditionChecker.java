@@ -50,7 +50,8 @@ public class OrderPreConditionChecker {
         // 관리자(ADMIN)는 위 조건들에 걸리지 않으므로 모든 권한을 가짐 (자동 통과)
     }
     public void validateModifiable(Order order) {
-        if (order.getStatus().ordinal() >= OrderStatus.PAID.ordinal()) {
+        // 결제 완료(Step 2) 이상이면 수정 불가
+        if (order.getStatus().getStep() >= OrderStatus.PAID.getStep()) {
             throw new BusinessException(OrderErrorCode.ALREADY_PROCESSED);
         }
     }
@@ -60,18 +61,16 @@ public class OrderPreConditionChecker {
     }
 
     public void validateDeletable(Order order) {
-        // (예: 결제완료, 상품준비중, 배송중 등)
         if (isProcessing(order)) {
             throw new BusinessException(OrderErrorCode.ALREADY_PROCESSED);
         }
     }
     private boolean isProcessing(Order order) {
         OrderStatus status = order.getStatus();
-        // PAID(결제완료) 보다는 크거나 같고, COMPLETED(배송완료) 보다는 작은 상태들
-        return status.ordinal() >= OrderStatus.PAID.ordinal()
-                && status.ordinal() < OrderStatus.COMPLETED.ordinal();
+        // PAID(2) <= 현재 단계 < COMPLETED(7) 인 경우 진행 중으로 판단
+        return status.getStep() >= OrderStatus.PAID.getStep()
+                && status.getStep() < OrderStatus.COMPLETED.getStep();
     }
-
     public void authoriseOrderCustomer(Order order, User user) {
         if (user.getRole() == UserRole.CUSTOMER) {
             authoriseOrder(order, user);
@@ -79,29 +78,33 @@ public class OrderPreConditionChecker {
        else throw new BusinessException(OrderErrorCode.ACCESS_DENIED);
     }
 
-    public void validateStatusUpdatable(User user, Order order,OrderStatus toStatus) {
+    public void validateStatusUpdatable(User user, Order order, OrderStatus toStatus) {
+        OrderStatus nowStatus = getOrderStatus(user, order);
+
+        // 동일 상태 변경 방지 및 진행 중인 주문 거절 방지
+        // 이미 사장님이 수락(ACCEPTED, Step 3)하여 진행 중인데 거절(REJECTED)하려는 경우 방지
+        if (nowStatus == toStatus || (nowStatus.getStep() >= OrderStatus.ACCEPTED.getStep() && toStatus == OrderStatus.REJECTED)) {
+            throw new BusinessException(OrderErrorCode.ALREADY_PROCESSED);
+        }
+    }
+
+    private static OrderStatus getOrderStatus(User user, Order order) {
         OrderStatus nowStatus = order.getStatus();
-        if (user.getRole() == UserRole.CUSTOMER)
-        {
+
+        // 1. 권한 체크
+        if (user.getRole() == UserRole.CUSTOMER) {
             throw new BusinessException(OrderErrorCode.ACCESS_DENIED);
         }
-        // 결제 상태가 아니라면 바꿀 수 없음
-        if (nowStatus==OrderStatus.PENDING)
-        {
+
+        // 2. 기초 상태 체크
+        if (nowStatus == OrderStatus.PENDING) {
             throw new BusinessException(OrderErrorCode.PAYMENT_REQUIRED);
         }
-        // 이미 삭제 되었거나 완료되었으면
-        if (nowStatus == OrderStatus.COMPLETED
-                || nowStatus == OrderStatus.REJECTED
-                || nowStatus == OrderStatus.CANCELED
-                || nowStatus == OrderStatus.HIDDEN)
+
+        // 3. 종료된 주문 체크 (isTerminated 활용)
+        if (nowStatus.isTerminated()) {
             throw new BusinessException(OrderErrorCode.ACCESS_DENIED);
-
-        // 같은 상태로는 못 바꾸고 이미 처리된 주문에 대해서는 못 바꿈
-        if (order.getStatus() == toStatus || isProcessing(order) && toStatus == OrderStatus.REJECTED)
-        {
-            throw  new BusinessException(OrderErrorCode.ALREADY_PROCESSED);
         }
-
+        return nowStatus;
     }
 }
