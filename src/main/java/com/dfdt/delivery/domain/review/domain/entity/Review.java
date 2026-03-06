@@ -7,6 +7,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.UuidGenerator;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -36,6 +38,9 @@ public class Review {
 
     @Column(name = "content", length = 500)
     private String content;
+
+    @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ReviewImage> images = new ArrayList<>();
 
     @Embedded
     private CreateAudit createAudit;
@@ -79,5 +84,16 @@ public class Review {
 
     public boolean isDeleted() {
         return this.softDeleteAudit.isDeleted();
+    }
+
+    public void addImage(String imageUrl, int order) {
+        if (this.images.size() >= 5) {
+            throw new IllegalStateException("리뷰 이미지는 최대 5장까지 등록 가능합니다.");
+        }
+
+        ReviewImage image = ReviewImage.create(imageUrl, order);
+        image.assignReview(this);
+
+        this.images.add(image);
     }
 }
