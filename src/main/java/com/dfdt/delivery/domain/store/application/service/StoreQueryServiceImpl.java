@@ -9,6 +9,7 @@ import com.dfdt.delivery.domain.store.domain.enums.StoreStatus;
 import com.dfdt.delivery.domain.store.domain.repository.JpaStoreRepository;
 import com.dfdt.delivery.domain.store.domain.repository.StoreCustomRepository;
 import com.dfdt.delivery.domain.store.domain.repository.StoreRatingRepository;
+import com.dfdt.delivery.domain.store.presentation.dto.response.MyStoreResDto;
 import com.dfdt.delivery.domain.store.presentation.dto.response.StoreAdminResDto;
 import com.dfdt.delivery.domain.store.presentation.dto.response.StoreResDto;
 import com.dfdt.delivery.domain.store.presentation.dto.response.StoreStatusRequestResDto;
@@ -20,6 +21,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -57,6 +59,14 @@ public class StoreQueryServiceImpl implements StoreQueryService {
         checkStores(storeAdminResDto.getTotalElements());
 
         return storeAdminResDto;
+    }
+
+    public List<MyStoreResDto> getMyStores(String username) {
+        return storeRepository
+                .findByUser_UsernameOrderByCreateAuditAsc(username)
+                .stream()
+                .map(MyStoreResDto::from)
+                .toList();
     }
 
     public Page<StoreStatusRequestResDto> getRequestedStores(int page, int size, String sortBy, boolean isAsc) {

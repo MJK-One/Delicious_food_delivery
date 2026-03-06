@@ -20,7 +20,6 @@ import com.dfdt.delivery.domain.store.domain.repository.StoreCategoryRepository;
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreCreateReqDto;
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreStatusReqDto;
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreUpdateReqDto;
-import com.dfdt.delivery.domain.store.presentation.dto.response.MyStoreResDto;
 import com.dfdt.delivery.domain.store.presentation.dto.response.StoreCreateResDto;
 import com.dfdt.delivery.domain.store.presentation.dto.response.StoreStatusResDto;
 import com.dfdt.delivery.domain.user.domain.entity.User;
@@ -36,7 +35,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -387,42 +385,6 @@ class StoreCommandServiceImplTest {
             BusinessException exception = assertThrows(BusinessException.class, () -> storeService.changeIsOpen(storeId, userDetails));
 
             assertEquals(StoreErrorCode.NOT_MODIFIED, exception.getErrorCode());
-        }
-    }
-
-    @Nested
-    @DisplayName("내 가게 목록 조회")
-    class GetMyStoresTest {
-        @Test
-        @DisplayName("성공: 사용자 가게 목록을 생성일 순으로 조회해 DTO 리스트로 반환한다")
-        void success() {
-            // given
-            List<Store> stores = StoreFixture.createStores(user, region);
-
-            when(storeRepository.findByUser_UsernameOrderByCreateAuditAsc(user.getUsername())).thenReturn(stores);
-
-            // when
-            List<MyStoreResDto> result = storeService.getMyStores(user.getUsername());
-
-            // then
-            assertNotNull(result);
-            assertEquals(2, result.size());
-            verify(storeRepository, times(1)).findByUser_UsernameOrderByCreateAuditAsc(user.getUsername());
-        }
-
-        @Test
-        @DisplayName("성공: 사용자 가게가 없으면 빈 리스트를 반환한다")
-        void successEmpty() {
-            // given
-            when(storeRepository.findByUser_UsernameOrderByCreateAuditAsc(user.getUsername())).thenReturn(Collections.emptyList());
-
-            // when
-            List<MyStoreResDto> result = storeService.getMyStores(user.getUsername());
-
-            // then
-            assertNotNull(result);
-            assertTrue(result.isEmpty());
-            verify(storeRepository, times(1)).findByUser_UsernameOrderByCreateAuditAsc(user.getUsername());
         }
     }
 

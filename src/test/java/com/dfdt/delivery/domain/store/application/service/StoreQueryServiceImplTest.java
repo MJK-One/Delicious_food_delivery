@@ -10,6 +10,7 @@ import com.dfdt.delivery.domain.store.domain.enums.StoreStatus;
 import com.dfdt.delivery.domain.store.domain.repository.JpaStoreRepository;
 import com.dfdt.delivery.domain.store.domain.repository.StoreCustomRepository;
 import com.dfdt.delivery.domain.store.domain.repository.StoreRatingRepository;
+import com.dfdt.delivery.domain.store.presentation.dto.response.MyStoreResDto;
 import com.dfdt.delivery.domain.store.presentation.dto.response.StoreAdminResDto;
 import com.dfdt.delivery.domain.store.presentation.dto.response.StoreResDto;
 import com.dfdt.delivery.domain.store.presentation.dto.response.StoreStatusRequestResDto;
@@ -25,6 +26,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -151,6 +153,42 @@ class StoreQueryServiceImplTest {
             BusinessException exception = assertThrows(BusinessException.class,
                     () -> storeService.getStoresAdmin(0, 10, "createdAt", true, null, null, true));
             assertEquals(StoreErrorCode.NOT_FOUND_STORES, exception.getErrorCode());
+        }
+    }
+
+    @Nested
+    @DisplayName("내 가게 목록 조회")
+    class GetMyStoresTest {
+        @Test
+        @DisplayName("성공: 사용자 가게 목록을 생성일 순으로 조회해 DTO 리스트로 반환한다")
+        void success() {
+            // given
+            List<Store> stores = StoreFixture.createStores(user, RegionFixture.createOrderEnabledRegion());
+
+            when(storeRepository.findByUser_UsernameOrderByCreateAuditAsc(user.getUsername())).thenReturn(stores);
+
+            // when
+            List<MyStoreResDto> result = storeService.getMyStores(user.getUsername());
+
+            // then
+            assertNotNull(result);
+            assertEquals(2, result.size());
+            verify(storeRepository, times(1)).findByUser_UsernameOrderByCreateAuditAsc(user.getUsername());
+        }
+
+        @Test
+        @DisplayName("성공: 사용자 가게가 없으면 빈 리스트를 반환한다")
+        void successEmpty() {
+            // given
+            when(storeRepository.findByUser_UsernameOrderByCreateAuditAsc(user.getUsername())).thenReturn(Collections.emptyList());
+
+            // when
+            List<MyStoreResDto> result = storeService.getMyStores(user.getUsername());
+
+            // then
+            assertNotNull(result);
+            assertTrue(result.isEmpty());
+            verify(storeRepository, times(1)).findByUser_UsernameOrderByCreateAuditAsc(user.getUsername());
         }
     }
 

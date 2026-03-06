@@ -18,7 +18,6 @@ import com.dfdt.delivery.domain.store.domain.repository.StoreCategoryRepository;
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreCreateReqDto;
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreStatusReqDto;
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreUpdateReqDto;
-import com.dfdt.delivery.domain.store.presentation.dto.response.MyStoreResDto;
 import com.dfdt.delivery.domain.store.presentation.dto.response.StoreCreateResDto;
 import com.dfdt.delivery.domain.store.presentation.dto.response.StoreStatusResDto;
 import com.dfdt.delivery.domain.store.presentation.dto.response.StoreUpdateResDto;
@@ -105,14 +104,6 @@ public class StoreCommandServiceImpl implements StoreCommandService {
         checkDeletedStore(store);
 
         store.changeIsOpen(userDetails.getUsername());
-    }
-
-    public List<MyStoreResDto> getMyStores(String username) {
-        return storeRepository
-                .findByUser_UsernameOrderByCreateAuditAsc(username)
-                .stream()
-                .map(MyStoreResDto::from)
-                .toList();
     }
 
     public void restoreStore(UUID storeId, CustomUserDetails user) {
