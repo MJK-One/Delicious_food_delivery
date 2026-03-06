@@ -10,6 +10,7 @@ import com.dfdt.delivery.domain.payment.presentation.dto.response.PaymentHiddenT
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,7 +23,6 @@ public class PaymentCommandController {
 
     private final PaymentCommandService paymentCommandService;
 
-    // 2. 결제 승인
     @PostMapping("/{paymentId}/approve")
     public ResponseEntity<ApiResponseDto<PaymentDetailResDto>> approvePayment(
             @PathVariable UUID paymentId,
@@ -35,7 +35,6 @@ public class PaymentCommandController {
         return ApiResponseDto.success(200, "결제가 승인되었습니다.", response);
     }
 
-    // 3. 결제 취소
     @PostMapping("/{paymentId}/cancel")
     public ResponseEntity<ApiResponseDto<PaymentDetailResDto>> cancelPayment(
             @PathVariable UUID paymentId,
@@ -45,7 +44,7 @@ public class PaymentCommandController {
         return ApiResponseDto.success(200, "결제가 취소되었습니다.", response);
     }
 
-    // 4. 결제 삭제
+    @PreAuthorize("hasRole('MASTER')")
     @DeleteMapping("/{paymentId}")
     public ResponseEntity<ApiResponseDto<Void>> deletePayment(
             @PathVariable UUID paymentId,
@@ -55,7 +54,6 @@ public class PaymentCommandController {
         return ApiResponseDto.success(200, "결제가 삭제되었습니다.", null);
     }
 
-    // 5. 결제 숨김 토글
     @PostMapping("/{paymentId}/hidden")
     public ResponseEntity<ApiResponseDto<PaymentHiddenToggleResDto>> toggleHidden(
             @PathVariable UUID paymentId,

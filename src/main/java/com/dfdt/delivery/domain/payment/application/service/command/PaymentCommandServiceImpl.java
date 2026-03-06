@@ -166,7 +166,12 @@ public class PaymentCommandServiceImpl implements PaymentCommandService {
     @Override
     @Transactional
     public void deletePayment(UUID paymentId, String username) {
-        // TODO: 결제 삭제
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new BusinessException(PaymentErrorCode.PAYMENT_NOT_FOUND));
+
+        payment.softDelete(username);
+
+        saveHistory(payment, username, payment.getPaymentStatus(), payment.getPaymentStatus(), "관리자에 의한 결제 내역 삭제");
     }
 
     @Override
