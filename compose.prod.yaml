@@ -1,4 +1,4 @@
-# ${~} : GitHub Secrets에서 올 값
+# ${~} : GitHub Secrets에서 올 값 3
 services:
 
   postgres:
