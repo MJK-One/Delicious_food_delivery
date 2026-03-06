@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
  * 사용자 인증(로그인, 로그아웃, 토큰 재발급)을 위한 API 컨트롤러.
  */
 @RestController
-@RequestMapping("/api/v1/auth")
+@RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
