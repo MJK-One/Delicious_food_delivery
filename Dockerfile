@@ -1,4 +1,4 @@
-# 빌드 스테이지
+# 빌드
 FROM gradle:8.5-jdk21 AS builder
 WORKDIR /build
 
@@ -12,7 +12,7 @@ RUN gradle build -x test --parallel --no-daemon
 
 # ---------------------------------------------------------
 
-# 실행 스테이지
+# 실행
 FROM amazoncorretto:21-alpine-jdk
 
 WORKDIR /app

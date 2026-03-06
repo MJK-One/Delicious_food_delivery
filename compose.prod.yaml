@@ -5,7 +5,7 @@ services:
     image: '${POSTGRESQL_IMAGE}'
     restart: always
     volumes:
-      - ./postgres_data:/var/lib/postgresql # 데이터 저장
+      - ./postgres_data:/var/lib/postgresql
     environment:
       - 'POSTGRES_DB=${DB}'
       - 'POSTGRES_USER=${DB_USER}'
