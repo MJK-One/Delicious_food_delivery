@@ -2,6 +2,7 @@ package com.dfdt.delivery.domain.order.infrastructure.persistence.repository;
 
 import com.dfdt.delivery.domain.order.domain.entity.Order;
 import com.dfdt.delivery.domain.order.domain.repository.OrderRepository;
+import com.dfdt.delivery.domain.payment.domain.entity.Payment;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -16,4 +17,8 @@ public interface JpaOrderRepository extends JpaRepository<Order, UUID> , OrderRe
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select o from Order o where o.orderId = :orderId")
     Optional<Order> findByIdWithLock(UUID orderId);
+
+    @Override
+    @Query("select p from Payment  p where  p.orderId = :orderId")
+    Optional<Payment> findPaymentOrderId(UUID orderId);
 }
