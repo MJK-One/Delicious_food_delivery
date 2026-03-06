@@ -1,13 +1,10 @@
 package com.dfdt.delivery.domain.store.application.service;
 
 import com.dfdt.delivery.common.exception.BusinessException;
-import com.dfdt.delivery.common.infrastructure.persistence.embedded.SoftDeleteAudit;
 import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
 import com.dfdt.delivery.domain.category.domain.entity.Category;
 import com.dfdt.delivery.domain.category.domain.enums.CategoryErrorCode;
-import com.dfdt.delivery.domain.category.domain.repository.CategoryRepository;
 import com.dfdt.delivery.domain.category.domain.repository.JpaCategoryRepository;
-import com.dfdt.delivery.domain.category.presentation.dto.request.CategoryCreateReqDto;
 import com.dfdt.delivery.domain.region.domain.entity.Region;
 import com.dfdt.delivery.domain.region.domain.enums.RegionErrorCode;
 import com.dfdt.delivery.domain.region.domain.repository.RegionRepository;
@@ -20,12 +17,12 @@ import com.dfdt.delivery.domain.store.domain.enums.StoreErrorCode;
 import com.dfdt.delivery.domain.store.domain.enums.StoreStatus;
 import com.dfdt.delivery.domain.store.domain.repository.JpaStoreRepository;
 import com.dfdt.delivery.domain.store.domain.repository.StoreCategoryRepository;
-import com.dfdt.delivery.domain.store.domain.repository.StoreCustomRepository;
-import com.dfdt.delivery.domain.store.domain.repository.StoreRatingRepository;
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreCreateReqDto;
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreStatusReqDto;
 import com.dfdt.delivery.domain.store.presentation.dto.request.StoreUpdateReqDto;
-import com.dfdt.delivery.domain.store.presentation.dto.response.*;
+import com.dfdt.delivery.domain.store.presentation.dto.response.MyStoreResDto;
+import com.dfdt.delivery.domain.store.presentation.dto.response.StoreCreateResDto;
+import com.dfdt.delivery.domain.store.presentation.dto.response.StoreStatusResDto;
 import com.dfdt.delivery.domain.user.domain.entity.User;
 import com.dfdt.delivery.domain.user.domain.enums.UserRole;
 import com.dfdt.delivery.domain.user.domain.exception.error.enums.UserErrorCode;
@@ -38,11 +35,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -92,7 +86,7 @@ class StoreCommandServiceImplTest {
     }
 
     @Nested
-    @DisplayName("createStore - 가게 생성")
+    @DisplayName("가게 생성")
     class CreateStoreTest {
         @Test
         @DisplayName("성공: 가게 생성")
@@ -177,7 +171,7 @@ class StoreCommandServiceImplTest {
     }
 
     @Nested
-    @DisplayName("updateStore - 가게 수정")
+    @DisplayName("가게 수정")
     class UpdateStoreTest {
         @Test
         @DisplayName("성공: 본인의 가게이고 존재하는 경우 수정에 성공한다")
@@ -275,7 +269,7 @@ class StoreCommandServiceImplTest {
     }
 
     @Nested
-    @DisplayName("deleteStore - 가게 삭제")
+    @DisplayName("가게 삭제")
     class DeleteStoreTest {
         @Test
         @DisplayName("성공: 본인 소유의 삭제되지 않은 가게를 삭제 처리한다")
@@ -335,7 +329,7 @@ class StoreCommandServiceImplTest {
     }
 
     @Nested
-    @DisplayName("changeIsOpen - 영업 상태 변경")
+    @DisplayName("영업 상태 변경")
     class ChangeIsOpenTest {
         @Test
         @DisplayName("성공: 본인 가게이고 삭제되지 않은 경우 영업 상태가 변경된다")
@@ -396,7 +390,43 @@ class StoreCommandServiceImplTest {
     }
 
     @Nested
-    @DisplayName("restoreStore - 가게 복구")
+    @DisplayName("내 가게 목록 조회")
+    class GetMyStoresTest {
+        @Test
+        @DisplayName("성공: 사용자 가게 목록을 생성일 순으로 조회해 DTO 리스트로 반환한다")
+        void success() {
+            // given
+            List<Store> stores = StoreFixture.createStores(user, region);
+
+            when(storeRepository.findByUser_UsernameOrderByCreateAuditAsc(user.getUsername())).thenReturn(stores);
+
+            // when
+            List<MyStoreResDto> result = storeService.getMyStores(user.getUsername());
+
+            // then
+            assertNotNull(result);
+            assertEquals(2, result.size());
+            verify(storeRepository, times(1)).findByUser_UsernameOrderByCreateAuditAsc(user.getUsername());
+        }
+
+        @Test
+        @DisplayName("성공: 사용자 가게가 없으면 빈 리스트를 반환한다")
+        void successEmpty() {
+            // given
+            when(storeRepository.findByUser_UsernameOrderByCreateAuditAsc(user.getUsername())).thenReturn(Collections.emptyList());
+
+            // when
+            List<MyStoreResDto> result = storeService.getMyStores(user.getUsername());
+
+            // then
+            assertNotNull(result);
+            assertTrue(result.isEmpty());
+            verify(storeRepository, times(1)).findByUser_UsernameOrderByCreateAuditAsc(user.getUsername());
+        }
+    }
+
+    @Nested
+    @DisplayName("가게 복구")
     class RestoreStoreTest {
 
         @Test
@@ -433,7 +463,7 @@ class StoreCommandServiceImplTest {
     }
 
     @Nested
-    @DisplayName("changeStatus - 가게 상태 변경")
+    @DisplayName("가게 상태 변경")
     class ChangeStatusTest {
         @Test
         @DisplayName("성공: 상태 변경 후 StoreStatusResDto를 반환한다")

@@ -25,7 +25,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -55,7 +54,7 @@ class StoreQueryServiceImplTest {
     private User user;
 
     @Nested
-    @DisplayName("getStore - 가게 단일 조회")
+    @DisplayName("가게 단일 조회")
     class GetStoreTest {
         @Test
         @DisplayName("성공: 가게 조회 성공")
@@ -94,7 +93,7 @@ class StoreQueryServiceImplTest {
     }
 
     @Nested
-    @DisplayName("getStores - 가게 목록 검색")
+    @DisplayName("가게 목록 검색")
     class GetStoresTest {
         @Test
         @DisplayName("성공: 페이징된 가게 목록 반환")
@@ -125,7 +124,7 @@ class StoreQueryServiceImplTest {
     }
 
     @Nested
-    @DisplayName("getStoresAdmin - 가게 목록 검색(관리자용)")
+    @DisplayName("가게 목록 검색(관리자용)")
     class GetStoresAdminTest {
         @Test
         @DisplayName("성공: 삭제된 가게를 포함한 목록")
@@ -156,7 +155,7 @@ class StoreQueryServiceImplTest {
     }
 
     @Nested
-    @DisplayName("getRequestedStores - 승인 대기 가게 목록 조회")
+    @DisplayName("승인 대기 가게 목록 조회")
     class GetRequestedStoresTest {
         @Test
         @DisplayName("성공: REQUESTED 상태인 가게들만 필터링하여 반환")
