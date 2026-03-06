@@ -2,6 +2,7 @@ package com.dfdt.delivery.domain.payment.application.service.command;
 
 import com.dfdt.delivery.common.util.RedisService;
 import com.dfdt.delivery.domain.order.application.provider.OrderDataFinder;
+import com.dfdt.delivery.domain.order.application.service.OrderExpirationService;
 import com.dfdt.delivery.domain.order.domain.entity.Order;
 import com.dfdt.delivery.domain.order.domain.enums.OrderStatus;
 import com.dfdt.delivery.domain.payment.application.converter.PaymentConverter;
@@ -32,6 +33,7 @@ public class PaymentCommandServiceImpl implements PaymentCommandService {
     private final PaymentValidator paymentValidator;
     private final PaymentDataFinder paymentDataFinder;
     private final OrderDataFinder orderDataFinder;
+    private final OrderExpirationService orderExpirationService;
 
     private static final String TIMEOUT_KEY_PREFIX = "payment:timeout:";
     private static final long FIVE_MINUTES_MS = 5 * 60 * 1000L;
@@ -102,7 +104,7 @@ public class PaymentCommandServiceImpl implements PaymentCommandService {
             saveHistory(payment, username, fromStatus, PaymentStatus.PAID, "결제 승인 완료");
 
             // 주문 상태를 PAID로 변경
-            order.updateStatus(OrderStatus.PAID, "결제 승인 완료로 인한 주문 상태 변경");
+            orderExpirationService.completePayment(payment.getOrderId());
 
             // Redis TTL 키 즉시 삭제 (타임아웃 방지)
             redisService.deleteData(TIMEOUT_KEY_PREFIX + payment.getOrderId());
@@ -113,7 +115,7 @@ public class PaymentCommandServiceImpl implements PaymentCommandService {
             saveHistory(payment, username, fromStatus, PaymentStatus.FAILED, "결제 승인 거절: " + reason);
 
             // 주문 상태를 CANCELED로 변경
-            order.updateStatus(OrderStatus.CANCELED, "결제 승인 거부로 인한 주문 취소");
+            orderExpirationService.cancelPayment(payment.getOrderId());
 
             // Redis TTL 키 삭제
             redisService.deleteData(TIMEOUT_KEY_PREFIX + payment.getOrderId());
