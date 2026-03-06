@@ -290,6 +290,7 @@ class StoreCommandServiceImplTest {
             assertTrue(store.getSoftDeleteAudit().isDeleted());
             assertNotNull(store.getSoftDeleteAudit().getDeletedAt());
             assertEquals(user.getUsername(), store.getSoftDeleteAudit().getDeletedBy());
+            assertEquals(store.getStatus(), StoreStatus.SUSPENDED);
         }
 
         @Test
