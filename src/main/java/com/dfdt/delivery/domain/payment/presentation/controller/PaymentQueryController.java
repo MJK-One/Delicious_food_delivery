@@ -1,6 +1,7 @@
 package com.dfdt.delivery.domain.payment.presentation.controller;
 
 import com.dfdt.delivery.common.response.ApiResponseDto;
+import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
 import com.dfdt.delivery.domain.payment.application.service.query.PaymentQueryService;
 import com.dfdt.delivery.domain.payment.presentation.dto.request.PaymentHistorySearchReqDto;
 import com.dfdt.delivery.domain.payment.presentation.dto.request.PaymentListSearchReqDto;
@@ -12,6 +13,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -23,23 +26,35 @@ public class PaymentQueryController {
 
     private final PaymentQueryService paymentQueryService;
 
-    // 1. 결제 단건 조회
     @GetMapping("/{paymentId}")
-    public ResponseEntity<ApiResponseDto<PaymentDetailResDto>> getPayment(@PathVariable UUID paymentId) {
-        PaymentDetailResDto response = paymentQueryService.getPayment(paymentId);
+    public ResponseEntity<ApiResponseDto<PaymentDetailResDto>> getPayment(
+            @PathVariable UUID paymentId,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+
+        PaymentDetailResDto response = paymentQueryService.getPayment(
+                paymentId, 
+                customUserDetails.getUsername(), 
+                customUserDetails.getRole()
+        );
         return ApiResponseDto.success(200, "결제 조회가 완료되었습니다.", response);
     }
 
-    // 2. 결제 목록 조회
     @GetMapping
     public ResponseEntity<ApiResponseDto<Page<PaymentListItemResDto>>> listPayments(
-            PaymentListSearchReqDto reqDto, Pageable pageable) {
+            PaymentListSearchReqDto reqDto, 
+            Pageable pageable,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
 
-        Page<PaymentListItemResDto> page = paymentQueryService.listPayments(reqDto, pageable);
+        Page<PaymentListItemResDto> page = paymentQueryService.listPayments(
+                reqDto, 
+                pageable, 
+                customUserDetails.getUsername(), 
+                customUserDetails.getRole()
+        );
         return ApiResponseDto.success(200, "결제 목록 조회가 완료되었습니다.", page);
     }
 
-    // 3. 결제 히스토리 전체 검색
+    @PreAuthorize("hasRole('MASTER')")
     @GetMapping("/history")
     public ResponseEntity<ApiResponseDto<Page<PaymentHistoryResDto>>> listPaymentHistory(
             PaymentHistorySearchReqDto reqDto, Pageable pageable) {
