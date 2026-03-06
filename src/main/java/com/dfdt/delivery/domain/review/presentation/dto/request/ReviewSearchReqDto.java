@@ -1,5 +1,7 @@
 package com.dfdt.delivery.domain.review.presentation.dto.request;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.Getter;
 import org.springframework.format.annotation.DateTimeFormat;
 
@@ -16,8 +18,10 @@ public class ReviewSearchReqDto {
 
     private String writer;
 
+    @Min(1) @Max(5)
     private Integer minRating;
 
+    @Min(1) @Max(5)
     private Integer maxRating;
 
     private String keyword;
