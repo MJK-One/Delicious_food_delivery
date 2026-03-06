@@ -56,10 +56,38 @@ public class User {
         this.name = name;
         this.password = password;
         this.role = role;
+        this.createAudit = CreateAudit.now("system");
+        this.updateAudit = UpdateAudit.empty();
+        this.softDeleteAudit = SoftDeleteAudit.active();
     }
 
     // 로그인 성공 시 호출
     public void recordLogin() {
         this.lastLoginAt = LocalDateTime.now();
+    }
+
+    public void updateProfile(String name, String updatedBy) {
+        this.name = name;
+        ensureUpdateAudit();
+        this.updateAudit.touch(updatedBy);
+    }
+
+    public void updateRole(UserRole role, String updatedBy) {
+        this.role = role;
+        ensureUpdateAudit();
+        this.updateAudit.touch(updatedBy);
+    }
+
+    private void ensureUpdateAudit() {
+        if (this.updateAudit == null) {
+            this.updateAudit = UpdateAudit.empty();
+        }
+    }
+
+    public void delete(String deletedBy) {
+        if (this.softDeleteAudit == null) {
+            this.softDeleteAudit = SoftDeleteAudit.active();
+        }
+        this.softDeleteAudit.softDelete(deletedBy);
     }
 }

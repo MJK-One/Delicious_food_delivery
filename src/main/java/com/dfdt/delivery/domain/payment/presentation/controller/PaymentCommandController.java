@@ -3,12 +3,10 @@ package com.dfdt.delivery.domain.payment.presentation.controller;
 import com.dfdt.delivery.common.response.ApiResponseDto;
 import com.dfdt.delivery.domain.payment.application.service.command.PaymentCommandService;
 import com.dfdt.delivery.domain.payment.presentation.dto.request.PaymentApproveReqDto;
-import com.dfdt.delivery.domain.payment.presentation.dto.request.PaymentCreateReqDto;
 import com.dfdt.delivery.domain.payment.presentation.dto.response.PaymentDetailResDto;
 import com.dfdt.delivery.domain.payment.presentation.dto.response.PaymentHiddenToggleResDto;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,15 +18,6 @@ import java.util.UUID;
 public class PaymentCommandController {
 
     private final PaymentCommandService paymentCommandService;
-
-    // 1. 결제 생성
-    @PostMapping
-    public ResponseEntity<ApiResponseDto<PaymentDetailResDto>> createPayment(
-            @RequestBody PaymentCreateReqDto reqDto) {
-
-        PaymentDetailResDto response = paymentCommandService.createPayment(reqDto);
-        return ApiResponseDto.success(201, "결제가 생성되었습니다.", response);
-    }
 
     // 2. 결제 승인
     @PostMapping("/{paymentId}/approve")

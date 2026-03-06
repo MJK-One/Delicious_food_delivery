@@ -9,7 +9,7 @@ import java.util.UUID;
 
 public interface PaymentCommandService {
 
-    PaymentDetailResDto createPayment(PaymentCreateReqDto reqDto);
+    PaymentDetailResDto createPayment(PaymentCreateReqDto reqDto, String username);
 
     PaymentDetailResDto approvePayment(UUID paymentId, PaymentApproveReqDto reqDto);
 
@@ -18,4 +18,6 @@ public interface PaymentCommandService {
     void deletePayment(UUID paymentId);
 
     PaymentHiddenToggleResDto toggleHidden(UUID paymentId, Boolean hidden);
+
+    void timeoutPayment(UUID orderId);
 }
