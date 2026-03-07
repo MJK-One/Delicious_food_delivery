@@ -52,7 +52,8 @@ public interface StoreControllerDocs {
             @RequestParam(value = "sortBy", defaultValue = "createdAt") String sortBy,
             @RequestParam(value = "isAsc", defaultValue = "false") boolean isAsc,
             @RequestParam(value = "category", required = false) UUID category,
-            @RequestParam(value = "name", required = false) String name
+            @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "region", required = false) UUID region
     );
 
     @Operation(summary = "[API-STORE-002-2] 가게 조회(관리자용)", description = "검색 조건에 맞는 가게 목록을 페이징하여 조회합니다.")
@@ -71,6 +72,7 @@ public interface StoreControllerDocs {
             @RequestParam(value = "isAsc", defaultValue = "false") boolean isAsc,
             @RequestParam(value = "category", required = false) UUID category,
             @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "region", required = false) UUID region,
             @RequestParam(value = "isDeleted", defaultValue = "false") Boolean isDeleted
     );
 

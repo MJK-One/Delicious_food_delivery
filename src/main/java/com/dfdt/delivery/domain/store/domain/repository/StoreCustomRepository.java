@@ -10,9 +10,9 @@ import org.springframework.data.domain.Pageable;
 import java.util.UUID;
 
 public interface StoreCustomRepository {
-    Page<StoreResDto> searchStores(Pageable pageable, UUID category, String name);
+    Page<StoreResDto> searchStores(Pageable pageable, UUID category, String name, UUID region);
 
-    Page<StoreAdminResDto> searchStoresAdmin(Pageable pageable, UUID category, String name, Boolean isDeleted);
+    Page<StoreAdminResDto> searchStoresAdmin(Pageable pageable, UUID category, String name, UUID region, Boolean isDeleted);
 
     Page<StoreStatusRequestResDto> searchRequestStores(Pageable pageable, StoreStatus requested);
 }

@@ -38,18 +38,18 @@ public class StoreQueryServiceImpl implements StoreQueryService {
         return StoreResDto.from(store, rating);
     }
 
-    public Page<StoreResDto> getStores(int page, int size, String sortBy, boolean isAsc, UUID category, String name) {
+    public Page<StoreResDto> getStores(int page, int size, String sortBy, boolean isAsc, UUID category, String name, UUID region) {
         Pageable pageable = createPageable(page, size, sortBy, isAsc);
-        Page<StoreResDto> storeResDto = storeCustomRepository.searchStores(pageable, category, name);
+        Page<StoreResDto> storeResDto = storeCustomRepository.searchStores(pageable, category, name, region);
 
         checkStores(storeResDto.getTotalElements());
 
         return storeResDto;
     }
 
-    public Page<StoreAdminResDto> getStoresAdmin(int page, int size, String sortBy, boolean isAsc, UUID category, String name, Boolean isDeleted) {
+    public Page<StoreAdminResDto> getStoresAdmin(int page, int size, String sortBy, boolean isAsc, UUID category, String name, UUID region, Boolean isDeleted) {
         Pageable pageable = createPageable(page, size, sortBy, isAsc);
-        Page<StoreAdminResDto> storeAdminResDto = storeCustomRepository.searchStoresAdmin(pageable, category, name, isDeleted);
+        Page<StoreAdminResDto> storeAdminResDto = storeCustomRepository.searchStoresAdmin(pageable, category, name, region, isDeleted);
 
         checkStores(storeAdminResDto.getTotalElements());
 

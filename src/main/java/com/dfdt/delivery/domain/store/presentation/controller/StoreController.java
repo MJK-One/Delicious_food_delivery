@@ -54,9 +54,10 @@ public class StoreController implements StoreControllerDocs{
             @RequestParam(value = "sortBy", defaultValue = "createdAt") String sortBy,
             @RequestParam(value = "isAsc", defaultValue = "true") boolean isAsc,
             @RequestParam(value = "category", required = false) UUID category,
-            @RequestParam(value = "name", required = false) String name
+            @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "region", required = false) UUID region
     ) {
-        Page<StoreResDto> stores = storeQueryService.getStores(page, size, sortBy, isAsc, category, name);
+        Page<StoreResDto> stores = storeQueryService.getStores(page, size, sortBy, isAsc, category, name, region);
         StorePageResDto response = new StorePageResDto(stores);
 
         return ApiResponseDto.success(
@@ -80,9 +81,10 @@ public class StoreController implements StoreControllerDocs{
             @RequestParam(value = "isAsc", defaultValue = "true") boolean isAsc,
             @RequestParam(value = "category", required = false) UUID category,
             @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "region", required = false) UUID region,
             @RequestParam(value = "isDeleted", defaultValue = "false") Boolean isDeleted
     ) {
-        Page<StoreAdminResDto> stores = storeQueryService.getStoresAdmin(page, size, sortBy, isAsc, category, name, isDeleted);
+        Page<StoreAdminResDto> stores = storeQueryService.getStoresAdmin(page, size, sortBy, isAsc, category, name, region, isDeleted);
         StoreAdminPageResDto response = new StoreAdminPageResDto(stores);
 
         return ApiResponseDto.success(

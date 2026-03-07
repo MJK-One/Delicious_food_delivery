@@ -12,9 +12,9 @@ import java.util.UUID;
 public interface StoreQueryService {
     StoreResDto getStore(UUID storeId);
 
-    Page<StoreResDto> getStores(int page, int size, String sortBy, boolean isAsc, UUID category, String name);
+    Page<StoreResDto> getStores(int page, int size, String sortBy, boolean isAsc, UUID category, String name, UUID region);
 
-    Page<StoreAdminResDto> getStoresAdmin(int page, int size, String sortBy, boolean isAsc, UUID category, String name, Boolean isDeleted);
+    Page<StoreAdminResDto> getStoresAdmin(int page, int size, String sortBy, boolean isAsc, UUID category, String name, UUID region, Boolean isDeleted);
 
     List<MyStoreResDto> getMyStores(String username);
 
