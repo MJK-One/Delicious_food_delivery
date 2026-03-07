@@ -2,11 +2,13 @@ package com.dfdt.delivery.domain.store.presentation.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
 public class StoreStatusReqDto {
 
     @NotBlank(message = "승인 여부는 반드시 입력해야 합니다.")

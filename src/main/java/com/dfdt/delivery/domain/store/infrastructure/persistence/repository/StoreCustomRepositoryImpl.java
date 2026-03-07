@@ -32,7 +32,7 @@ public class StoreCustomRepositoryImpl implements StoreCustomRepository {
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public Page<StoreResDto> searchStores(Pageable pageable, UUID categoryId, String name) {
+    public Page<StoreResDto> searchStores(Pageable pageable, UUID categoryId, String name, UUID region) {
 
         List<StoreResDto> fetch = queryFactory
                 .select(Projections.constructor(StoreResDto.class,
@@ -55,6 +55,7 @@ public class StoreCustomRepositoryImpl implements StoreCustomRepository {
                 .where(
                         nameContains(name),
                         categoryIdIn(categoryId),
+                        regionIdEq(region),
                         store.softDeleteAudit.deletedAt.isNull(),
                         store.region.isOrderEnabled,
                         store.status.eq(StoreStatus.APPROVED)
@@ -70,6 +71,7 @@ public class StoreCustomRepositoryImpl implements StoreCustomRepository {
                 .where(
                         nameContains(name),
                         categoryIdIn(categoryId),
+                        regionIdEq(region),
                         store.softDeleteAudit.deletedAt.isNull(),
                         store.region.isOrderEnabled,
                         store.status.eq(StoreStatus.APPROVED)
@@ -81,7 +83,7 @@ public class StoreCustomRepositoryImpl implements StoreCustomRepository {
     }
 
     @Override
-    public Page<StoreAdminResDto> searchStoresAdmin(Pageable pageable, UUID categoryId, String name, Boolean isDeleted) {
+    public Page<StoreAdminResDto> searchStoresAdmin(Pageable pageable, UUID categoryId, String name, UUID region, Boolean isDeleted) {
 
         List<StoreAdminResDto> fetch = queryFactory
                 .select(Projections.constructor(StoreAdminResDto.class,
@@ -106,6 +108,7 @@ public class StoreCustomRepositoryImpl implements StoreCustomRepository {
                 .where(
                         nameContains(name),
                         categoryIdIn(categoryId),
+                        regionIdEq(region),
                         isDeletedEq(isDeleted)
                 )
                 .offset(pageable.getOffset())
@@ -120,6 +123,7 @@ public class StoreCustomRepositoryImpl implements StoreCustomRepository {
                 .where(
                         nameContains(name),
                         categoryIdIn(categoryId),
+                        regionIdEq(region),
                         isDeletedEq(isDeleted)
                 )
                 .fetchOne();
@@ -166,6 +170,10 @@ public class StoreCustomRepositoryImpl implements StoreCustomRepository {
 
     private BooleanExpression categoryIdIn(UUID categoryId) {
         return categoryId == null ? null : store.categories.any().category.categoryId.eq(categoryId);
+    }
+
+    private BooleanExpression regionIdEq(UUID regionId) {
+        return regionId == null ? null : store.region.regionId.eq(regionId);
     }
 
     private BooleanExpression isDeletedEq(Boolean isDeleted) {

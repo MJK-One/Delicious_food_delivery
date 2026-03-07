@@ -3,6 +3,7 @@ package com.dfdt.delivery.domain.order.infrastructure.listener;
 import com.dfdt.delivery.domain.order.domain.enums.OrderRedisPrefix;
 import com.dfdt.delivery.domain.order.domain.event.OrderEvent;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.listener.KeyExpirationEventMessageListener;
@@ -17,7 +18,7 @@ public class OrderRedisKeyExpirationListener extends KeyExpirationEventMessageLi
     private final ApplicationEventPublisher applicationEventPublisher;
 
     public OrderRedisKeyExpirationListener
-            (RedisMessageListenerContainer listenerContainer,
+            (@Qualifier("redisMessageListenerContainer") RedisMessageListenerContainer listenerContainer,
              ApplicationEventPublisher applicationEventPublisher) {
         super(listenerContainer);
         this.applicationEventPublisher = applicationEventPublisher;

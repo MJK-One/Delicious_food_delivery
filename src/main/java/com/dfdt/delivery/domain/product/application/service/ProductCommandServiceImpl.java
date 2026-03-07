@@ -96,7 +96,7 @@ public class ProductCommandServiceImpl implements ProductCommandService {
 
         // 복구 시 기존 displayOrder 값 중 (마지막 번호 + 1) 주입
         int maxDisplayOrder = productRepository.findMaxDisplayOrder(storeId).orElse(0);
-        product.restore(maxDisplayOrder, userDetails.getUsername());
+        product.restore(maxDisplayOrder + 1, userDetails.getUsername());
     }
 
     // 해당 가게가 존재하는지 확인

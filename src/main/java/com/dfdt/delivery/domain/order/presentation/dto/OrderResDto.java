@@ -29,7 +29,6 @@ public class OrderResDto {
             String orderAddress,
             OrderStatus orderStatus
     ){}
-
     // 가게용 GET
     @Builder
     public record OwnerDashboardResponse(
@@ -40,11 +39,11 @@ public class OrderResDto {
 
     @Builder
     public record OrderSummaryCount(
-            Integer pendingCount,
-            Integer paidCount,
-            Integer cookingCount,
-            Integer doneCount,
-            Integer canceledCount
+            Integer newOrderCount,     // [신규] PAID (수락 대기 중인 주문)
+            Integer cookingCount,      // [조리 중] ACCEPTED (현재 만들고 있는 주문)
+            Integer deliveryCount,     // [배달 중] COOKING_DONE + DELIVERING (전달 대기 및 배달 중)
+            Integer completedCount,    // [완료] DELIVERED + COMPLETED (완료)
+            Integer abortedCount       // [취소/거절] REJECTED + CANCELED (중단된 주문)
     ){}
 
     @Builder
@@ -64,7 +63,7 @@ public class OrderResDto {
             UUID orderStoreId,
             String orderStoreName,
             OffsetDateTime orderedAt,
-            Long totalPrice,
+            Integer totalPrice,
             Integer totalQuantity,
             String orderAddress,
             OrderStatus orderStatus,
@@ -77,8 +76,8 @@ public class OrderResDto {
             UUID productId,
             String productName,
             Integer quantity,
-            Long unitPrice,
-            Long totalPrice
+            Integer unitPrice,
+            Integer totalPrice
     ){}
 
     @Builder
@@ -93,6 +92,7 @@ public class OrderResDto {
     @Builder
     public record ProductSimpleInfo(
             UUID productId,
+            Integer size,
             String productName
     ){}
     
@@ -102,6 +102,7 @@ public class OrderResDto {
             UUID orderId,
             OrderStatus orderStatus,
             String orderAddress,
+            Integer totalQuantity,
             Integer totalPrice,
             String representativeProductName,
             String orderRequestMessage,
@@ -111,7 +112,7 @@ public class OrderResDto {
     // 페이징 응답
     @Builder
     public record PaginationInfo(
-            OffsetDateTime nextCursor,
+            String nextCursor,
             Integer size,
             boolean hasNext
     ){}
