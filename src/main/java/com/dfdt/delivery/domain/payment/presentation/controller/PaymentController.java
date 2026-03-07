@@ -94,7 +94,7 @@ public class PaymentController implements PaymentControllerDocs {
     @Override
     @GetMapping
     public ResponseEntity<ApiResponseDto<Page<PaymentListItemResDto>>> listPayments(
-            PaymentListSearchReqDto reqDto,
+            @ModelAttribute @Valid PaymentListSearchReqDto reqDto,
             Pageable pageable,
             @AuthenticationPrincipal CustomUserDetails customUserDetails) {
 
@@ -111,7 +111,7 @@ public class PaymentController implements PaymentControllerDocs {
     @PreAuthorize("hasRole('MASTER')")
     @GetMapping("/history")
     public ResponseEntity<ApiResponseDto<Page<PaymentHistoryResDto>>> listPaymentHistory(
-            PaymentHistorySearchReqDto reqDto, Pageable pageable) {
+            @ModelAttribute @Valid PaymentHistorySearchReqDto reqDto, Pageable pageable) {
 
         Page<PaymentHistoryResDto> page = paymentQueryService.listPaymentHistory(reqDto, pageable);
         return ApiResponseDto.success(200, "결제 히스토리 검색이 완료되었습니다.", page);

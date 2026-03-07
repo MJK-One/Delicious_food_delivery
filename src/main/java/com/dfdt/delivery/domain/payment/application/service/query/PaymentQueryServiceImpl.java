@@ -4,7 +4,7 @@ import com.dfdt.delivery.common.exception.BusinessException;
 import com.dfdt.delivery.domain.payment.application.converter.PaymentConverter;
 import com.dfdt.delivery.domain.payment.domain.entity.Payment;
 import com.dfdt.delivery.domain.payment.domain.enums.PaymentErrorCode;
-import com.dfdt.delivery.domain.payment.domain.repository.PaymentRepository;
+import com.dfdt.delivery.domain.payment.domain.repository.PaymentCustomRepository;
 import com.dfdt.delivery.domain.payment.presentation.dto.request.PaymentHistorySearchReqDto;
 import com.dfdt.delivery.domain.payment.presentation.dto.request.PaymentListSearchReqDto;
 import com.dfdt.delivery.domain.payment.presentation.dto.response.PaymentDetailResDto;
@@ -24,12 +24,12 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class PaymentQueryServiceImpl implements PaymentQueryService {
 
-    private final PaymentRepository paymentRepository;
+    private final PaymentCustomRepository paymentCustomRepository;
 
     @Override
     public PaymentDetailResDto getPayment(UUID paymentId, String username, UserRole role) {
 
-        Payment payment = paymentRepository.findByIdWithRoleCheck(paymentId, username, role)
+        Payment payment = paymentCustomRepository.findByIdWithRoleCheck(paymentId, username, role)
                 .orElseThrow(() -> new BusinessException(PaymentErrorCode.PAYMENT_NOT_FOUND));
 
         return PaymentConverter.toDetailResDto(payment);
@@ -37,11 +37,11 @@ public class PaymentQueryServiceImpl implements PaymentQueryService {
 
     @Override
     public Page<PaymentListItemResDto> listPayments(PaymentListSearchReqDto reqDto, Pageable pageable, String username, UserRole role) {
-        return paymentRepository.searchPayments(reqDto, pageable, username, role);
+        return paymentCustomRepository.searchPayments(reqDto, pageable, username, role);
     }
 
     @Override
     public Page<PaymentHistoryResDto> listPaymentHistory(PaymentHistorySearchReqDto reqDto, Pageable pageable) {
-        return paymentRepository.searchPaymentHistory(reqDto, pageable);
+        return paymentCustomRepository.searchPaymentHistory(reqDto, pageable);
     }
 }
