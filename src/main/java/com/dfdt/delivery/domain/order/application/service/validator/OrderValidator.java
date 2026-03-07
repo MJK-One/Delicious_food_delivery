@@ -1,4 +1,4 @@
-package com.dfdt.delivery.domain.order.application.service.checker;
+package com.dfdt.delivery.domain.order.application.service.validator;
 
 import com.dfdt.delivery.common.exception.BusinessException;
 import com.dfdt.delivery.domain.order.domain.entity.Order;
@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 import java.util.Objects;
 
 @Component
-public class OrderPreConditionChecker {
+public class OrderValidator {
 
     public void validateProduct(Product product, Store orderStore, OrderReqDto.OrderItem itemReq) {
         if (product == null || product.getIsHidden()) {
@@ -35,7 +35,6 @@ public class OrderPreConditionChecker {
     public void authoriseOrder(Order order, User user) {
         // 1. 고객인 경우: 본인 주문만 접근 가능
         if (user.getRole() == UserRole.CUSTOMER) {
-            System.out.println(order.getUser().getUsername()+ user.getUsername());
             if (!Objects.equals(order.getUser().getUsername(), user.getUsername())) {
                 throw new BusinessException(OrderErrorCode.ACCESS_DENIED);
             }

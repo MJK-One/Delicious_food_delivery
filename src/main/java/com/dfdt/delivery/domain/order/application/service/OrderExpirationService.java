@@ -9,8 +9,8 @@ import com.dfdt.delivery.domain.order.domain.repository.OrderRepository;
 import com.dfdt.delivery.domain.order.infrastructure.persistence.redis.OrderRedisService;
 import com.dfdt.delivery.domain.payment.application.service.command.PaymentCommandService;
 import com.dfdt.delivery.domain.payment.domain.enums.PaymentErrorCode;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,13 +18,22 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class OrderExpirationService {
 
+    // 순환 참조로 인해 Lazy 방식 이용
     private final OrderRepository orderRepository;
-    private final PaymentCommandService paymentCommandService;
+    private final @Lazy PaymentCommandService paymentCommandService;
     private final OrderRedisService orderRedisService;
+
+    public OrderExpirationService(
+            OrderRepository orderRepository,
+            @Lazy PaymentCommandService paymentCommandService,
+            OrderRedisService orderRedisService) {
+        this.orderRepository = orderRepository;
+        this.paymentCommandService = paymentCommandService;
+        this.orderRedisService = orderRedisService;
+    }
 
     @Transactional
     public void completePayment(UUID orderId) {
@@ -40,7 +49,6 @@ public class OrderExpirationService {
         orderRedisService.setAcceptTimeout(orderId);
         log.info("주문 {}번: 결제 완료 처리 및 사장님 수락 타이머 시작", orderId);
     }
-
     /**
      * [1] 결제 시간 초과 이벤트 처리 (10분 만료)
      */
@@ -82,7 +90,7 @@ public class OrderExpirationService {
                         orderRepository.findPaymentOrderId(event.orderId())
                                 .ifPresentOrElse(payment -> {
                                     log.info("결제 취소 요청 실행: 결제ID {}", payment.getPaymentId());
-                                    paymentCommandService.cancelPayment(payment.getPaymentId());
+                                    paymentCommandService.cancelPayment(payment.getPaymentId(),order.getUser().getUsername());
                                 }
                                 , () -> {
                                     throw new BusinessException(PaymentErrorCode.INVALID_PAYMENT_STATUS);});

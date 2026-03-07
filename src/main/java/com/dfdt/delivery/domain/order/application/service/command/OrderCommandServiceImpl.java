@@ -1,9 +1,10 @@
 package com.dfdt.delivery.domain.order.application.service.command;
 
 import com.dfdt.delivery.domain.address.domain.entity.Address;
+import com.dfdt.delivery.domain.address.domain.repository.AddressRepository;
 import com.dfdt.delivery.domain.order.application.converter.OrderConverter;
 import com.dfdt.delivery.domain.order.application.provider.OrderDataFinder;
-import com.dfdt.delivery.domain.order.application.service.checker.OrderPreConditionChecker;
+import com.dfdt.delivery.domain.order.application.service.validator.OrderValidator;
 import com.dfdt.delivery.domain.order.domain.entity.Order;
 import com.dfdt.delivery.domain.order.domain.entity.OrderItem;
 import com.dfdt.delivery.domain.order.domain.enums.OrderStatus;
@@ -12,26 +13,28 @@ import com.dfdt.delivery.domain.order.domain.repository.OrderRepository;
 import com.dfdt.delivery.domain.order.presentation.dto.OrderReqDto;
 import com.dfdt.delivery.domain.order.presentation.dto.OrderResDto;
 import com.dfdt.delivery.domain.payment.application.service.command.PaymentCommandService;
-import com.dfdt.delivery.domain.payment.domain.entity.Payment;
 import com.dfdt.delivery.domain.payment.presentation.dto.request.PaymentCreateReqDto;
 import com.dfdt.delivery.domain.product.domain.entity.Product;
+import com.dfdt.delivery.domain.product.domain.repository.JpaProductRepository;
 import com.dfdt.delivery.domain.store.domain.entity.Store;
 import com.dfdt.delivery.domain.user.domain.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class OrderCommandServiceImpl implements OrderCommandService {
     private final OrderRedisService orderRedisService;
     private final OrderRepository orderRepository;
-    private final OrderPreConditionChecker orderPreConditionChecker;
+    private final OrderValidator orderValidator;
     private final OrderDataFinder orderDataFinder;
     private final PaymentCommandService paymentCommandService;
+    private final AddressRepository addressRepository;
+    private final JpaProductRepository productRepository;
 
 
     @Transactional
@@ -43,7 +46,8 @@ public class OrderCommandServiceImpl implements OrderCommandService {
         User orderUser = orderDataFinder.findUser(username);
 
         List<UUID> productIds = createDTO.orderItems().stream().map(OrderReqDto.OrderItem::productId).toList();
-        Map<UUID, Product> stockMap = orderDataFinder.getProductMap(productIds);
+        Map<UUID, Product> stockMap = productRepository.findAllById(productIds).stream()
+                .collect(Collectors.toMap(Product::getProductId, p -> p));
 
         // 주문 생성
         Order order = OrderConverter.toOrder(orderUser,orderAddress,orderStore,createDTO.requestMemo());
@@ -51,7 +55,7 @@ public class OrderCommandServiceImpl implements OrderCommandService {
         for (OrderReqDto.OrderItem productItem : createDTO.orderItems()) {
             Product stock = stockMap.get(productItem.productId());
             // 매장의 상품이 존재하는 지, 재고가 있는지 확인하는 함수
-            orderPreConditionChecker.validateProduct(stock,orderStore,productItem);
+            orderValidator.validateProduct(stock,orderStore,productItem);
             // 주문 아이템 생성
             OrderItem orderItem = OrderConverter.toOrderItem(stock, productItem.quantity());
             order.addOrderItem(orderItem);
@@ -78,12 +82,13 @@ public class OrderCommandServiceImpl implements OrderCommandService {
         User user = orderDataFinder.findUser(username);
 
         // 권한 체크 ( 주문의 주인인지 )
-        orderPreConditionChecker.authoriseOrderCustomer(order,user);
-        orderPreConditionChecker.validateModifiable(order);
+        orderValidator.authoriseOrderCustomer(order,user);
+        orderValidator.validateModifiable(order);
 
         if (updateOrderDTO.addressId()!=null)
         {
-            Address orderAddress = orderDataFinder.findAddress(updateOrderDTO.addressId());
+            Address orderAddress = addressRepository.findById(updateOrderDTO.addressId())
+                    .orElseThrow(() -> new NoSuchElementException("주소를 찾을 수 없습니다."));
             order.updateAddress(orderAddress);
         }
         if (updateOrderDTO.requestMemo()!=null)
@@ -100,8 +105,8 @@ public class OrderCommandServiceImpl implements OrderCommandService {
         User user = orderDataFinder.findUser(username);
 
         // 권한 체크
-        orderPreConditionChecker.authoriseOrderCustomer(order,user);
-        orderPreConditionChecker.validateDeletable(order);
+        orderValidator.authoriseOrderCustomer(order,user);
+        orderValidator.validateDeletable(order);
 
         // 상태별 로직 분기
         if (order.getStatus() == OrderStatus.PENDING)
@@ -121,15 +126,14 @@ public class OrderCommandServiceImpl implements OrderCommandService {
         User user = orderDataFinder.findUser(username);
 
         // 전체 권한 체크
-        orderPreConditionChecker.authoriseOrder(order,user);
-        orderPreConditionChecker.validateStatusUpdatable(user,order,updateStatusDTO.orderStatus());
+        orderValidator.authoriseOrder(order,user);
+        orderValidator.validateStatusUpdatable(user,order,updateStatusDTO.orderStatus());
 
         if (order.getStatus() == OrderStatus.PAID && updateStatusDTO.orderStatus() == OrderStatus.REJECTED)
         {
             orderRepository.findPaymentOrderId(orderId)
-                    .ifPresent(payment -> {
-                        paymentCommandService.cancelPayment(payment.getPaymentId());
-                    });
+                    .ifPresent(payment ->
+                        paymentCommandService.cancelPayment(payment.getPaymentId(),username));
         }
         // 권한 수정
         order.updateStatus(updateStatusDTO.orderStatus(), updateStatusDTO.changedReason());
