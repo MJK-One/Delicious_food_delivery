@@ -80,7 +80,7 @@ public class ReviewController {
             @PathVariable UUID reviewId,
             @AuthenticationPrincipal CustomUserDetails customUserDetails
     ) {
-        reviewCommandService.deleteReview(reviewId, customUserDetails.getUsername());
+        reviewCommandService.deleteReview(reviewId, customUserDetails.getUsername(), customUserDetails.getRole());
         return ApiResponseDto.success(200, "리뷰가 성공적으로 삭제되었습니다.", null);
     }
 

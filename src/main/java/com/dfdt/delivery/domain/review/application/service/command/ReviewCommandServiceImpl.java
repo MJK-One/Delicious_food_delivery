@@ -1,11 +1,19 @@
 package com.dfdt.delivery.domain.review.application.service.command;
 
+import com.dfdt.delivery.domain.order.domain.entity.Order;
+import com.dfdt.delivery.domain.review.application.converter.ReviewConverter;
+import com.dfdt.delivery.domain.review.application.provider.ReviewDataFinder;
+import com.dfdt.delivery.domain.review.application.service.validator.ReviewValidator;
+import com.dfdt.delivery.domain.review.domain.entity.Review;
 import com.dfdt.delivery.domain.review.domain.repository.ReviewRepository;
 import com.dfdt.delivery.domain.review.presentation.dto.request.ReviewCreateReqDto;
 import com.dfdt.delivery.domain.review.presentation.dto.request.ReviewUpdateReqDto;
 import com.dfdt.delivery.domain.review.presentation.dto.response.ReviewResDto;
+import com.dfdt.delivery.domain.store.domain.entity.Store;
+import com.dfdt.delivery.domain.user.domain.enums.UserRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -14,70 +22,103 @@ import java.util.UUID;
 public class ReviewCommandServiceImpl implements ReviewCommandService {
 
     private final ReviewRepository reviewRepository;
+    private final ReviewValidator reviewValidator;
+    private final ReviewDataFinder reviewDataFinder;
 
     @Override
+    @Transactional
     public ReviewResDto createReview(String username, ReviewCreateReqDto request) {
 
-        // TODO 1. 주문 조회
+        // 1. 데이터 조회
+        Order order = reviewDataFinder.findOrder(request.getOrderId());
+        boolean alreadyReviewed = reviewDataFinder.existsByOrderId(request.getOrderId());
 
-        // TODO 2. 주문 존재 여부 검증
+        // 2. 리뷰 작성 가능 여부 검증
+        reviewValidator.validateCreate(order, username, alreadyReviewed);
 
-        // TODO 3. 주문 소유자 검증
+        // 3. 가게 조회
+        Store store = reviewDataFinder.findStore(request.getStoreId());
 
-        // TODO 4. 주문 상태 검증 (COMPLETED 등)
+        // 4. Review 엔티티 생성
+        Review review = Review.create(
+                request.getOrderId(),
+                request.getStoreId(),
+                username,
+                request.getRating(),
+                request.getContent(),
+                username
+        );
 
-        // TODO 5. 결제 상태 검증 (PAID)
+        // 5. 리뷰 이미지 추가
+        if (request.getImageUrls() != null) {
+            request.getImageUrls().forEach(review::addImage);
+        }
 
-        // TODO 6. 이미 리뷰 작성 여부 확인
+        // 6. 리뷰 저장
+        Review savedReview = reviewRepository.save(review);
 
-        // TODO 7. Review 엔티티 생성
+        // 7. 가게 평점 요약 업데이트
+        if (store.getStoreRating() != null) {
+            store.getStoreRating().addRating(request.getRating());
+        }
 
-        // TODO 8. 리뷰 이미지 추가
-
-        // TODO 9. 리뷰 저장
-
-        // TODO 10. 가게 평점 요약 업데이트
-
-        // TODO 11. Response DTO 변환
-
-        return null;
+        // 8. Response DTO 변환 및 반환 (Converter)
+        return ReviewConverter.toResDto(savedReview, store, order);
     }
 
     @Override
+    @Transactional
     public ReviewResDto updateReview(UUID reviewId, String username, ReviewUpdateReqDto request) {
 
-        // TODO 1. 리뷰 조회
+        // 1. 리뷰 조회
+        Review review = reviewDataFinder.findReview(reviewId);
 
-        // TODO 2. 삭제 여부 확인
+        // 2. 리뷰 수정 가능 여부 검증
+        reviewValidator.validateUpdate(review, username);
 
-        // TODO 3. 작성자 검증
+        // 3. 가게 조회
+        Store store = reviewDataFinder.findStore(review.getStoreId());
 
-        // TODO 4. 리뷰 수정
+        // 4. 평점 변경 시 가게 평점 요약 업데이트
+        if (request.getRating() != null && !request.getRating().equals(review.getRating())) {
+            if (store.getStoreRating() != null) {
+                store.getStoreRating().removeRating(review.getRating());
+                store.getStoreRating().addRating(request.getRating());
+            }
+        }
 
-        // TODO 5. 이미지 수정 처리
+        // 5. 리뷰 수정
+        review.update(request.getRating(), request.getContent(), username);
 
-        // TODO 6. 가게 평점 재계산
+        // 6. 이미지 수정 처리
+        if (request.getImageUrls() != null) {
+            review.updateImages(request.getImageUrls());
+        }
 
-        // TODO 7. 저장
+        // 7. DTO 변환을 위한 주문 정보 조회
+        Order order = reviewDataFinder.findOrder(review.getOrderId());
 
-        // TODO 8. DTO 변환
-
-        return null;
+        // 8. DTO 변환 및 반환
+        return ReviewConverter.toResDto(review, store, order);
     }
 
     @Override
-    public void deleteReview(UUID reviewId, String username) {
+    @Transactional
+    public void deleteReview(UUID reviewId, String username, UserRole role) {
 
-        // TODO 1. 리뷰 조회
+        // 1. 리뷰 조회
+        Review review = reviewDataFinder.findReview(reviewId);
 
-        // TODO 2. 삭제 여부 확인
+        // 2. 리뷰 삭제 가능 여부 검증
+        reviewValidator.validateDelete(review, username, role);
 
-        // TODO 3. 권한 검증 (작성자 or MASTER)
+        // 3. 가게 평점 요약 업데이트
+        Store store = reviewDataFinder.findStore(review.getStoreId());
+        if (store.getStoreRating() != null) {
+            store.getStoreRating().removeRating(review.getRating());
+        }
 
-        // TODO 4. Soft Delete
-
-        // TODO 5. 가게 평점 요약 업데이트
-
-        // TODO 6. 저장
+        // 4. Soft Delete 수행
+        review.delete(username);
     }
 }
