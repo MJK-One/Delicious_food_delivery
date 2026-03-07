@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -28,7 +27,7 @@ public class ReviewResDto {
 
     private List<String> images;
 
-    private LocalDateTime createdAt;
+    private OffsetDateTime createdAt;
 
     private OffsetDateTime updatedAt;
 }
