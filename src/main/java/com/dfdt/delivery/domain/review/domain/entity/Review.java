@@ -101,4 +101,11 @@ public class Review {
 
         this.images.add(image);
     }
+
+    public void updateImages(List<String> imageUrls) {
+        this.images.clear();
+        if (imageUrls != null) {
+            imageUrls.forEach(this::addImage);
+        }
+    }
 }
