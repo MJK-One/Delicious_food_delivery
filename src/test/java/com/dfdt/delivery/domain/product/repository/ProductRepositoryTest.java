@@ -1,5 +1,6 @@
 package com.dfdt.delivery.domain.product.repository;
 
+import com.dfdt.delivery.common.config.QueryDslConfig;
 import com.dfdt.delivery.domain.product.domain.entity.Product;
 import com.dfdt.delivery.domain.product.domain.repository.JpaProductRepository;
 import com.dfdt.delivery.domain.product.fixture.ProductFixture;
@@ -9,6 +10,9 @@ import com.dfdt.delivery.domain.product.fixture.UserFixture;
 import com.dfdt.delivery.domain.region.domain.entity.Region;
 import com.dfdt.delivery.domain.store.domain.entity.Store;
 import com.dfdt.delivery.domain.user.domain.entity.User;
+import com.querydsl.jpa.impl.JPAQueryFactory;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -16,6 +20,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -23,6 +29,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
+@Import(QueryDslConfig.class)
 class ProductRepositoryTest {
 
     @Autowired

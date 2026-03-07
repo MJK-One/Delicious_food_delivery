@@ -55,6 +55,8 @@ class StoreQueryServiceImplTest {
     @Mock
     private User user;
 
+    private Region region = RegionFixture.createOrderEnabledRegion();
+
     @Nested
     @DisplayName("가게 단일 조회")
     class GetStoreTest {
@@ -102,10 +104,10 @@ class StoreQueryServiceImplTest {
         void success() {
             // given
             Page<StoreResDto> page = new PageImpl<>(List.of(mock(StoreResDto.class)));
-            when(storeCustomRepository.searchStores(any(Pageable.class), any(), any())).thenReturn(page);
+            when(storeCustomRepository.searchStores(any(Pageable.class), any(), any(), any())).thenReturn(page);
 
             // when
-            Page<StoreResDto> result = storeService.getStores(0, 10, "createdAt", true, UUID.randomUUID(), "한식");
+            Page<StoreResDto> result = storeService.getStores(0, 10, "createdAt", true, UUID.randomUUID(), "한식", region.getRegionId());
 
             // then
             assertFalse(result.isEmpty());
@@ -116,11 +118,11 @@ class StoreQueryServiceImplTest {
         @DisplayName("실패: 검색 결과가 0건이면 NOT_FOUND_STORES 예외가 발생")
         void failIfEmpty() {
             // given
-            when(storeCustomRepository.searchStores(any(Pageable.class), any(), any())).thenReturn(Page.empty());
+            when(storeCustomRepository.searchStores(any(Pageable.class), any(), any(), any())).thenReturn(Page.empty());
 
             // when & then
             BusinessException exception = assertThrows(BusinessException.class,
-                    () -> storeService.getStores(0, 10, "createdAt", true, null, null));
+                    () -> storeService.getStores(0, 10, "createdAt", true, null, null, region.getRegionId()));
             assertEquals(StoreErrorCode.NOT_FOUND_STORES, exception.getErrorCode());
         }
     }
@@ -133,25 +135,25 @@ class StoreQueryServiceImplTest {
         void success() {
             // given
             Page<StoreAdminResDto> page = new PageImpl<>(List.of(mock(StoreAdminResDto.class)));
-            when(storeCustomRepository.searchStoresAdmin(any(Pageable.class), any(), any(), any())).thenReturn(page);
+            when(storeCustomRepository.searchStoresAdmin(any(Pageable.class), any(), any(), any(), any())).thenReturn(page);
 
             // when
-            Page<StoreAdminResDto> result = storeService.getStoresAdmin(0, 10, "createdAt", false, null, null, true);
+            Page<StoreAdminResDto> result = storeService.getStoresAdmin(0, 10, "createdAt", false, null, null, region.getRegionId(), true);
 
             // then
             assertThat(result.getContent()).hasSize(1);
-            verify(storeCustomRepository).searchStoresAdmin(any(Pageable.class), any(), any(), eq(true));
+            verify(storeCustomRepository).searchStoresAdmin(any(Pageable.class), any(), any(), any(), any());
         }
 
         @Test
         @DisplayName("실패: 검색 결과가 0건이면 NOT_FOUND_STORES 예외가 발생")
         void failIfEmpty() {
             // given
-            when(storeCustomRepository.searchStoresAdmin(any(Pageable.class), any(), any(), any())).thenReturn(Page.empty());
+            when(storeCustomRepository.searchStoresAdmin(any(Pageable.class), any(), any(), any(), any())).thenReturn(Page.empty());
 
             // when & then
             BusinessException exception = assertThrows(BusinessException.class,
-                    () -> storeService.getStoresAdmin(0, 10, "createdAt", true, null, null, true));
+                    () -> storeService.getStoresAdmin(0, 10, "createdAt", true, null, null, region.getRegionId(), true));
             assertEquals(StoreErrorCode.NOT_FOUND_STORES, exception.getErrorCode());
         }
     }

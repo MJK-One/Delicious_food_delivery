@@ -1,5 +1,6 @@
 package com.dfdt.delivery.domain.store.application.repository;
 
+import com.dfdt.delivery.common.config.QueryDslConfig;
 import com.dfdt.delivery.domain.category.domain.entity.Category;
 import com.dfdt.delivery.domain.category.domain.repository.JpaCategoryRepository;
 import com.dfdt.delivery.domain.region.domain.entity.Region;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.context.annotation.Import;
 
 import java.util.List;
 import java.util.Optional;
@@ -25,6 +27,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
+@Import(QueryDslConfig.class)
 class StoreRepositoryTest {
 
     @Autowired

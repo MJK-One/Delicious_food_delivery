@@ -105,7 +105,7 @@ public class StoreCustomRepositoryTest {
         Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "name"));
 
         // when
-        Page<StoreResDto> result = storeCustomRepository.searchStores(pageable, null, null);
+        Page<StoreResDto> result = storeCustomRepository.searchStores(pageable, null, null, region.getRegionId());
 
         // then
         assertThat(result.getTotalElements()).isEqualTo(2);
@@ -119,7 +119,7 @@ public class StoreCustomRepositoryTest {
         Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "name"));
 
         // when
-        Page<StoreResDto> result = storeCustomRepository.searchStores(pageable, category2.getCategoryId(), null);
+        Page<StoreResDto> result = storeCustomRepository.searchStores(pageable, category2.getCategoryId(), null, region.getRegionId());
 
         // then
         assertThat(result.getTotalElements()).isEqualTo(1);
@@ -134,7 +134,7 @@ public class StoreCustomRepositoryTest {
         Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "name"));
 
         // when
-        Page<StoreResDto> result = storeCustomRepository.searchStores(pageable, null, "1");
+        Page<StoreResDto> result = storeCustomRepository.searchStores(pageable, null, "1", region.getRegionId());
 
         // then
         assertThat(result.getTotalElements()).isEqualTo(1);
@@ -149,7 +149,7 @@ public class StoreCustomRepositoryTest {
         Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "name"));
 
         // when
-        Page<StoreResDto> result = storeCustomRepository.searchStores(pageable, category2.getCategoryId(), "3");
+        Page<StoreResDto> result = storeCustomRepository.searchStores(pageable, category2.getCategoryId(), "3", region.getRegionId());
 
         // then
         assertThat(result.getTotalElements()).isEqualTo(1);
@@ -164,7 +164,7 @@ public class StoreCustomRepositoryTest {
         Pageable pageable = PageRequest.of(0, 10);
 
         // when
-        Page<StoreResDto> result = storeCustomRepository.searchStores(pageable, category2.getCategoryId(), null);
+        Page<StoreResDto> result = storeCustomRepository.searchStores(pageable, category2.getCategoryId(), null, region.getRegionId());
 
         // then
         assertThat(result.getTotalElements()).isEqualTo(1);
@@ -180,7 +180,7 @@ public class StoreCustomRepositoryTest {
         Pageable pageable = PageRequest.of(0, 1, Sort.by(Sort.Direction.ASC, "name"));
 
         // when
-        Page<StoreResDto> result = storeCustomRepository.searchStores(pageable, null, null);
+        Page<StoreResDto> result = storeCustomRepository.searchStores(pageable, null, null, region.getRegionId());
 
         // then
         assertThat(result.getTotalElements()).isEqualTo(2);
@@ -196,7 +196,7 @@ public class StoreCustomRepositoryTest {
         Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "name"));
 
         // when
-        Page<StoreAdminResDto> result = storeCustomRepository.searchStoresAdmin(pageable, null, null, false);
+        Page<StoreAdminResDto> result = storeCustomRepository.searchStoresAdmin(pageable, null, null, region.getRegionId(), false);
 
         // then
         assertThat(result.getTotalElements()).isEqualTo(3);
@@ -214,7 +214,7 @@ public class StoreCustomRepositoryTest {
         Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "name"));
 
         // when
-        Page<StoreAdminResDto> result = storeCustomRepository.searchStoresAdmin(pageable, null, null, true);
+        Page<StoreAdminResDto> result = storeCustomRepository.searchStoresAdmin(pageable, null, null, region.getRegionId(), true);
 
         // then
         assertThat(result.getTotalElements()).isEqualTo(1);
@@ -229,7 +229,7 @@ public class StoreCustomRepositoryTest {
         Pageable pageable = PageRequest.of(0, 10);
 
         // when
-        Page<StoreAdminResDto> result = storeCustomRepository.searchStoresAdmin(pageable, category1.getCategoryId(), null, false);
+        Page<StoreAdminResDto> result = storeCustomRepository.searchStoresAdmin(pageable, category1.getCategoryId(), null, region.getRegionId(), false);
 
         // then
         assertThat(result.getTotalElements()).isEqualTo(1);
@@ -243,7 +243,7 @@ public class StoreCustomRepositoryTest {
         Pageable pageable = PageRequest.of(0, 2);
 
         // when
-        Page<StoreAdminResDto> result = storeCustomRepository.searchStoresAdmin(pageable, null, "가게", false);
+        Page<StoreAdminResDto> result = storeCustomRepository.searchStoresAdmin(pageable, null, "가게", region.getRegionId(), false);
 
         // then
         assertThat(result.getTotalElements()).isEqualTo(3);
@@ -257,7 +257,7 @@ public class StoreCustomRepositoryTest {
         Pageable pageable = PageRequest.of(0, 10);
 
         // when
-        Page<StoreAdminResDto> result = storeCustomRepository.searchStoresAdmin(pageable, null, "가게", false);
+        Page<StoreAdminResDto> result = storeCustomRepository.searchStoresAdmin(pageable, null, "가게", region.getRegionId(), false);
 
         // then
         assertThat(result.getTotalElements()).isEqualTo(3);
