@@ -165,7 +165,7 @@ public class StoreController implements StoreControllerDocs{
     @PreAuthorize("hasAnyRole('OWNER','MASTER')")
     @GetMapping("/me")
     public ResponseEntity<ApiResponseDto<List<MyStoreResDto>>> getMyStores(@AuthenticationPrincipal CustomUserDetails userDetails) {
-        List<MyStoreResDto> stores = storeCommandService.getMyStores(userDetails.getUsername());
+        List<MyStoreResDto> stores = storeQueryService.getMyStores(userDetails.getUsername());
 
         return ApiResponseDto.success(
                     HttpStatus.OK.value(),
