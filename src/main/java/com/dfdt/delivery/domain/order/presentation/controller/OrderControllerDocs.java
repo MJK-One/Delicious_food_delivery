@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -50,7 +51,9 @@ public interface OrderControllerDocs {
             @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
     })
     ResponseEntity<ApiResponseDto<OrderResDto.CustomerOrderResponse>> getOrders(
-            @AuthenticationPrincipal CustomUserDetails customUserDetails);
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @ParameterObject @Valid OrderReqDto.OrderSearchRequest orderSearchRequest
+    );
 
 
     @Operation(summary = "API-003 주문 상세 조회", description = "특정 주문에 대한 상세 정보를 조회합니다.")
@@ -133,5 +136,7 @@ public interface OrderControllerDocs {
             @ApiResponse(responseCode = "404", description = "가게 정보를 찾을 수 없음")
     })
     ResponseEntity<ApiResponseDto<OrderResDto.OwnerDashboardResponse>> getOrdersByOwner(
-            @PathVariable(value = "storeId") UUID storeId);
+            @PathVariable(value = "storeId") UUID storeId,
+            @ParameterObject @Valid OrderReqDto.OrderSearchRequest orderSearchRequest,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails);
 }

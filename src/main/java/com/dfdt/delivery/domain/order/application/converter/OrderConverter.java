@@ -3,8 +3,10 @@ package com.dfdt.delivery.domain.order.application.converter;
 import com.dfdt.delivery.common.infrastructure.persistence.embedded.CreateAudit;
 import com.dfdt.delivery.common.infrastructure.persistence.embedded.UpdateAudit;
 import com.dfdt.delivery.domain.address.domain.entity.Address;
+import com.dfdt.delivery.domain.order.application.dto.TimeIdCursor;
 import com.dfdt.delivery.domain.order.domain.entity.Order;
 import com.dfdt.delivery.domain.order.domain.entity.OrderItem;
+import com.dfdt.delivery.domain.order.domain.entity.OrderStatusHistory;
 import com.dfdt.delivery.domain.order.domain.enums.OrderStatus;
 import com.dfdt.delivery.domain.order.presentation.dto.OrderResDto;
 import com.dfdt.delivery.domain.product.domain.entity.Product;
@@ -12,6 +14,8 @@ import com.dfdt.delivery.domain.store.domain.entity.Store;
 import com.dfdt.delivery.domain.user.domain.entity.User;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class OrderConverter {
 
@@ -34,6 +38,7 @@ public class OrderConverter {
                 .deliveryAddressSnapshot(addressSnapshot)
                 .orderRequestMessage(requestMessage)
                 .totalPrice(0)
+                .totalQuantity(0)
                 .status(OrderStatus.PENDING)
                 .createdAudit(CreateAudit.now(user.getName()))
                 .updateAudit(UpdateAudit.empty())
@@ -63,6 +68,7 @@ public class OrderConverter {
                 .orderAddress(order.getDeliveryAddressSnapshot())
                 .representativeProductName(generateOrderSummary(order.getOrderItems())) // 로직 추가
                 .totalPrice(order.getTotalPrice())
+                .totalQuantity(order.getTotalQuantity())
                 .orderRequestMessage(order.getOrderRequestMessage())
                 .orderStatus(order.getStatus())
                 .updatedAt(order.getUpdateAudit().getUpdatedAt())
@@ -82,5 +88,123 @@ public class OrderConverter {
         return (otherCount > 0)
                 ? String.format("%s 외 %d건", firstProductName, otherCount)
                 : firstProductName;
+    }
+
+    public static OrderResDto.CustomerOrderResponse toCustomerOrderResponse(List<Order> orders,int pageSize) {
+        boolean hasNext = orders.size() > pageSize;
+
+        List<Order> displayOrders = hasNext
+                ? orders.subList(0, pageSize)
+                : orders;
+        String nextCursor = null;
+        if (!displayOrders.isEmpty()) {
+            TimeIdCursor cursor = new TimeIdCursor(displayOrders.getLast());
+            nextCursor = cursor.getCursorString();
+        }
+
+        return OrderResDto.CustomerOrderResponse.builder()
+                .orderList(displayOrders.stream().map(OrderConverter::toCustomerOrderSummary).toList())
+                .pagination(OrderResDto.PaginationInfo.builder()
+                        .nextCursor(nextCursor)
+                        .hasNext(hasNext)
+                        .size(displayOrders.size())
+                        .build())
+                .build();
+    }
+
+    private static OrderResDto.CustomerOrderSummary toCustomerOrderSummary(Order order) {
+        return OrderResDto.CustomerOrderSummary.builder()
+                .orderId(order.getOrderId())
+                .orderAddress(order.getDeliveryAddressSnapshot())
+                .orderedAt(order.getCreatedAudit().getCreatedAt())
+                .orderStatus(order.getStatus())
+                .orderStoreId(order.getStore().getStoreId())
+                .orderStoreName(order.getStore().getName())
+                .representativeProductName(generateOrderSummary(order.getOrderItems()))
+                .totalPrice(order.getTotalPrice())
+                .totalQuantity(order.getTotalQuantity())
+                .build();
+    }
+
+    public static OrderResDto.GetOrderDetailResponse toOrderDetailResponse(Order order) {
+        return OrderResDto.GetOrderDetailResponse.builder()
+                .orderId(order.getOrderId())
+                .orderAddress(order.getDeliveryAddressSnapshot())
+                .orderedAt(order.getCreatedAudit().getCreatedAt())
+                .orderStatus(order.getStatus())
+                .orderStoreId(order.getStore().getStoreId())
+                .orderItemDetails(order.getOrderItems().stream().map(OrderConverter::toOrderItemDetail).toList())
+                .orderStoreName(order.getStore().getName())
+                .totalPrice(order.getTotalPrice())
+                .totalQuantity(order.getTotalQuantity())
+                .orderStatusHistoryDetails(order.getStatusHistories().stream().map(OrderConverter::toOrderHistoryDetail).toList())
+                .build();
+    }
+
+    private static OrderResDto.OrderStatusHistoryDetail toOrderHistoryDetail(OrderStatusHistory orderStatusHistory) {
+        return OrderResDto.OrderStatusHistoryDetail.builder()
+                .orderStatusHistoryId(orderStatusHistory.getOrderStatusHistoryId())
+                .fromStatus(orderStatusHistory.getFromStatus())
+                .nowStatus(orderStatusHistory.getToStatus())
+                .changedAt(orderStatusHistory.getCreatedAudit().getCreatedAt())
+                .changedReason(orderStatusHistory.getChangeReason())
+                .build();
+    }
+
+    private static OrderResDto.OrderItemResponse toOrderItemDetail(OrderItem orderItem) {
+        return OrderResDto.OrderItemResponse.builder()
+                .productId(orderItem.getProductId())
+                .productName(orderItem.getProductNameSnapshot())
+                .unitPrice(orderItem.getUnitPriceSnapshot())
+                .totalPrice(orderItem.getTotalPrice())
+                .quantity(orderItem.getQuantity())
+                .build();
+    }
+
+    public static OrderResDto.OwnerDashboardResponse toOwnerDashboardResponse(OrderResDto.OrderSummaryCount summaryCounts, int pageSize, List<Order> orders) {
+
+        boolean hasNext = orders.size() > pageSize;
+
+        List<Order> displayOrders = hasNext
+                ? orders.subList(0, pageSize)
+                : orders;
+        String nextCursor = null;
+        if (!displayOrders.isEmpty()) {
+            TimeIdCursor cursor = new TimeIdCursor(displayOrders.getLast());
+            nextCursor = cursor.getCursorString();
+        }
+
+        Map<OrderStatus, List<OrderResDto.OwnerOrderUnit>> statusGroups = displayOrders.stream()
+                .collect(Collectors.groupingBy(
+                        Order::getStatus, // 그룹핑 기준 (Key)
+                        Collectors.mapping(
+                                OrderConverter::toOwnerOrderUnit,
+                                Collectors.toList()
+                        )
+                ));
+
+        return OrderResDto.OwnerDashboardResponse.builder()
+                .summary(summaryCounts)
+                .statusGroups(statusGroups)
+                .pagination(OrderResDto.PaginationInfo.builder()
+                        .nextCursor(nextCursor)
+                        .hasNext(hasNext)
+                        .size(displayOrders.size())
+                        .build())
+                .build();
+    }
+    private static OrderResDto.OwnerOrderUnit toOwnerOrderUnit(Order order) {
+        return OrderResDto.OwnerOrderUnit.builder()
+                .orderId(order.getOrderId())
+                .orderAddress(order.getDeliveryAddressSnapshot())
+                .orderTime(order.getCreatedAudit().getCreatedAt())
+                .totalPrice(order.getTotalPrice())
+                .totalQuantity(order.getTotalQuantity())
+                .products(order.getOrderItems().stream().map(
+                        product->
+                        new OrderResDto.ProductSimpleInfo(product.getProductId(), product.getQuantity(), product.getProductNameSnapshot())
+                ).toList())
+                .build();
+
     }
 }
