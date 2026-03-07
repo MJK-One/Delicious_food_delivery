@@ -17,12 +17,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
 @Service
-@Transactional
 @RequiredArgsConstructor
 public class ProductQueryServiceImpl implements ProductQueryService {
 
@@ -30,7 +28,6 @@ public class ProductQueryServiceImpl implements ProductQueryService {
     private final ProductCustomRepository productCustomRepository;
     private final StoreRepository storeRepository;
 
-    @Transactional(readOnly = true)
     public ProductResDto getProduct(UUID storeId, UUID productId) {
         checkExistStore(storeId);
         Product product = checkExistProduct(storeId, productId);
@@ -38,7 +35,6 @@ public class ProductQueryServiceImpl implements ProductQueryService {
         return ProductResDto.from(product);
     }
 
-    @Transactional(readOnly = true)
     public Page<ProductResDto> getProducts(UUID storeId, int page, int size, String sortBy, boolean isAsc, String keyword) {
         Sort.Direction direction = isAsc ? Sort.Direction.ASC : Sort.Direction.DESC;
         Sort sort = Sort.by(direction, sortBy);
@@ -52,7 +48,6 @@ public class ProductQueryServiceImpl implements ProductQueryService {
         return productResDto;
     }
 
-    @Transactional(readOnly = true)
     public Page<ProductAdminResDto> getProductsAdmin(UUID storeId, int page, int size, String sortBy, boolean isAsc, String keyword, Boolean isDeleted) {
         Sort.Direction direction = isAsc ? Sort.Direction.ASC : Sort.Direction.DESC;
         Sort sort = Sort.by(direction, sortBy);
