@@ -56,7 +56,7 @@ public class ReviewValidator {
         }
 
         // 2. 권한 검증 (작성자 or MASTER)
-        if (review.getWriterUsername().equals(username) || role == UserRole.MASTER) {
+        if (!review.getWriterUsername().equals(username) && role != UserRole.MASTER) {
             throw new BusinessException(ReviewErrorCode.NOT_REVIEW_DELETER);
         }
     }
