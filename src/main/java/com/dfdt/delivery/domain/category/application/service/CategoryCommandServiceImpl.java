@@ -5,8 +5,6 @@ import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
 import com.dfdt.delivery.domain.category.application.service.command.CategoryCommandService;
 import com.dfdt.delivery.domain.category.domain.entity.Category;
 import com.dfdt.delivery.domain.category.domain.enums.CategoryErrorCode;
-import com.dfdt.delivery.domain.category.domain.repository.CategoryCustomRepository;
-import com.dfdt.delivery.domain.category.domain.repository.CategoryRepository;
 import com.dfdt.delivery.domain.category.domain.repository.JpaCategoryRepository;
 import com.dfdt.delivery.domain.category.presentation.dto.request.CategoryCreateReqDto;
 import com.dfdt.delivery.domain.category.presentation.dto.request.CategoryUpdateReqDto;
@@ -69,7 +67,7 @@ public class CategoryCommandServiceImpl implements CategoryCommandService {
     public void deleteCategory(UUID categoryId, CustomUserDetails userDetails) {
         Category category = checkExistCategory(categoryId);
 
-        if (category.getSoftDeleteAudit().isDeleted()) {
+        if (category.getSoftDeleteAudit() != null) {
             throw new BusinessException(CategoryErrorCode.ALREADY_DELETED);     // 삭제된 카테고리인지 확인
         }
         if (storeRepository.existsByCategoryIdAndNotDeleted(category.getCategoryId())) {
