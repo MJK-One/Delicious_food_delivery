@@ -1,5 +1,7 @@
 package com.dfdt.delivery.domain.review.application.service.query;
 
+import com.dfdt.delivery.domain.review.application.provider.ReviewDataFinder;
+import com.dfdt.delivery.domain.review.application.service.validator.ReviewValidator;
 import com.dfdt.delivery.domain.review.presentation.dto.request.MyReviewSearchReqDto;
 import com.dfdt.delivery.domain.review.presentation.dto.request.ReviewSearchReqDto;
 import com.dfdt.delivery.domain.review.presentation.dto.request.StoreReviewSearchReqDto;
@@ -14,14 +16,13 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ReviewQueryServiceImpl implements ReviewQueryService {
 
+    private final ReviewValidator reviewValidator;
+    private final ReviewDataFinder reviewDataFinder;
+
     @Override
     public ReviewListResDto getStoreReviews(UUID storeId, StoreReviewSearchReqDto request) {
 
-        // 10, 30, 50 제약 조건 강제 적용
-        int size = request.getSize();
-        if (size != 10 && size != 30 && size != 50) {
-            request.setSize(10);
-        }
+        request.setSize(reviewValidator.validateAndAdjustSize(request.getSize()));
 
         // TODO : 가게 리뷰 목록 조회
 
@@ -31,11 +32,7 @@ public class ReviewQueryServiceImpl implements ReviewQueryService {
     @Override
     public ReviewListResDto getMyReviews(String username, MyReviewSearchReqDto request) {
 
-        // 10, 30, 50 제약 조건 강제 적용
-        int size = request.getSize();
-        if (size != 10 && size != 30 && size != 50) {
-            request.setSize(10);
-        }
+        request.setSize(reviewValidator.validateAndAdjustSize(request.getSize()));
 
         // TODO: 내 리뷰 목록 조회
 
