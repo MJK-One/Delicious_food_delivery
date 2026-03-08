@@ -1,8 +1,8 @@
-package com.dfdt.delivery.domain.ai.entity;
+package com.dfdt.delivery.domain.ai.domain.entity;
 
 import com.dfdt.delivery.common.infrastructure.persistence.embedded.CreateAudit;
 import com.dfdt.delivery.common.infrastructure.persistence.embedded.SoftDeleteAudit;
-import com.dfdt.delivery.domain.ai.enums.AiRequestType;
+import com.dfdt.delivery.domain.ai.domain.entity.enums.AiRequestType;
 import jakarta.persistence.*;
 
 import java.util.UUID;

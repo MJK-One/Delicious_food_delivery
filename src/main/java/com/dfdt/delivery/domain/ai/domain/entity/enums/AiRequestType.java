@@ -1,4 +1,4 @@
-package com.dfdt.delivery.domain.ai.enums;
+package com.dfdt.delivery.domain.ai.domain.entity.enums;
 
 public enum AiRequestType {
     PRODUCT_DESCRIPTION,   // 음식 설명 생성
