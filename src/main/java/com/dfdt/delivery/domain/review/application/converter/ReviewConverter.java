@@ -16,16 +16,18 @@ public class ReviewConverter {
                 .reviewId(review.getReviewId())
                 .username(review.getWriterUsername())
                 .storeName(store.getName())
-                .orderMenuNames(order.getOrderItems().stream()
-                        .map(OrderItem::getProductNameSnapshot)
-                        .collect(Collectors.toList()))
+                .orderMenuNames(order.getOrderItems() != null ? 
+                        order.getOrderItems().stream()
+                            .map(OrderItem::getProductNameSnapshot)
+                            .collect(Collectors.toList()) : java.util.Collections.emptyList())
                 .rating(review.getRating())
                 .content(review.getContent())
-                .images(review.getImages().stream()
-                        .map(ReviewImage::getImageUrl)
-                        .collect(Collectors.toList()))
-                .createdAt(review.getCreateAudit().getCreatedAt())
-                .updatedAt(review.getUpdateAudit().getUpdatedAt())
+                .images(review.getImages() != null ? 
+                        review.getImages().stream()
+                            .map(ReviewImage::getImageUrl)
+                            .collect(Collectors.toList()) : java.util.Collections.emptyList())
+                .createdAt(review.getCreateAudit() != null ? review.getCreateAudit().getCreatedAt() : null)
+                .updatedAt(review.getUpdateAudit() != null ? review.getUpdateAudit().getUpdatedAt() : null)
                 .build();
     }
 }
