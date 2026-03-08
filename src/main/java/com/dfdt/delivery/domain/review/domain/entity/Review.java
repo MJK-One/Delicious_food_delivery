@@ -1,12 +1,16 @@
 package com.dfdt.delivery.domain.review.domain.entity;
 
+import com.dfdt.delivery.common.exception.BusinessException;
 import com.dfdt.delivery.common.infrastructure.persistence.embedded.CreateAudit;
 import com.dfdt.delivery.common.infrastructure.persistence.embedded.SoftDeleteAudit;
 import com.dfdt.delivery.common.infrastructure.persistence.embedded.UpdateAudit;
+import com.dfdt.delivery.domain.review.domain.enums.ReviewErrorCode;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.UuidGenerator;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -36,6 +40,10 @@ public class Review {
 
     @Column(name = "content", length = 500)
     private String content;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ReviewImage> images = new ArrayList<>();
 
     @Embedded
     private CreateAudit createAudit;
@@ -79,5 +87,25 @@ public class Review {
 
     public boolean isDeleted() {
         return this.softDeleteAudit.isDeleted();
+    }
+
+    public void addImage(String imageUrl) {
+        if (this.images.size() >= 5) {
+            throw new BusinessException(ReviewErrorCode.IMAGE_LIMIT_EXCEEDED);
+        }
+
+        int order = this.images.size() + 1;
+
+        ReviewImage image = ReviewImage.create(imageUrl, order);
+        image.assignReview(this);
+
+        this.images.add(image);
+    }
+
+    public void updateImages(List<String> imageUrls) {
+        this.images.clear();
+        if (imageUrls != null) {
+            imageUrls.forEach(this::addImage);
+        }
     }
 }
