@@ -9,6 +9,7 @@ import com.dfdt.delivery.domain.ai.application.usecase.ApplyDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GenerateDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GetAiLogDetailUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.SearchAiLogsUseCase;
+import com.dfdt.delivery.domain.ai.application.usecase.SearchProductAiLogsUseCase;
 import com.dfdt.delivery.domain.ai.domain.entity.enums.AiRequestType;
 import com.dfdt.delivery.domain.ai.domain.entity.enums.Tone;
 import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
@@ -71,6 +72,9 @@ class AiDescriptionControllerTest {
 
     @MockBean
     private GetAiLogDetailUseCase getAiLogDetailUseCase;
+
+    @MockBean
+    private SearchProductAiLogsUseCase searchProductAiLogsUseCase;
 
     @MockBean
     private com.dfdt.delivery.domain.auth.infrastructure.jwt.JwtProvider jwtProvider;
@@ -500,6 +504,98 @@ class AiDescriptionControllerTest {
             CustomUserDetails customerDetails = new CustomUserDetails(customer);
 
             mockMvc.perform(get("/api/v1/ai/stores/{storeId}/logs", storeId)
+                            .with(user(customerDetails)))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    // ──────────────────────────────────────────────────
+    // API-AI-103: 상품 기준 AI 로그 목록 조회
+    // ──────────────────────────────────────────────────
+    @Nested
+    @DisplayName("상품 기준 AI 로그 목록 조회 (API-AI-103)")
+    class SearchProductAiLogsTests {
+
+        private UUID productId;
+
+        @BeforeEach
+        void setUpProduct() {
+            productId = UUID.randomUUID();
+        }
+
+        @Test
+        @DisplayName("OWNER가 요청하면 200과 빈 Page를 반환한다")
+        void ownerShouldReturn200WithEmptyPage() throws Exception {
+            // given
+            Page<AiLogSummaryResult> emptyPage =
+                    new PageImpl<>(List.of(), PageRequest.of(0, 10), 0);
+            given(searchProductAiLogsUseCase.execute(any())).willReturn(emptyPage);
+
+            // when & then
+            mockMvc.perform(get("/api/v1/ai/stores/{storeId}/products/{productId}/logs",
+                            storeId, productId)
+                            .with(user(ownerDetails)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value(200))
+                    .andExpect(jsonPath("$.data.totalElements").value(0));
+        }
+
+        @Test
+        @DisplayName("OWNER가 데이터가 있는 경우 200과 Page를 반환한다")
+        void ownerShouldReturn200WithContent() throws Exception {
+            // given
+            UUID aiLogId = UUID.randomUUID();
+            AiLogSummaryResult item = new AiLogSummaryResult(
+                    aiLogId, productId, "owner123",
+                    AiRequestType.PRODUCT_DESCRIPTION, "FRIENDLY",
+                    true, false, null, "바삭한 치킨입니다!", OffsetDateTime.now()
+            );
+            Page<AiLogSummaryResult> page =
+                    new PageImpl<>(List.of(item), PageRequest.of(0, 10), 1);
+            given(searchProductAiLogsUseCase.execute(any())).willReturn(page);
+
+            // when & then
+            mockMvc.perform(get("/api/v1/ai/stores/{storeId}/products/{productId}/logs",
+                            storeId, productId)
+                            .with(user(ownerDetails)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.totalElements").value(1))
+                    .andExpect(jsonPath("$.data.content[0].aiLogId").value(aiLogId.toString()))
+                    .andExpect(jsonPath("$.data.content[0].productId").value(productId.toString()))
+                    .andExpect(jsonPath("$.data.content[0].responseText").value("바삭한 치킨입니다!"));
+        }
+
+        @Test
+        @DisplayName("MASTER도 200을 반환한다")
+        void masterShouldReturn200() throws Exception {
+            // given
+            given(searchProductAiLogsUseCase.execute(any()))
+                    .willReturn(new PageImpl<>(List.of(), PageRequest.of(0, 10), 0));
+
+            // when & then
+            mockMvc.perform(get("/api/v1/ai/stores/{storeId}/products/{productId}/logs",
+                            storeId, productId)
+                            .with(user(masterDetails)))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("인증되지 않은 요청은 4xx를 반환한다")
+        void unauthenticatedShouldReturn4xx() throws Exception {
+            mockMvc.perform(get("/api/v1/ai/stores/{storeId}/products/{productId}/logs",
+                            storeId, productId))
+                    .andExpect(status().is4xxClientError());
+        }
+
+        @Test
+        @DisplayName("CUSTOMER 역할은 403을 반환한다")
+        void customerShouldReturn403() throws Exception {
+            User customer = User.builder()
+                    .username("customer1").name("고객").password("pw").role(UserRole.CUSTOMER).build();
+            CustomUserDetails customerDetails = new CustomUserDetails(customer);
+
+            mockMvc.perform(get("/api/v1/ai/stores/{storeId}/products/{productId}/logs",
+                            storeId, productId)
                             .with(user(customerDetails)))
                     .andExpect(status().isForbidden());
         }
