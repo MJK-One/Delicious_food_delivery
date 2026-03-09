@@ -1,6 +1,7 @@
 package com.dfdt.delivery.domain.ai.presentation.controller;
 
 import com.dfdt.delivery.common.response.ApiResponseDto;
+import com.dfdt.delivery.domain.ai.application.dto.AiHealthResult;
 import com.dfdt.delivery.domain.ai.application.dto.AiLogDetailResult;
 import com.dfdt.delivery.domain.ai.application.dto.AiLogSummaryResult;
 import com.dfdt.delivery.domain.ai.application.dto.ApplyDescriptionCommand;
@@ -11,11 +12,13 @@ import com.dfdt.delivery.domain.ai.application.dto.GetAiLogDetailQuery;
 import com.dfdt.delivery.domain.ai.application.dto.SearchAiLogsQuery;
 import com.dfdt.delivery.domain.ai.application.dto.SearchProductAiLogsQuery;
 import com.dfdt.delivery.domain.ai.application.usecase.ApplyDescriptionUseCase;
+import com.dfdt.delivery.domain.ai.application.usecase.CheckAiHealthUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GenerateDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GetAiLogDetailUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.SearchAiLogsUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.SearchProductAiLogsUseCase;
 import com.dfdt.delivery.domain.ai.presentation.dto.request.GenerateDescriptionRequest;
+import com.dfdt.delivery.domain.ai.presentation.dto.response.AiHealthResponse;
 import com.dfdt.delivery.domain.ai.presentation.dto.response.AiLogDetailResponse;
 import com.dfdt.delivery.domain.ai.presentation.dto.response.AiLogSummaryResponse;
 import com.dfdt.delivery.domain.ai.presentation.dto.response.ApplyDescriptionResponse;
@@ -42,6 +45,25 @@ public class AiDescriptionController {
     private final SearchAiLogsUseCase searchAiLogsUseCase;
     private final GetAiLogDetailUseCase getAiLogDetailUseCase;
     private final SearchProductAiLogsUseCase searchProductAiLogsUseCase;
+    private final CheckAiHealthUseCase checkAiHealthUseCase;
+
+    /**
+     * AI 연동 상태 확인 (API-AI-201)
+     * GET /api/v1/ai/health
+     *
+     * - MASTER: Gemini API 연결 상태 확인 (UP/DOWN)
+     * - 항상 HTTP 200 반환, 상태는 응답 body의 status 필드로 구분
+     */
+    @GetMapping("/health")
+    @PreAuthorize("hasRole('MASTER')")
+    public ResponseEntity<ApiResponseDto<AiHealthResponse>> checkAiHealth() {
+        AiHealthResult result = checkAiHealthUseCase.execute();
+        return ApiResponseDto.success(
+                HttpStatus.OK.value(),
+                "AI 연동 상태를 조회했습니다.",
+                AiHealthResponse.from(result)
+        );
+    }
 
     /**
      * AI 로그 목록 조회 (API-AI-101)

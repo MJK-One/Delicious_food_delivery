@@ -1,11 +1,13 @@
 package com.dfdt.delivery.domain.ai.presentation.controller;
 
 import com.dfdt.delivery.common.config.SecurityConfig;
+import com.dfdt.delivery.domain.ai.application.dto.AiHealthResult;
 import com.dfdt.delivery.domain.ai.application.dto.AiLogDetailResult;
 import com.dfdt.delivery.domain.ai.application.dto.AiLogSummaryResult;
 import com.dfdt.delivery.domain.ai.application.dto.ApplyDescriptionResult;
 import com.dfdt.delivery.domain.ai.application.dto.GenerateDescriptionResult;
 import com.dfdt.delivery.domain.ai.application.usecase.ApplyDescriptionUseCase;
+import com.dfdt.delivery.domain.ai.application.usecase.CheckAiHealthUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GenerateDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GetAiLogDetailUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.SearchAiLogsUseCase;
@@ -77,6 +79,9 @@ class AiDescriptionControllerTest {
     private SearchProductAiLogsUseCase searchProductAiLogsUseCase;
 
     @MockBean
+    private CheckAiHealthUseCase checkAiHealthUseCase;
+
+    @MockBean
     private com.dfdt.delivery.domain.auth.infrastructure.jwt.JwtProvider jwtProvider;
 
     @MockBean
@@ -108,6 +113,66 @@ class AiDescriptionControllerTest {
                 .role(UserRole.MASTER)
                 .build();
         masterDetails = new CustomUserDetails(master);
+    }
+
+    // ──────────────────────────────────────────────────
+    // API-AI-201: AI 연동 상태 확인
+    // ──────────────────────────────────────────────────
+    @Nested
+    @DisplayName("AI 연동 상태 확인 (API-AI-201)")
+    class CheckAiHealthTests {
+
+        @Test
+        @DisplayName("MASTER가 요청하면 200과 UP 상태를 반환한다")
+        void masterShouldReturn200WithUpStatus() throws Exception {
+            // given
+            AiHealthResult upResult = new AiHealthResult(
+                    "UP", "gemini-2.0-flash", 350, null, OffsetDateTime.now()
+            );
+            given(checkAiHealthUseCase.execute()).willReturn(upResult);
+
+            // when & then
+            mockMvc.perform(get("/api/v1/ai/health")
+                            .with(user(masterDetails)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value(200))
+                    .andExpect(jsonPath("$.data.status").value("UP"))
+                    .andExpect(jsonPath("$.data.modelName").value("gemini-2.0-flash"))
+                    .andExpect(jsonPath("$.data.responseTimeMs").value(350))
+                    .andExpect(jsonPath("$.data.errorMessage").doesNotExist());
+        }
+
+        @Test
+        @DisplayName("Gemini API 장애 시 MASTER에게 200과 DOWN 상태를 반환한다")
+        void masterShouldReturn200WithDownStatus() throws Exception {
+            // given
+            AiHealthResult downResult = new AiHealthResult(
+                    "DOWN", "gemini-2.0-flash", 5000, "외부 AI API 호출에 실패했습니다.", OffsetDateTime.now()
+            );
+            given(checkAiHealthUseCase.execute()).willReturn(downResult);
+
+            // when & then
+            mockMvc.perform(get("/api/v1/ai/health")
+                            .with(user(masterDetails)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.status").value("DOWN"))
+                    .andExpect(jsonPath("$.data.errorMessage").value("외부 AI API 호출에 실패했습니다."));
+        }
+
+        @Test
+        @DisplayName("OWNER 역할은 403을 반환한다")
+        void ownerShouldReturn403() throws Exception {
+            mockMvc.perform(get("/api/v1/ai/health")
+                            .with(user(ownerDetails)))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("인증되지 않은 요청은 4xx를 반환한다")
+        void unauthenticatedShouldReturn4xx() throws Exception {
+            mockMvc.perform(get("/api/v1/ai/health"))
+                    .andExpect(status().is4xxClientError());
+        }
     }
 
     // ──────────────────────────────────────────────────
