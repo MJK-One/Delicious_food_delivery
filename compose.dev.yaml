@@ -1,0 +1,39 @@
+# ${~} : GitHub Secrets에서 올 값 2
+services:
+
+  postgres:
+    image: '${POSTGRESQL_IMAGE}'
+    ports:
+      - '${POSTGRESQL_PORT}'
+    restart: always
+    volumes:
+      - ./postgres_dev_data:/var/lib/postgresql
+    environment:
+      - 'POSTGRES_DB=${DB}'
+      - 'POSTGRES_USER=${DB_USER}'
+      - 'POSTGRES_PASSWORD=${DB_PW}'
+
+  redis:
+    image: '${REDIS_IMAGE}'
+    restart: always
+    command: redis-server --appendonly yes --notify-keyspace-events Ex
+    volumes:
+      - ./redis_dev_data:/data
+
+  api-server:
+    image: '${SERVER_IMAGE}'
+    restart: always
+    ports:
+      - '${SERVER_PORT}'
+    environment:
+      - SPRING_DATASOURCE_URL=${DB_URL}
+      - SPRING_DATASOURCE_USERNAME=${DB_USER}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PW}
+      - SPRING_DATA_REDIS_HOST=${REDIS_HOST}
+      - SPRING_DATA_REDIS_PORT=${REDIS_PORT}
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT=org.hibernate.dialect.PostgreSQLDialect
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      - postgres
+      - redis
