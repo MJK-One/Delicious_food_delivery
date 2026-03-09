@@ -1,7 +1,9 @@
 package com.dfdt.delivery.domain.ai.presentation.controller;
 
 import com.dfdt.delivery.common.config.SecurityConfig;
+import com.dfdt.delivery.domain.ai.application.dto.ApplyDescriptionResult;
 import com.dfdt.delivery.domain.ai.application.dto.GenerateDescriptionResult;
+import com.dfdt.delivery.domain.ai.application.usecase.ApplyDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GenerateDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.domain.entity.enums.Tone;
 import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
@@ -21,6 +23,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -28,6 +31,7 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -48,6 +52,9 @@ class AiDescriptionControllerTest {
 
     @MockBean
     private GenerateDescriptionUseCase generateDescriptionUseCase;
+
+    @MockBean
+    private ApplyDescriptionUseCase applyDescriptionUseCase;
 
     @MockBean
     private com.dfdt.delivery.domain.auth.infrastructure.jwt.JwtProvider jwtProvider;
@@ -246,6 +253,79 @@ class AiDescriptionControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(requestBody)))
                     .andExpect(status().isBadRequest());
+        }
+    }
+
+    // ──────────────────────────────────────────────────
+    // API-AI-002: AI 생성 상품 설명 적용
+    // ──────────────────────────────────────────────────
+    @Nested
+    @DisplayName("AI 생성 상품 설명 적용 (API-AI-002)")
+    class ApplyDescriptionTests {
+
+        private UUID aiLogId;
+        private UUID productId;
+
+        @BeforeEach
+        void setUpApply() {
+            aiLogId = UUID.randomUUID();
+            productId = UUID.randomUUID();
+        }
+
+        @Test
+        @DisplayName("OWNER가 유효한 요청을 보내면 200과 적용 결과를 반환한다")
+        void ownerShouldReturn200WithApplyResult() throws Exception {
+            // given
+            ApplyDescriptionResult mockResult = new ApplyDescriptionResult(
+                    aiLogId, productId, "바삭한 치킨입니다!", OffsetDateTime.now()
+            );
+            given(applyDescriptionUseCase.execute(any())).willReturn(mockResult);
+
+            // when & then
+            mockMvc.perform(patch("/api/v1/ai/stores/{storeId}/descriptions/{aiLogId}/apply",
+                            storeId, aiLogId)
+                            .with(user(ownerDetails)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value(200))
+                    .andExpect(jsonPath("$.data.aiLogId").value(aiLogId.toString()))
+                    .andExpect(jsonPath("$.data.productId").value(productId.toString()))
+                    .andExpect(jsonPath("$.data.appliedDescription").value("바삭한 치킨입니다!"));
+        }
+
+        @Test
+        @DisplayName("MASTER도 200을 반환한다")
+        void masterShouldReturn200() throws Exception {
+            // given
+            given(applyDescriptionUseCase.execute(any())).willReturn(
+                    new ApplyDescriptionResult(aiLogId, productId, "치킨 맛있어요!", OffsetDateTime.now())
+            );
+
+            // when & then
+            mockMvc.perform(patch("/api/v1/ai/stores/{storeId}/descriptions/{aiLogId}/apply",
+                            storeId, aiLogId)
+                            .with(user(masterDetails)))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("인증되지 않은 요청은 4xx를 반환한다")
+        void unauthenticatedShouldReturn4xx() throws Exception {
+            mockMvc.perform(patch("/api/v1/ai/stores/{storeId}/descriptions/{aiLogId}/apply",
+                            storeId, aiLogId))
+                    .andExpect(status().is4xxClientError());
+        }
+
+        @Test
+        @DisplayName("CUSTOMER 역할은 403을 반환한다")
+        void customerShouldReturn403() throws Exception {
+            User customer = User.builder()
+                    .username("customer1").name("고객").password("pw").role(UserRole.CUSTOMER).build();
+            CustomUserDetails customerDetails = new CustomUserDetails(customer);
+
+            mockMvc.perform(patch("/api/v1/ai/stores/{storeId}/descriptions/{aiLogId}/apply",
+                            storeId, aiLogId)
+                            .with(user(customerDetails)))
+                    .andExpect(status().isForbidden());
         }
     }
 }
