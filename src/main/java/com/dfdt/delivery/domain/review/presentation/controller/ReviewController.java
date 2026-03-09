@@ -25,11 +25,12 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/reviews")
 @RequiredArgsConstructor
-public class ReviewController {
+public class ReviewController implements ReviewControllerDocs {
 
     private final ReviewCommandService reviewCommandService;
     private final ReviewQueryService reviewQueryService;
 
+    @Override
     @PostMapping
     public ResponseEntity<ApiResponseDto<ReviewResDto>> createReview(
             @Valid @RequestBody ReviewCreateReqDto request,
@@ -39,6 +40,7 @@ public class ReviewController {
         return ApiResponseDto.success(201, "리뷰가 성공적으로 작성되었습니다.", response);
     }
 
+    @Override
     @GetMapping("/{reviewId}")
     public ResponseEntity<ApiResponseDto<ReviewResDto>> getReview(
             @PathVariable UUID reviewId
@@ -47,6 +49,7 @@ public class ReviewController {
         return ApiResponseDto.success(200, "리뷰 조회가 완료되었습니다.", response);
     }
 
+    @Override
     @GetMapping("/me")
     public ResponseEntity<ApiResponseDto<ReviewListResDto>> getMyReviews(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
@@ -56,6 +59,7 @@ public class ReviewController {
         return ApiResponseDto.success(200, "내 리뷰 목록 조회가 완료되었습니다.", response);
     }
 
+    @Override
     @GetMapping("/store/{storeId}")
     public ResponseEntity<ApiResponseDto<ReviewListResDto>> getStoreReviews(
             @PathVariable UUID storeId,
@@ -65,6 +69,7 @@ public class ReviewController {
         return ApiResponseDto.success(200, "가게 리뷰 목록 조회가 완료되었습니다.", response);
     }
 
+    @Override
     @PatchMapping("/{reviewId}")
     public ResponseEntity<ApiResponseDto<ReviewResDto>> updateReview(
             @PathVariable UUID reviewId,
@@ -75,6 +80,7 @@ public class ReviewController {
         return ApiResponseDto.success(200, "리뷰가 성공적으로 수정되었습니다.", response);
     }
 
+    @Override
     @DeleteMapping("/{reviewId}")
     public ResponseEntity<ApiResponseDto<Void>> deleteReview(
             @PathVariable UUID reviewId,
@@ -84,6 +90,7 @@ public class ReviewController {
         return ApiResponseDto.success(200, "리뷰가 성공적으로 삭제되었습니다.", null);
     }
 
+    @Override
     @PreAuthorize("hasRole('MASTER')")
     @GetMapping("/search")
     public ResponseEntity<ApiResponseDto<ReviewListResDto>> searchReviews(
