@@ -15,7 +15,7 @@ public final class StoreSuccessDocs {
         "addressText": "서울 종로구 광화문로 1",
         "phone": "02-1234-5678",
         "description": "가게 소개",
-        "isOpen": true,
+        "open": true,
         "rating": 4.5,
         "reviewCount": 100,
         "createdAt": "2026-02-25T15:30:00"
@@ -38,7 +38,7 @@ public final class StoreSuccessDocs {
                 "addressText": "서울 종로구 광화문로 1",
                 "phone": "02-1234-5678",
                 "description": "24시간 운영합니다.",
-                "isOpen": false,
+                "open": false,
                 "status": "APPROVED",
                 "rating": 0,
                 "reviewCount": 0,
@@ -52,7 +52,7 @@ public final class StoreSuccessDocs {
                 "addressText": "서울 종로구 광화문로 2",
                 "phone": "02-1234-5678",
                 "description": "24시간 운영합니다.",
-                "isOpen": false,
+                "open": false,
                 "status": "APPROVED",
                 "rating": 0,
                 "reviewCount": 0,
@@ -82,7 +82,7 @@ public final class StoreSuccessDocs {
                 "addressText": "서울 종로구 광화문로 1",
                 "phone": "02-1234-5678",
                 "description": "24시간 운영합니다.",
-                "isOpen": false,
+                "open": false,
                 "status": "APPROVED",
                 "rating": 0,
                 "reviewCount": 0,
@@ -96,7 +96,7 @@ public final class StoreSuccessDocs {
                 "addressText": "서울 종로구 광화문로 2",
                 "phone": "02-1234-5678",
                 "description": "24시간 운영합니다.",
-                "isOpen": false,
+                "open": false,
                 "status": "APPROVED",
                 "rating": 0,
                 "reviewCount": 0,
@@ -136,7 +136,7 @@ public final class StoreSuccessDocs {
         "phone": "02-9876-5432",
         "description": "리뉴얼 오픈했습니다.",
         "addressText": "서울 종로구 세종대로 1",
-        "isOpen": false,
+        "open": false,
         "updatedAt": "2026-02-25T16:20:00",
         "categories": [
           {
@@ -196,7 +196,7 @@ public final class StoreSuccessDocs {
                   "addressText": "서울 종로구 세종대로 1",
               "rating": 4.5,
               "reviewCount": 120,
-              "isOpen": true,
+              "open": true,
               "status": "APPROVED",
               "createdAt": "2026-02-25T15:30:00"
           },
@@ -239,7 +239,7 @@ public final class StoreSuccessDocs {
             "address": "서울 종로구 광화문로 1",
             "phone": "02-1234-5678",
             "description": "가게 소개",
-            "isOpen": true,
+            "open": true,
             "updatedAt": 2026-02-25T16:20:00\s
       }
     }
@@ -266,7 +266,7 @@ public final class StoreSuccessDocs {
                 "description": "24시간 운영합니다.",
                 "status": "APPROVED",
                 "updatedAt": "2026-03-03T20:57:10.0423387+09:00",
-                "isOpen": false
+                "open": false
       }
     }
     """;
@@ -286,7 +286,7 @@ public final class StoreSuccessDocs {
                 "phone": "02-9876-5432",
                 "addressText": "서울 종로구 세종대로 1",
                 "status": "REQUESTED",
-                "isOpen": true,
+                "open": true,
                 "createdAt": "2026-03-03T04:18:01.681261Z"
             }
       ],

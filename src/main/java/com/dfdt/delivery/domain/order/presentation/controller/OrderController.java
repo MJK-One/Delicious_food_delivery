@@ -8,6 +8,7 @@ import com.dfdt.delivery.domain.order.presentation.dto.OrderResDto;
 import com.dfdt.delivery.domain.order.application.service.command.OrderCommandService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -39,12 +40,13 @@ public class OrderController implements OrderControllerDocs {
     // API-002 사용자의 주문 목록 조회
     @GetMapping()
     public ResponseEntity<ApiResponseDto<OrderResDto.CustomerOrderResponse>> getOrders(
-            @AuthenticationPrincipal CustomUserDetails customUserDetails
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @ParameterObject @Valid OrderReqDto.OrderSearchRequest searchRequest
     ){
         return ApiResponseDto.success(
                 200,
                 "사용자의 주문 목록을 조회하였습니다.",
-                null
+                orderQueryService.getCustomerOrderHistory(customUserDetails.getUsername(),searchRequest)
         );
     }
 
@@ -57,7 +59,7 @@ public class OrderController implements OrderControllerDocs {
         return ApiResponseDto.success(
                 200,
                 "해당 주문을 조회하였습니다.",
-                null
+                orderQueryService.getOrderDetail(customUserDetails.getUsername(),orderId)
         );
     }
 
@@ -105,12 +107,14 @@ public class OrderController implements OrderControllerDocs {
     // API-007 가게의 주문 목록 조회하기 ( 상태별 )
     @GetMapping("/store/{storeId}")
     public ResponseEntity<ApiResponseDto<OrderResDto.OwnerDashboardResponse>> getOrdersByOwner(
-            @PathVariable (value = "storeId") UUID  storeId
+            @PathVariable (value = "storeId") UUID  storeId,
+            @ParameterObject @Valid OrderReqDto.OrderSearchRequest orderSearchRequest,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails
     ) {
         return ApiResponseDto.success(
                 200,
                 "가게의 주문 목록이 조회되었습니다.",
-                null
+                orderQueryService.getOwnerDashboard(customUserDetails.getUsername(),storeId,orderSearchRequest)
         );
     }
 }

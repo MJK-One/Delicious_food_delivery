@@ -1,7 +1,12 @@
 package com.dfdt.delivery.domain.order.application.service.query;
 
-import org.springframework.stereotype.Service;
+import com.dfdt.delivery.domain.order.presentation.dto.OrderReqDto;
+import com.dfdt.delivery.domain.order.presentation.dto.OrderResDto;
 
-@Service
-public class OrderQueryService {
+import java.util.UUID;
+
+public interface OrderQueryService {
+    OrderResDto.CustomerOrderResponse getCustomerOrderHistory(String username, OrderReqDto.OrderSearchRequest orderSearchRequest);
+    OrderResDto.GetOrderDetailResponse getOrderDetail(String username, UUID orderId);
+    OrderResDto.OwnerDashboardResponse getOwnerDashboard(String username, UUID storeId,OrderReqDto.OrderSearchRequest orderSearchRequest);
 }

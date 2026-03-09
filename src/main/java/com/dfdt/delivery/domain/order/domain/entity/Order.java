@@ -52,6 +52,9 @@ public class Order {
     @Column(name = "total_price", nullable = false)
     private Integer totalPrice;
 
+    @Column(name = "total_quantity",nullable = false)
+    private Integer totalQuantity;
+
     @Column(name = "order_request_message", length = 255)
     private String orderRequestMessage;
 
@@ -76,6 +79,7 @@ public class Order {
     public void addOrderItem(OrderItem item) {
         this.orderItems.add(item);
         this.totalPrice += item.getTotalPrice();
+        this.totalQuantity += item.getQuantity();
         item.setOrder(this);
     }
     public void addStatusHistory(OrderStatus from, OrderStatus to, String reason) {

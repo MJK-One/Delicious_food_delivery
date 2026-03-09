@@ -25,6 +25,21 @@ public enum ReviewErrorCode implements ErrorCode {
             "REV-4003",
             "결제가 완료된 주문에 대해서만 리뷰를 작성할 수 있습니다."
     ),
+    REVIEW_ALREADY_DELETED(
+            HttpStatus.BAD_REQUEST,
+            "REV-4004",
+            "이미 삭제된 리뷰입니다."
+    ),
+    IMAGE_LIMIT_EXCEEDED(
+            HttpStatus.BAD_REQUEST,
+            "REV-4005",
+            "리뷰 이미지는 최대 5장까지 등록 가능합니다."
+    ),
+    INVALID_IMAGE_FORMAT(
+            HttpStatus.BAD_REQUEST,
+            "REV-4006",
+            "지원하지 않는 이미지 형식입니다."
+    ),
 
     // 401 Unauthorized
     UNAUTHORIZED(
@@ -49,6 +64,11 @@ public enum ReviewErrorCode implements ErrorCode {
             "REV-4033",
             "리뷰에 대한 권한이 없습니다."
     ),
+    NOT_REVIEW_DELETER(
+            HttpStatus.FORBIDDEN,
+            "REV-4034",
+            "리뷰 삭제 권한이 없습니다."
+    ),
 
     // 404 Not Found
     REVIEW_NOT_FOUND(
@@ -60,6 +80,11 @@ public enum ReviewErrorCode implements ErrorCode {
             HttpStatus.NOT_FOUND,
             "REV-4042",
             "주문 정보를 찾을 수 없습니다."
+    ),
+    STORE_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "REV-4043",
+            "가게 정보를 찾을 수 없습니다."
     ),
 
     // 409 Conflict

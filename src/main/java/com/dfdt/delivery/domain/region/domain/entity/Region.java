@@ -5,6 +5,7 @@ import com.dfdt.delivery.common.infrastructure.persistence.embedded.SoftDeleteAu
 import com.dfdt.delivery.common.infrastructure.persistence.embedded.UpdateAudit;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -16,6 +17,7 @@ import java.util.UUID;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @Table(name = "p_region")
 public class Region {
 
