@@ -1,10 +1,14 @@
 package com.dfdt.delivery.domain.ai.presentation.controller;
 
 import com.dfdt.delivery.common.response.ApiResponseDto;
+import com.dfdt.delivery.domain.ai.application.dto.ApplyDescriptionCommand;
+import com.dfdt.delivery.domain.ai.application.dto.ApplyDescriptionResult;
 import com.dfdt.delivery.domain.ai.application.dto.GenerateDescriptionCommand;
 import com.dfdt.delivery.domain.ai.application.dto.GenerateDescriptionResult;
+import com.dfdt.delivery.domain.ai.application.usecase.ApplyDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GenerateDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.presentation.dto.request.GenerateDescriptionRequest;
+import com.dfdt.delivery.domain.ai.presentation.dto.response.ApplyDescriptionResponse;
 import com.dfdt.delivery.domain.ai.presentation.dto.response.GenerateDescriptionResponse;
 import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
 import jakarta.validation.Valid;
@@ -23,6 +27,7 @@ import java.util.UUID;
 public class AiDescriptionController {
 
     private final GenerateDescriptionUseCase generateDescriptionUseCase;
+    private final ApplyDescriptionUseCase applyDescriptionUseCase;
 
     /**
      * AI 상품 설명 미리보기 생성 (API-AI-001)
@@ -45,6 +50,32 @@ public class AiDescriptionController {
                 HttpStatus.CREATED.value(),
                 "AI 상품 설명이 생성되었습니다.",
                 GenerateDescriptionResponse.from(result)
+        );
+    }
+
+    /**
+     * AI 생성 상품 설명 적용 (API-AI-002)
+     * PATCH /api/v1/ai/stores/{storeId}/descriptions/{aiLogId}/apply
+     *
+     * - OWNER: 본인 가게만 적용 가능 (UseCase에서 소유권 체크)
+     * - MASTER: 모든 가게 적용 가능
+     */
+    @PatchMapping("/stores/{storeId}/descriptions/{aiLogId}/apply")
+    @PreAuthorize("hasAnyRole('OWNER', 'MASTER')")
+    public ResponseEntity<ApiResponseDto<ApplyDescriptionResponse>> applyDescriptionPreview(
+            @PathVariable UUID storeId,
+            @PathVariable UUID aiLogId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        ApplyDescriptionCommand command = new ApplyDescriptionCommand(
+                storeId, aiLogId, userDetails.getUsername(), userDetails.getRole()
+        );
+        ApplyDescriptionResult result = applyDescriptionUseCase.execute(command);
+
+        return ApiResponseDto.success(
+                HttpStatus.OK.value(),
+                "AI 상품 설명이 적용되었습니다.",
+                ApplyDescriptionResponse.from(result)
         );
     }
 }
