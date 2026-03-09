@@ -65,6 +65,7 @@ jobs:
             export REDIS_IMAGE=${{ secrets.REDIS_IMAGE }}
             export SERVER_IMAGE=${{ secrets.SERVER_IMAGE }}
             export DB=${{ secrets.DB }}
+            export POSTGRESQL_PORT=${{ secrets.POSTGRESQL_PORT }}
             export DB_USER=${{ secrets.DB_USER }}
             export DB_PW=${{ secrets.DB_PW }}
             export DB_URL=${{ secrets.DB_URL }}

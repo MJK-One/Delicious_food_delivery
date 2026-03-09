@@ -4,7 +4,7 @@ services:
   postgres:
     image: '${POSTGRESQL_IMAGE}'
     ports:
-      - "5432:5432"
+      - '${POSTGRESQL_PORT}'
     restart: always
     volumes:
       - ./postgres_dev_data:/var/lib/postgresql
