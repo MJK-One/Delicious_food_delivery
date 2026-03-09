@@ -9,10 +9,12 @@ import com.dfdt.delivery.domain.ai.application.dto.GenerateDescriptionCommand;
 import com.dfdt.delivery.domain.ai.application.dto.GenerateDescriptionResult;
 import com.dfdt.delivery.domain.ai.application.dto.GetAiLogDetailQuery;
 import com.dfdt.delivery.domain.ai.application.dto.SearchAiLogsQuery;
+import com.dfdt.delivery.domain.ai.application.dto.SearchProductAiLogsQuery;
 import com.dfdt.delivery.domain.ai.application.usecase.ApplyDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GenerateDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GetAiLogDetailUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.SearchAiLogsUseCase;
+import com.dfdt.delivery.domain.ai.application.usecase.SearchProductAiLogsUseCase;
 import com.dfdt.delivery.domain.ai.presentation.dto.request.GenerateDescriptionRequest;
 import com.dfdt.delivery.domain.ai.presentation.dto.response.AiLogDetailResponse;
 import com.dfdt.delivery.domain.ai.presentation.dto.response.AiLogSummaryResponse;
@@ -39,6 +41,7 @@ public class AiDescriptionController {
     private final ApplyDescriptionUseCase applyDescriptionUseCase;
     private final SearchAiLogsUseCase searchAiLogsUseCase;
     private final GetAiLogDetailUseCase getAiLogDetailUseCase;
+    private final SearchProductAiLogsUseCase searchProductAiLogsUseCase;
 
     /**
      * AI 로그 목록 조회 (API-AI-101)
@@ -96,6 +99,39 @@ public class AiDescriptionController {
                 HttpStatus.OK.value(),
                 "AI 로그 상세 정보를 조회했습니다.",
                 AiLogDetailResponse.from(result)
+        );
+    }
+
+    /**
+     * 상품 기준 AI 로그 목록 조회 (API-AI-103)
+     * GET /api/v1/ai/stores/{storeId}/products/{productId}/logs
+     *
+     * - OWNER: 본인 가게 상품 로그만 조회 가능 (UseCase에서 소유권 체크)
+     * - MASTER: 모든 가게 상품 로그 조회 가능
+     */
+    @GetMapping("/stores/{storeId}/products/{productId}/logs")
+    @PreAuthorize("hasAnyRole('OWNER', 'MASTER')")
+    public ResponseEntity<ApiResponseDto<Page<AiLogSummaryResponse>>> searchProductAiLogs(
+            @PathVariable UUID storeId,
+            @PathVariable UUID productId,
+            @RequestParam(required = false) Boolean isApplied,
+            @RequestParam(required = false) Boolean isSuccess,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "false") boolean isAsc,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        SearchProductAiLogsQuery query = new SearchProductAiLogsQuery(
+                storeId, productId, userDetails.getUsername(), userDetails.getRole(),
+                isApplied, isSuccess, page, size, sortBy, isAsc
+        );
+        Page<AiLogSummaryResult> results = searchProductAiLogsUseCase.execute(query);
+
+        return ApiResponseDto.success(
+                HttpStatus.OK.value(),
+                "상품 AI 로그 목록을 조회했습니다.",
+                results.map(AiLogSummaryResponse::from)
         );
     }
 
