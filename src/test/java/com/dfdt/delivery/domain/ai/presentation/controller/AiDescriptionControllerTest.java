@@ -1,0 +1,251 @@
+package com.dfdt.delivery.domain.ai.presentation.controller;
+
+import com.dfdt.delivery.common.config.SecurityConfig;
+import com.dfdt.delivery.domain.ai.application.dto.GenerateDescriptionResult;
+import com.dfdt.delivery.domain.ai.application.usecase.GenerateDescriptionUseCase;
+import com.dfdt.delivery.domain.ai.domain.entity.enums.Tone;
+import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
+import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetailsService;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
+import com.dfdt.delivery.domain.user.domain.entity.User;
+import com.dfdt.delivery.domain.user.domain.enums.UserRole;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@WebMvcTest(AiDescriptionController.class)
+@Import(SecurityConfig.class)
+@DisplayName("AiDescriptionController 테스트")
+class AiDescriptionControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    // @EnableJpaAuditing이 메인 앱에 있어서 @WebMvcTest에서 JPA 메타모델 오류 발생 방지
+    @MockBean
+    private JpaMetamodelMappingContext jpaMetamodelMappingContext;
+
+    @MockBean
+    private GenerateDescriptionUseCase generateDescriptionUseCase;
+
+    @MockBean
+    private com.dfdt.delivery.domain.auth.infrastructure.jwt.JwtProvider jwtProvider;
+
+    @MockBean
+    private CustomUserDetailsService userDetailsService;
+
+    @MockBean
+    private com.dfdt.delivery.common.util.RedisService redisService;
+
+    private UUID storeId;
+    private CustomUserDetails ownerDetails;
+    private CustomUserDetails masterDetails;
+
+    @BeforeEach
+    void setUp() {
+        storeId = UUID.randomUUID();
+
+        User owner = User.builder()
+                .username("owner123")
+                .name("점주")
+                .password("pw")
+                .role(UserRole.OWNER)
+                .build();
+        ownerDetails = new CustomUserDetails(owner);
+
+        User master = User.builder()
+                .username("master")
+                .name("관리자")
+                .password("pw")
+                .role(UserRole.MASTER)
+                .build();
+        masterDetails = new CustomUserDetails(master);
+    }
+
+    // ──────────────────────────────────────────────────
+    // 정상 케이스
+    // ──────────────────────────────────────────────────
+    @Nested
+    @DisplayName("정상 요청")
+    class SuccessTests {
+
+        @Test
+        @DisplayName("OWNER가 유효한 요청을 보내면 201과 AI 응답을 반환한다")
+        void shouldReturn201WithResult() throws Exception {
+            // given
+            UUID aiLogId = UUID.randomUUID();
+            GenerateDescriptionResult mockResult = new GenerateDescriptionResult(
+                    aiLogId, "바삭한 치킨입니다!", "최종프롬프트"
+            );
+            given(generateDescriptionUseCase.execute(any())).willReturn(mockResult);
+
+            Map<String, Object> requestBody = Map.of(
+                    "inputPrompt", "겉은 바삭하고 속은 촉촉하게 설명해줘",
+                    "tone", "FRIENDLY",
+                    "keywords", List.of("바삭", "촉촉")
+            );
+
+            // when & then
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/descriptions/preview", storeId)
+                            .with(user(ownerDetails))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.status").value(201))
+                    .andExpect(jsonPath("$.data.responseText").value("바삭한 치킨입니다!"))
+                    .andExpect(jsonPath("$.data.aiLogId").value(aiLogId.toString()));
+        }
+
+        @Test
+        @DisplayName("MASTER도 동일하게 201을 반환한다")
+        void masterCanAlsoGenerateDescription() throws Exception {
+            // given
+            given(generateDescriptionUseCase.execute(any())).willReturn(
+                    new GenerateDescriptionResult(UUID.randomUUID(), "치킨 맛있어요!", "프롬프트")
+            );
+
+            Map<String, Object> requestBody = Map.of(
+                    "inputPrompt", "설명 작성해줘",
+                    "tone", "INFORMATIVE"
+            );
+
+            // when & then
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/descriptions/preview", storeId)
+                            .with(user(masterDetails))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().isCreated());
+        }
+    }
+
+    // ──────────────────────────────────────────────────
+    // 인증/권한 실패
+    // ──────────────────────────────────────────────────
+    @Nested
+    @DisplayName("인증/권한 실패")
+    class AuthFailureTests {
+
+        @Test
+        @DisplayName("인증되지 않은 요청은 4xx를 반환한다")
+        void shouldReturn4xxWhenNotAuthenticated() throws Exception {
+            Map<String, Object> requestBody = Map.of(
+                    "inputPrompt", "설명 작성",
+                    "tone", "FRIENDLY"
+            );
+
+            // SecurityConfig에 별도 AuthenticationEntryPoint가 없으면 Spring Security 기본값(403) 반환
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/descriptions/preview", storeId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().is4xxClientError());
+        }
+
+        @Test
+        @DisplayName("CUSTOMER 역할은 403을 반환한다")
+        void shouldReturn403WhenCustomerRole() throws Exception {
+            User customer = User.builder()
+                    .username("customer1").name("고객").password("pw").role(UserRole.CUSTOMER).build();
+            CustomUserDetails customerDetails = new CustomUserDetails(customer);
+
+            Map<String, Object> requestBody = Map.of(
+                    "inputPrompt", "설명 작성",
+                    "tone", "FRIENDLY"
+            );
+
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/descriptions/preview", storeId)
+                            .with(user(customerDetails))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    // ──────────────────────────────────────────────────
+    // 입력 검증 실패 (400 Bad Request)
+    // ──────────────────────────────────────────────────
+    @Nested
+    @DisplayName("입력 검증 실패")
+    class ValidationFailureTests {
+
+        @Test
+        @DisplayName("inputPrompt가 없으면 400을 반환한다")
+        void shouldReturn400WhenInputPromptMissing() throws Exception {
+            Map<String, Object> requestBody = Map.of(
+                    "tone", "FRIENDLY"  // inputPrompt 없음
+            );
+
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/descriptions/preview", storeId)
+                            .with(user(ownerDetails))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("tone이 없으면 400을 반환한다")
+        void shouldReturn400WhenToneMissing() throws Exception {
+            Map<String, Object> requestBody = Map.of(
+                    "inputPrompt", "설명 작성"  // tone 없음
+            );
+
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/descriptions/preview", storeId)
+                            .with(user(ownerDetails))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("inputPrompt가 300자를 초과하면 400을 반환한다")
+        void shouldReturn400WhenInputPromptTooLong() throws Exception {
+            Map<String, Object> requestBody = Map.of(
+                    "inputPrompt", "a".repeat(301),
+                    "tone", "SALESY"
+            );
+
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/descriptions/preview", storeId)
+                            .with(user(ownerDetails))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("keywords가 10개를 초과하면 400을 반환한다")
+        void shouldReturn400WhenKeywordsTooMany() throws Exception {
+            List<String> tooManyKeywords = List.of("k1","k2","k3","k4","k5","k6","k7","k8","k9","k10","k11");
+            Map<String, Object> requestBody = Map.of(
+                    "inputPrompt", "설명 작성",
+                    "tone", "FRIENDLY",
+                    "keywords", tooManyKeywords
+            );
+
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/descriptions/preview", storeId)
+                            .with(user(ownerDetails))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().isBadRequest());
+        }
+    }
+}

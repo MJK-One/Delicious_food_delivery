@@ -5,6 +5,7 @@ import com.dfdt.delivery.common.infrastructure.persistence.embedded.SoftDeleteAu
 import com.dfdt.delivery.domain.ai.domain.entity.enums.AiRequestType;
 import jakarta.persistence.*;
 
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
@@ -52,6 +53,39 @@ public class AiLogEntity {
     @Column(name = "response_time_ms")
     private Integer responseTimeMs;
 
+    @Column(name = "is_applied", nullable = false)
+    private Boolean isApplied;
+
+    @Column(name = "applied_at")
+    private OffsetDateTime appliedAt;
+
+    @Column(name = "applied_by", length = 10)
+    private String appliedBy;
+
+    @Column(name = "source_ai_log_id")
+    private UUID sourceAiLogId;
+
+    @Column(name = "previous_description", columnDefinition = "TEXT")
+    private String previousDescription;
+
+    @Column(name = "rolled_back_at")
+    private OffsetDateTime rolledBackAt;
+
+    @Column(name = "rolled_back_by", length = 10)
+    private String rolledBackBy;
+
+    @Column(name = "tone", length = 20)
+    private String tone;
+
+    @Column(name = "keywords_snapshot", columnDefinition = "TEXT")
+    private String keywordsSnapshot;
+
+    @Column(name = "prompt_char_count")
+    private Integer promptCharCount;
+
+    @Column(name = "response_char_count")
+    private Integer responseCharCount;
+
     @Embedded
     private CreateAudit createAudit;
 
@@ -76,6 +110,17 @@ public class AiLogEntity {
             String errorMessage,
             String modelName,
             Integer responseTimeMs,
+            Boolean isApplied,
+            OffsetDateTime appliedAt,
+            String appliedBy,
+            UUID sourceAiLogId,
+            String previousDescription,
+            OffsetDateTime rolledBackAt,
+            String rolledBackBy,
+            String tone,
+            String keywordsSnapshot,
+            Integer promptCharCount,
+            Integer responseCharCount,
             CreateAudit createAudit,
             SoftDeleteAudit softDeleteAudit
     ) {
@@ -92,6 +137,17 @@ public class AiLogEntity {
         this.errorMessage = errorMessage;
         this.modelName = modelName;
         this.responseTimeMs = responseTimeMs;
+        this.isApplied = isApplied;
+        this.appliedAt = appliedAt;
+        this.appliedBy = appliedBy;
+        this.sourceAiLogId = sourceAiLogId;
+        this.previousDescription = previousDescription;
+        this.rolledBackAt = rolledBackAt;
+        this.rolledBackBy = rolledBackBy;
+        this.tone = tone;
+        this.keywordsSnapshot = keywordsSnapshot;
+        this.promptCharCount = promptCharCount;
+        this.responseCharCount = responseCharCount;
         this.createAudit = createAudit;
         this.softDeleteAudit = (softDeleteAudit != null) ? softDeleteAudit : SoftDeleteAudit.active();
     }
@@ -99,14 +155,19 @@ public class AiLogEntity {
     private static void validateCommon(
             UUID storeId,
             String requestedBy,
+            AiRequestType requestType,
             String inputPrompt,
-            String finalPrompt
+            String finalPrompt,
+            Integer responseTimeMs
     ) {
         if (storeId == null) {
             throw new IllegalArgumentException("storeId must not be null");
         }
         if (requestedBy == null || requestedBy.isBlank()) {
             throw new IllegalArgumentException("requestedBy must not be blank");
+        }
+        if (requestType == null) {
+            throw new IllegalArgumentException("requestType must not be null");
         }
         if (inputPrompt == null || inputPrompt.isBlank()) {
             throw new IllegalArgumentException("inputPrompt must not be blank");
@@ -117,6 +178,106 @@ public class AiLogEntity {
         if (inputPrompt.length() > 300) {
             throw new IllegalArgumentException("inputPrompt length must be <= 300");
         }
+        if (responseTimeMs != null && responseTimeMs < 0) {
+            throw new IllegalArgumentException("responseTimeMs must be >= 0");
+        }
+    }
+
+    private static int calculateLength(String value) {
+        return value == null ? 0 : value.length();
+    }
+
+    private static AiLogEntity createSuccess(
+            UUID storeId,
+            UUID productId,
+            String requestedBy,
+            AiRequestType requestType,
+            String inputPrompt,
+            String finalPrompt,
+            String responseText,
+            String modelName,
+            Integer responseTimeMs,
+            UUID sourceAiLogId,
+            String tone,
+            String keywordsSnapshot
+    ) {
+        validateCommon(storeId, requestedBy, requestType, inputPrompt, finalPrompt, responseTimeMs);
+
+        return new AiLogEntity(
+                UUID.randomUUID(),
+                storeId,
+                productId,
+                requestedBy,
+                requestType,
+                inputPrompt,
+                finalPrompt,
+                responseText,
+                true,
+                null,
+                null,
+                modelName,
+                responseTimeMs,
+                false,
+                null,
+                null,
+                sourceAiLogId,
+                null,
+                null,
+                null,
+                tone,
+                keywordsSnapshot,
+                calculateLength(inputPrompt),
+                calculateLength(responseText),
+                CreateAudit.now(requestedBy),
+                SoftDeleteAudit.active()
+        );
+    }
+
+    private static AiLogEntity createFailure(
+            UUID storeId,
+            UUID productId,
+            String requestedBy,
+            AiRequestType requestType,
+            String inputPrompt,
+            String finalPrompt,
+            String errorCode,
+            String errorMessage,
+            String modelName,
+            Integer responseTimeMs,
+            UUID sourceAiLogId,
+            String tone,
+            String keywordsSnapshot
+    ) {
+        validateCommon(storeId, requestedBy, requestType, inputPrompt, finalPrompt, responseTimeMs);
+
+        return new AiLogEntity(
+                UUID.randomUUID(),
+                storeId,
+                productId,
+                requestedBy,
+                requestType,
+                inputPrompt,
+                finalPrompt,
+                null,
+                false,
+                errorCode,
+                errorMessage,
+                modelName,
+                responseTimeMs,
+                false,
+                null,
+                null,
+                sourceAiLogId,
+                null,
+                null,
+                null,
+                tone,
+                keywordsSnapshot,
+                calculateLength(inputPrompt),
+                0,
+                CreateAudit.now(requestedBy),
+                SoftDeleteAudit.active()
+        );
     }
 
     public static AiLogEntity successProductDescription(
@@ -127,12 +288,12 @@ public class AiLogEntity {
             String finalPrompt,
             String responseText,
             String modelName,
-            Integer responseTimeMs
+            Integer responseTimeMs,
+            UUID sourceAiLogId,
+            String tone,
+            String keywordsSnapshot
     ) {
-        validateCommon(storeId, requestedBy, inputPrompt, finalPrompt);
-
-        return new AiLogEntity(
-                UUID.randomUUID(),
+        return createSuccess(
                 storeId,
                 productId,
                 requestedBy,
@@ -140,13 +301,11 @@ public class AiLogEntity {
                 inputPrompt,
                 finalPrompt,
                 responseText,
-                true,
-                null,
-                null,
                 modelName,
                 responseTimeMs,
-                CreateAudit.now(requestedBy),
-                SoftDeleteAudit.active()
+                sourceAiLogId,
+                tone,
+                keywordsSnapshot
         );
     }
 
@@ -159,26 +318,25 @@ public class AiLogEntity {
             String errorCode,
             String errorMessage,
             String modelName,
-            Integer responseTimeMs
+            Integer responseTimeMs,
+            UUID sourceAiLogId,
+            String tone,
+            String keywordsSnapshot
     ) {
-        validateCommon(storeId, requestedBy, inputPrompt, finalPrompt);
-
-        return new AiLogEntity(
-                UUID.randomUUID(),
+        return createFailure(
                 storeId,
                 productId,
                 requestedBy,
                 AiRequestType.PRODUCT_DESCRIPTION,
                 inputPrompt,
                 finalPrompt,
-                null, // 실패 시 responseText 없음
-                false,
                 errorCode,
                 errorMessage,
                 modelName,
                 responseTimeMs,
-                CreateAudit.now(requestedBy),
-                SoftDeleteAudit.active()
+                sourceAiLogId,
+                tone,
+                keywordsSnapshot
         );
     }
 
@@ -188,14 +346,14 @@ public class AiLogEntity {
             String requestedBy,
             String inputPrompt,
             String finalPrompt,
-            String responseText,   // 초기엔 URL/요약/JSON 일부를 문자열로 저장 가능
+            String responseText,
             String modelName,
-            Integer responseTimeMs
+            Integer responseTimeMs,
+            UUID sourceAiLogId,
+            String tone,
+            String keywordsSnapshot
     ) {
-        validateCommon(storeId, requestedBy, inputPrompt, finalPrompt);
-
-        return new AiLogEntity(
-                UUID.randomUUID(),
+        return createSuccess(
                 storeId,
                 productId,
                 requestedBy,
@@ -203,13 +361,11 @@ public class AiLogEntity {
                 inputPrompt,
                 finalPrompt,
                 responseText,
-                true,
-                null,
-                null,
                 modelName,
                 responseTimeMs,
-                CreateAudit.now(requestedBy),
-                SoftDeleteAudit.active()
+                sourceAiLogId,
+                tone,
+                keywordsSnapshot
         );
     }
 
@@ -222,27 +378,44 @@ public class AiLogEntity {
             String errorCode,
             String errorMessage,
             String modelName,
-            Integer responseTimeMs
+            Integer responseTimeMs,
+            UUID sourceAiLogId,
+            String tone,
+            String keywordsSnapshot
     ) {
-        validateCommon(storeId, requestedBy, inputPrompt, finalPrompt);
-
-        return new AiLogEntity(
-                UUID.randomUUID(),
+        return createFailure(
                 storeId,
                 productId,
                 requestedBy,
                 AiRequestType.FOOD_IMAGE_GENERATION,
                 inputPrompt,
                 finalPrompt,
-                null, // 실패 시 responseText 없음
-                false,
                 errorCode,
                 errorMessage,
                 modelName,
                 responseTimeMs,
-                CreateAudit.now(requestedBy),
-                SoftDeleteAudit.active()
+                sourceAiLogId,
+                tone,
+                keywordsSnapshot
         );
+    }
+
+    public void applyDescription(String previousDescription, String appliedBy) {
+        if (appliedBy == null || appliedBy.isBlank()) {
+            throw new IllegalArgumentException("appliedBy must not be blank");
+        }
+        this.previousDescription = previousDescription;
+        this.isApplied = true;
+        this.appliedAt = OffsetDateTime.now();
+        this.appliedBy = appliedBy;
+    }
+
+    public void rollback(String rolledBackBy) {
+        if (rolledBackBy == null || rolledBackBy.isBlank()) {
+            throw new IllegalArgumentException("rolledBackBy must not be blank");
+        }
+        this.rolledBackAt = OffsetDateTime.now();
+        this.rolledBackBy = rolledBackBy;
     }
 
     public void softDelete(String deletedBy) {
@@ -306,6 +479,50 @@ public class AiLogEntity {
 
     public Integer getResponseTimeMs() {
         return responseTimeMs;
+    }
+
+    public Boolean getIsApplied() {
+        return isApplied;
+    }
+
+    public OffsetDateTime getAppliedAt() {
+        return appliedAt;
+    }
+
+    public String getAppliedBy() {
+        return appliedBy;
+    }
+
+    public UUID getSourceAiLogId() {
+        return sourceAiLogId;
+    }
+
+    public String getPreviousDescription() {
+        return previousDescription;
+    }
+
+    public OffsetDateTime getRolledBackAt() {
+        return rolledBackAt;
+    }
+
+    public String getRolledBackBy() {
+        return rolledBackBy;
+    }
+
+    public String getTone() {
+        return tone;
+    }
+
+    public String getKeywordsSnapshot() {
+        return keywordsSnapshot;
+    }
+
+    public Integer getPromptCharCount() {
+        return promptCharCount;
+    }
+
+    public Integer getResponseCharCount() {
+        return responseCharCount;
     }
 
     public CreateAudit getCreateAudit() {
