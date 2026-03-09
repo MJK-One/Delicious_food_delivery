@@ -1,10 +1,13 @@
 package com.dfdt.delivery.domain.ai.presentation.controller;
 
 import com.dfdt.delivery.common.config.SecurityConfig;
+import com.dfdt.delivery.domain.ai.application.dto.AiLogSummaryResult;
 import com.dfdt.delivery.domain.ai.application.dto.ApplyDescriptionResult;
 import com.dfdt.delivery.domain.ai.application.dto.GenerateDescriptionResult;
 import com.dfdt.delivery.domain.ai.application.usecase.ApplyDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GenerateDescriptionUseCase;
+import com.dfdt.delivery.domain.ai.application.usecase.SearchAiLogsUseCase;
+import com.dfdt.delivery.domain.ai.domain.entity.enums.AiRequestType;
 import com.dfdt.delivery.domain.ai.domain.entity.enums.Tone;
 import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
 import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetailsService;
@@ -28,9 +31,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -55,6 +63,9 @@ class AiDescriptionControllerTest {
 
     @MockBean
     private ApplyDescriptionUseCase applyDescriptionUseCase;
+
+    @MockBean
+    private SearchAiLogsUseCase searchAiLogsUseCase;
 
     @MockBean
     private com.dfdt.delivery.domain.auth.infrastructure.jwt.JwtProvider jwtProvider;
@@ -324,6 +335,85 @@ class AiDescriptionControllerTest {
 
             mockMvc.perform(patch("/api/v1/ai/stores/{storeId}/descriptions/{aiLogId}/apply",
                             storeId, aiLogId)
+                            .with(user(customerDetails)))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    // ──────────────────────────────────────────────────
+    // API-AI-101: AI 로그 목록 조회
+    // ──────────────────────────────────────────────────
+    @Nested
+    @DisplayName("AI 로그 목록 조회 (API-AI-101)")
+    class SearchAiLogsTests {
+
+        @Test
+        @DisplayName("OWNER가 요청하면 200과 빈 Page를 반환한다")
+        void ownerShouldReturn200WithPage() throws Exception {
+            // given
+            Page<AiLogSummaryResult> emptyPage =
+                    new PageImpl<>(List.of(), PageRequest.of(0, 10), 0);
+            given(searchAiLogsUseCase.execute(any())).willReturn(emptyPage);
+
+            // when & then
+            mockMvc.perform(get("/api/v1/ai/stores/{storeId}/descriptions", storeId)
+                            .with(user(ownerDetails)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value(200))
+                    .andExpect(jsonPath("$.data.totalElements").value(0));
+        }
+
+        @Test
+        @DisplayName("OWNER가 데이터가 있는 경우 200과 Page를 반환한다")
+        void ownerShouldReturn200WithContent() throws Exception {
+            // given
+            UUID aiLogId = UUID.randomUUID();
+            AiLogSummaryResult item = new AiLogSummaryResult(
+                    aiLogId, null, "owner123",
+                    AiRequestType.PRODUCT_DESCRIPTION, "FRIENDLY",
+                    true, false, null, "바삭한 치킨입니다!", OffsetDateTime.now()
+            );
+            Page<AiLogSummaryResult> page =
+                    new PageImpl<>(List.of(item), PageRequest.of(0, 10), 1);
+            given(searchAiLogsUseCase.execute(any())).willReturn(page);
+
+            // when & then
+            mockMvc.perform(get("/api/v1/ai/stores/{storeId}/descriptions", storeId)
+                            .with(user(ownerDetails)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.totalElements").value(1))
+                    .andExpect(jsonPath("$.data.content[0].aiLogId").value(aiLogId.toString()))
+                    .andExpect(jsonPath("$.data.content[0].responseText").value("바삭한 치킨입니다!"));
+        }
+
+        @Test
+        @DisplayName("MASTER도 200을 반환한다")
+        void masterShouldReturn200() throws Exception {
+            // given
+            given(searchAiLogsUseCase.execute(any()))
+                    .willReturn(new PageImpl<>(List.of(), PageRequest.of(0, 10), 0));
+
+            // when & then
+            mockMvc.perform(get("/api/v1/ai/stores/{storeId}/descriptions", storeId)
+                            .with(user(masterDetails)))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("인증되지 않은 요청은 4xx를 반환한다")
+        void unauthenticatedShouldReturn4xx() throws Exception {
+            mockMvc.perform(get("/api/v1/ai/stores/{storeId}/descriptions", storeId))
+                    .andExpect(status().is4xxClientError());
+        }
+
+        @Test
+        @DisplayName("CUSTOMER 역할은 403을 반환한다")
+        void customerShouldReturn403() throws Exception {
+            User customer = User.builder()
+                    .username("customer1").name("고객").password("pw").role(UserRole.CUSTOMER).build();
+            CustomUserDetails customerDetails = new CustomUserDetails(customer);
+
+            mockMvc.perform(get("/api/v1/ai/stores/{storeId}/descriptions", storeId)
                             .with(user(customerDetails)))
                     .andExpect(status().isForbidden());
         }
