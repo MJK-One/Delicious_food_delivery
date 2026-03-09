@@ -281,6 +281,40 @@ public class ReviewIntegrationTest {
         assertThat(result.getContent()).hasSize(1);
     }
 
+    @Test
+    @DisplayName("리뷰 이미지 정렬 테스트 - displayOrder 순서대로 반환되는지 확인")
+    void reviewImageOrderTest() {
+        // 1. 완료된 주문 준비
+        setupBaseData();
+        Order order = createOrder();
+        order.updateStatus(OrderStatus.COMPLETED, "배달 완료");
+        orderRepository.saveAndFlush(order);
+
+        // 2. 리뷰 작성 (이미지 3개 포함)
+        java.util.List<String> imageUrls = java.util.Arrays.asList("url3.jpg", "url1.jpg", "url2.jpg");
+        ReviewCreateReqDto reqDto = createReviewCreateDto(order.getOrderId(), testStore.getStoreId(), 5, "이미지 정렬 테스트");
+        
+        // Reflection을 사용하여 imageUrls 설정 (createReviewCreateDto 헬퍼가 imageUrls를 안받음)
+        try {
+            java.lang.reflect.Field imagesField = ReviewCreateReqDto.class.getDeclaredField("imageUrls");
+            imagesField.setAccessible(true);
+            imagesField.set(reqDto, imageUrls);
+        } catch (Exception e) {}
+
+        ReviewResDto result = reviewCommandService.createReview(testUser.getUsername(), reqDto);
+        entityManager.flush();
+        entityManager.clear();
+
+        // 3. 단건 조회로 이미지 순서 검증
+        ReviewResDto detailedReview = reviewQueryService.getReview(result.getReviewId());
+        
+        // 4. 검증: 입력된 순서(url3, url1, url2)대로 displayOrder(1, 2, 3)가 부여되었으므로 그 순서대로 나와야 함
+        assertThat(detailedReview.getImages()).hasSize(3);
+        assertThat(detailedReview.getImages().get(0)).isEqualTo("url3.jpg");
+        assertThat(detailedReview.getImages().get(1)).isEqualTo("url1.jpg");
+        assertThat(detailedReview.getImages().get(2)).isEqualTo("url2.jpg");
+    }
+
     // --- Helper Methods ---
 
     /**
@@ -305,21 +339,19 @@ public class ReviewIntegrationTest {
                 .build();
         userRepository.saveAndFlush(testUser);
 
-        testAddress = new Address();
-        try {
-            java.lang.reflect.Field line1Field = Address.class.getDeclaredField("addressLine1");
-            line1Field.setAccessible(true);
-            line1Field.set(testAddress, "강남구");
-            java.lang.reflect.Field isDefaultField = Address.class.getDeclaredField("isDefault");
-            isDefaultField.setAccessible(true);
-            isDefaultField.set(testAddress, true);
-            java.lang.reflect.Field createAuditField = Address.class.getDeclaredField("createAudit");
-            createAuditField.setAccessible(true);
-            createAuditField.set(testAddress, CreateAudit.now("SYSTEM"));
-            java.lang.reflect.Field softDeleteAuditField = Address.class.getDeclaredField("softDeleteAudit");
-            softDeleteAuditField.setAccessible(true);
-            softDeleteAuditField.set(testAddress, SoftDeleteAudit.active());
-        } catch (Exception e) {}
+        testAddress = new Address(
+                null,
+                "집",
+                "강남구",
+                null,
+                "수령인",
+                "010-1234-5678",
+                true,
+                null,
+                CreateAudit.now("SYSTEM"),
+                com.dfdt.delivery.common.infrastructure.persistence.embedded.UpdateAudit.empty(),
+                SoftDeleteAudit.active()
+        );
         addressRepository.saveAndFlush(testAddress);
 
         testStore = Store.builder()
