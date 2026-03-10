@@ -6,10 +6,12 @@ import com.dfdt.delivery.domain.ai.application.dto.AiLogDetailResult;
 import com.dfdt.delivery.domain.ai.application.dto.AiLogSummaryResult;
 import com.dfdt.delivery.domain.ai.application.dto.ApplyDescriptionResult;
 import com.dfdt.delivery.domain.ai.application.dto.GenerateDescriptionResult;
+import com.dfdt.delivery.domain.ai.application.dto.AiPromptRulesResult;
 import com.dfdt.delivery.domain.ai.application.usecase.ApplyDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.CheckAiHealthUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GenerateDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GetAiLogDetailUseCase;
+import com.dfdt.delivery.domain.ai.application.usecase.GetPromptRulesUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.SearchAiLogsUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.SearchProductAiLogsUseCase;
 import com.dfdt.delivery.domain.ai.domain.entity.enums.AiRequestType;
@@ -80,6 +82,9 @@ class AiDescriptionControllerTest {
 
     @MockBean
     private CheckAiHealthUseCase checkAiHealthUseCase;
+
+    @MockBean
+    private GetPromptRulesUseCase getPromptRulesUseCase;
 
     @MockBean
     private com.dfdt.delivery.domain.auth.infrastructure.jwt.JwtProvider jwtProvider;
@@ -171,6 +176,77 @@ class AiDescriptionControllerTest {
         @DisplayName("인증되지 않은 요청은 4xx를 반환한다")
         void unauthenticatedShouldReturn4xx() throws Exception {
             mockMvc.perform(get("/api/v1/ai/health"))
+                    .andExpect(status().is4xxClientError());
+        }
+    }
+
+    // ──────────────────────────────────────────────────
+    // API-AI-202: AI 프롬프트 규칙 미리보기
+    // ──────────────────────────────────────────────────
+    @Nested
+    @DisplayName("AI 프롬프트 규칙 미리보기 (API-AI-202)")
+    class GetPromptRulesTests {
+
+        @Test
+        @DisplayName("OWNER가 요청하면 200과 프롬프트 규칙을 반환한다")
+        void ownerShouldReturn200WithPromptRules() throws Exception {
+            // given
+            List<AiPromptRulesResult.ToneRuleResult> tones = List.of(
+                    new AiPromptRulesResult.ToneRuleResult("FRIENDLY", "친근하고 따뜻한 톤으로 작성해줘."),
+                    new AiPromptRulesResult.ToneRuleResult("SALESY", "세일즈 톤으로 구매 욕구를 자극하게 작성해줘."),
+                    new AiPromptRulesResult.ToneRuleResult("INFORMATIVE", "정보 전달 위주의 간결한 톤으로 작성해줘.")
+            );
+            AiPromptRulesResult mockResult = new AiPromptRulesResult(
+                    " 답변을 최대한 간결하게 50자 이하로 작성해줘.", 50,
+                    300, 120, 10, 30,
+                    tones, "[톤 지시문]\n{inputPrompt} 답변을 최대한 간결하게 50자 이하로 작성해줘."
+            );
+            given(getPromptRulesUseCase.execute()).willReturn(mockResult);
+
+            // when & then
+            mockMvc.perform(get("/api/v1/ai/prompt-rules")
+                            .with(user(ownerDetails)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value(200))
+                    .andExpect(jsonPath("$.data.maxResponseLength").value(50))
+                    .andExpect(jsonPath("$.data.maxInputPromptLength").value(300))
+                    .andExpect(jsonPath("$.data.maxKeywordsCount").value(10))
+                    .andExpect(jsonPath("$.data.availableTones").isArray())
+                    .andExpect(jsonPath("$.data.availableTones.length()").value(3))
+                    .andExpect(jsonPath("$.data.availableTones[0].tone").value("FRIENDLY"));
+        }
+
+        @Test
+        @DisplayName("MASTER도 200을 반환한다")
+        void masterShouldReturn200() throws Exception {
+            // given
+            given(getPromptRulesUseCase.execute()).willReturn(
+                    new AiPromptRulesResult(" 답변을 최대한 간결하게 50자 이하로 작성해줘.", 50,
+                            300, 120, 10, 30, List.of(), "template")
+            );
+
+            // when & then
+            mockMvc.perform(get("/api/v1/ai/prompt-rules")
+                            .with(user(masterDetails)))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("CUSTOMER 역할은 403을 반환한다")
+        void customerShouldReturn403() throws Exception {
+            User customer = User.builder()
+                    .username("customer1").name("고객").password("pw").role(UserRole.CUSTOMER).build();
+            CustomUserDetails customerDetails = new CustomUserDetails(customer);
+
+            mockMvc.perform(get("/api/v1/ai/prompt-rules")
+                            .with(user(customerDetails)))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("인증되지 않은 요청은 4xx를 반환한다")
+        void unauthenticatedShouldReturn4xx() throws Exception {
+            mockMvc.perform(get("/api/v1/ai/prompt-rules"))
                     .andExpect(status().is4xxClientError());
         }
     }

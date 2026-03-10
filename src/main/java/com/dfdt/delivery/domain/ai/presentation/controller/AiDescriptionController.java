@@ -15,12 +15,14 @@ import com.dfdt.delivery.domain.ai.application.usecase.ApplyDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.CheckAiHealthUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GenerateDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GetAiLogDetailUseCase;
+import com.dfdt.delivery.domain.ai.application.usecase.GetPromptRulesUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.SearchAiLogsUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.SearchProductAiLogsUseCase;
 import com.dfdt.delivery.domain.ai.presentation.dto.request.GenerateDescriptionRequest;
 import com.dfdt.delivery.domain.ai.presentation.dto.response.AiHealthResponse;
 import com.dfdt.delivery.domain.ai.presentation.dto.response.AiLogDetailResponse;
 import com.dfdt.delivery.domain.ai.presentation.dto.response.AiLogSummaryResponse;
+import com.dfdt.delivery.domain.ai.presentation.dto.response.AiPromptRulesResponse;
 import com.dfdt.delivery.domain.ai.presentation.dto.response.ApplyDescriptionResponse;
 import com.dfdt.delivery.domain.ai.presentation.dto.response.GenerateDescriptionResponse;
 import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
@@ -46,6 +48,7 @@ public class AiDescriptionController {
     private final GetAiLogDetailUseCase getAiLogDetailUseCase;
     private final SearchProductAiLogsUseCase searchProductAiLogsUseCase;
     private final CheckAiHealthUseCase checkAiHealthUseCase;
+    private final GetPromptRulesUseCase getPromptRulesUseCase;
 
     /**
      * AI 연동 상태 확인 (API-AI-201)
@@ -62,6 +65,23 @@ public class AiDescriptionController {
                 HttpStatus.OK.value(),
                 "AI 연동 상태를 조회했습니다.",
                 AiHealthResponse.from(result)
+        );
+    }
+
+    /**
+     * AI 프롬프트 규칙 미리보기 (API-AI-202)
+     * GET /api/v1/ai/prompt-rules
+     *
+     * - OWNER / MASTER: 프롬프트 구성 규칙(제약 조건, 톤 목록, 강제 문구, 템플릿) 조회
+     * - 외부 API 호출 없음, 항상 HTTP 200 반환
+     */
+    @GetMapping("/prompt-rules")
+    @PreAuthorize("hasAnyRole('OWNER', 'MASTER')")
+    public ResponseEntity<ApiResponseDto<AiPromptRulesResponse>> getPromptRules() {
+        return ApiResponseDto.success(
+                HttpStatus.OK.value(),
+                "AI 프롬프트 규칙을 조회했습니다.",
+                AiPromptRulesResponse.from(getPromptRulesUseCase.execute())
         );
     }
 
