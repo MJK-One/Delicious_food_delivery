@@ -14,7 +14,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.servlet.NoHandlerFoundException;
 
 @RestControllerAdvice
-@Slf4j(topic = "예외")
+@Slf4j(topic = "Exception")
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
@@ -48,13 +48,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoHandlerFoundException.class)
     protected ResponseEntity<ErrorResponseDto> handleNoHandlerFoundException(NoHandlerFoundException e) {
         log.warn("존재하지 않는 URL 입니다");
-        return ErrorResponseDto.fail(AuthErrorCode.FORBIDDEN); // 이거랑 아래꺼 공통에러코드 넣고 수정해야함
+        return ErrorResponseDto.fail(CommonErrorCode.NO_HANDLER_FOUND, e.getMessage()); // 이거랑 아래꺼 공통에러코드 넣고 수정해야함
     }
     // MethodArgumentTypeMismatchException
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     protected ResponseEntity<ErrorResponseDto> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
-        log.warn("type is mismatched");
-        return  ErrorResponseDto.fail(AuthErrorCode.FORBIDDEN);
+        log.warn("타입이 일치하지 않습니다");
+        return  ErrorResponseDto.fail(CommonErrorCode.METHOD_TYPE_MISMATCH, e.getMessage());
     }
 
     // INTERNAL_SERVER_ERROR (500 에러)

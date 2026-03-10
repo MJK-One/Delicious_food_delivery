@@ -12,7 +12,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 @Aspect
 @Component
-@Slf4j(topic = "서비스")
+@Slf4j(topic = "Service_Log")
 public class LogAspect {
     @Before("@within(org.springframework.stereotype.Service)")
     public void logBefore(JoinPoint joinPoint) {
