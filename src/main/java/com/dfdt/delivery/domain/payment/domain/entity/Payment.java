@@ -95,6 +95,7 @@ public class Payment {
         this.paidAt = OffsetDateTime.now();
         this.pgProvider = pgProvider;
         this.pgTransactionId = pgTransactionId;
+        ensureUpdateAudit();
         this.updateAudit.touch(updatedBy);
     }
 
@@ -102,6 +103,7 @@ public class Payment {
         this.paymentStatus = PaymentStatus.FAILED;
         this.failedAt = OffsetDateTime.now();
         this.failureReason = failureReason;
+        ensureUpdateAudit();
         this.updateAudit.touch(updatedBy);
     }
 
@@ -109,6 +111,7 @@ public class Payment {
         this.paymentStatus = PaymentStatus.CANCELED;
         this.canceledAt = OffsetDateTime.now();
         this.failureReason = reason;
+        ensureUpdateAudit();
         this.updateAudit.touch(updatedBy);
     }
 
@@ -119,13 +122,21 @@ public class Payment {
     public void hide(String username) {
         this.hiddenAt = OffsetDateTime.now();
         this.hiddenBy = username;
+        ensureUpdateAudit();
         this.updateAudit.touch(username);
     }
 
     public void unhide(String username) {
         this.hiddenAt = null;
         this.hiddenBy = null;
+        ensureUpdateAudit();
         this.updateAudit.touch(username);
+    }
+
+    private void ensureUpdateAudit() {
+        if (this.updateAudit == null) {
+            this.updateAudit = UpdateAudit.empty();
+        }
     }
 
     public boolean isHidden() {
