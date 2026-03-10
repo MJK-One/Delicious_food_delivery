@@ -23,7 +23,7 @@ class CheckAiHealthUseCaseImplTest {
 
     // GeminiProperties는 record(final class)라 Mockito로 mock 불가 → 실제 인스턴스 사용
     private static final GeminiProperties PROPERTIES =
-            new GeminiProperties("test-api-key", "gemini-2.0-flash", "https://test.googleapis.com");
+            new GeminiProperties("test-api-key", "gemini-2.0-flash", "https://test.googleapis.com", "gemini-2.0-flash-exp");
 
     @Mock
     private GeminiClient geminiClient;

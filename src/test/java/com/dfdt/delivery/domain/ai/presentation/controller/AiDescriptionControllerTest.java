@@ -7,10 +7,12 @@ import com.dfdt.delivery.domain.ai.application.dto.AiLogSummaryResult;
 import com.dfdt.delivery.domain.ai.application.dto.ApplyDescriptionResult;
 import com.dfdt.delivery.domain.ai.application.dto.GenerateDescriptionResult;
 import com.dfdt.delivery.domain.ai.application.dto.AiPromptRulesResult;
+import com.dfdt.delivery.domain.ai.application.dto.GenerateImageResult;
 import com.dfdt.delivery.domain.ai.application.dto.RetryDescriptionResult;
 import com.dfdt.delivery.domain.ai.application.usecase.ApplyDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.CheckAiHealthUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GenerateDescriptionUseCase;
+import com.dfdt.delivery.domain.ai.application.usecase.GenerateImageUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GetAiLogDetailUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GetPromptRulesUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.RetryDescriptionUseCase;
@@ -90,6 +92,9 @@ class AiDescriptionControllerTest {
 
     @MockBean
     private RetryDescriptionUseCase retryDescriptionUseCase;
+
+    @MockBean
+    private GenerateImageUseCase generateImageUseCase;
 
     @MockBean
     private com.dfdt.delivery.domain.auth.infrastructure.jwt.JwtProvider jwtProvider;
@@ -861,6 +866,172 @@ class AiDescriptionControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(requestBody)))
                     .andExpect(status().isBadRequest());
+        }
+    }
+
+    // ──────────────────────────────────────────────────
+    // API-AI-301: AI 음식 이미지 생성
+    // ──────────────────────────────────────────────────
+    @Nested
+    @DisplayName("AI 음식 이미지 생성 (API-AI-301)")
+    class GenerateImageTests {
+
+        @Test
+        @DisplayName("OWNER가 유효한 요청을 보내면 201과 이미지 데이터를 반환한다")
+        void ownerShouldReturn201WithImageData() throws Exception {
+            // given
+            UUID aiLogId = UUID.randomUUID();
+            GenerateImageResult mockResult = new GenerateImageResult(
+                    aiLogId, "base64imagedata==", "image/png"
+            );
+            given(generateImageUseCase.execute(any())).willReturn(mockResult);
+
+            Map<String, Object> requestBody = Map.of(
+                    "productName", "황금 바삭치킨",
+                    "prompt", "따뜻한 식당 배경으로 맛있게",
+                    "includeText", false
+            );
+
+            // when & then
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/images/preview", storeId)
+                            .with(user(ownerDetails))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.status").value(201))
+                    .andExpect(jsonPath("$.data.aiLogId").value(aiLogId.toString()))
+                    .andExpect(jsonPath("$.data.imageData").value("base64imagedata=="))
+                    .andExpect(jsonPath("$.data.mimeType").value("image/png"));
+        }
+
+        @Test
+        @DisplayName("MASTER도 201을 반환한다")
+        void masterShouldReturn201() throws Exception {
+            // given
+            given(generateImageUseCase.execute(any())).willReturn(
+                    new GenerateImageResult(UUID.randomUUID(), "data==", "image/png")
+            );
+
+            Map<String, Object> requestBody = Map.of(
+                    "productName", "치킨",
+                    "prompt", "맛있게 보이게",
+                    "includeText", false
+            );
+
+            // when & then
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/images/preview", storeId)
+                            .with(user(masterDetails))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().isCreated());
+        }
+
+        @Test
+        @DisplayName("prompt가 없으면 400을 반환한다")
+        void shouldReturn400WhenPromptMissing() throws Exception {
+            Map<String, Object> requestBody = Map.of(
+                    "productName", "치킨",
+                    "includeText", false
+                    // prompt 없음
+            );
+
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/images/preview", storeId)
+                            .with(user(ownerDetails))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("prompt가 500자를 초과하면 400을 반환한다")
+        void shouldReturn400WhenPromptTooLong() throws Exception {
+            Map<String, Object> requestBody = Map.of(
+                    "productName", "치킨",
+                    "prompt", "a".repeat(501),
+                    "includeText", false
+            );
+
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/images/preview", storeId)
+                            .with(user(ownerDetails))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("CUSTOMER 역할은 403을 반환한다")
+        void customerShouldReturn403() throws Exception {
+            User customer = User.builder()
+                    .username("customer1").name("고객").password("pw").role(UserRole.CUSTOMER).build();
+            CustomUserDetails customerDetails = new CustomUserDetails(customer);
+
+            Map<String, Object> requestBody = Map.of(
+                    "productName", "치킨",
+                    "prompt", "맛있게",
+                    "includeText", false
+            );
+
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/images/preview", storeId)
+                            .with(user(customerDetails))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("aspectRatio와 style을 포함한 요청도 201을 반환한다")
+        void shouldReturn201WithAspectRatioAndStyle() throws Exception {
+            // given
+            given(generateImageUseCase.execute(any())).willReturn(
+                    new GenerateImageResult(UUID.randomUUID(), "data==", "image/png")
+            );
+
+            Map<String, Object> requestBody = Map.of(
+                    "productName", "황금 바삭치킨",
+                    "prompt", "따뜻한 식당 배경으로",
+                    "aspectRatio", "LANDSCAPE",
+                    "style", "수채화",
+                    "includeText", false
+            );
+
+            // when & then
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/images/preview", storeId)
+                            .with(user(ownerDetails))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().isCreated());
+        }
+
+        @Test
+        @DisplayName("style이 50자를 초과하면 400을 반환한다")
+        void shouldReturn400WhenStyleTooLong() throws Exception {
+            Map<String, Object> requestBody = Map.of(
+                    "productName", "치킨",
+                    "prompt", "맛있게",
+                    "style", "a".repeat(51),
+                    "includeText", false
+            );
+
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/images/preview", storeId)
+                            .with(user(ownerDetails))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("인증되지 않은 요청은 4xx를 반환한다")
+        void unauthenticatedShouldReturn4xx() throws Exception {
+            Map<String, Object> requestBody = Map.of(
+                    "productName", "치킨",
+                    "prompt", "맛있게",
+                    "includeText", false
+            );
+
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/images/preview", storeId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().is4xxClientError());
         }
     }
 }

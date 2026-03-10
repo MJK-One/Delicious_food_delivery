@@ -18,10 +18,14 @@ import com.dfdt.delivery.domain.ai.application.usecase.CheckAiHealthUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GenerateDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GetAiLogDetailUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GetPromptRulesUseCase;
+import com.dfdt.delivery.domain.ai.application.dto.GenerateImageCommand;
+import com.dfdt.delivery.domain.ai.application.dto.GenerateImageResult;
+import com.dfdt.delivery.domain.ai.application.usecase.GenerateImageUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.RetryDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.SearchAiLogsUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.SearchProductAiLogsUseCase;
 import com.dfdt.delivery.domain.ai.presentation.dto.request.GenerateDescriptionRequest;
+import com.dfdt.delivery.domain.ai.presentation.dto.request.GenerateImageRequest;
 import com.dfdt.delivery.domain.ai.presentation.dto.request.RetryDescriptionRequest;
 import com.dfdt.delivery.domain.ai.presentation.dto.response.AiHealthResponse;
 import com.dfdt.delivery.domain.ai.presentation.dto.response.AiLogDetailResponse;
@@ -29,6 +33,7 @@ import com.dfdt.delivery.domain.ai.presentation.dto.response.AiLogSummaryRespons
 import com.dfdt.delivery.domain.ai.presentation.dto.response.AiPromptRulesResponse;
 import com.dfdt.delivery.domain.ai.presentation.dto.response.ApplyDescriptionResponse;
 import com.dfdt.delivery.domain.ai.presentation.dto.response.GenerateDescriptionResponse;
+import com.dfdt.delivery.domain.ai.presentation.dto.response.GenerateImageResponse;
 import com.dfdt.delivery.domain.ai.presentation.dto.response.RetryDescriptionResponse;
 import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
 import jakarta.validation.Valid;
@@ -50,6 +55,7 @@ public class AiDescriptionController {
     private final GenerateDescriptionUseCase generateDescriptionUseCase;
     private final ApplyDescriptionUseCase applyDescriptionUseCase;
     private final RetryDescriptionUseCase retryDescriptionUseCase;
+    private final GenerateImageUseCase generateImageUseCase;
     private final SearchAiLogsUseCase searchAiLogsUseCase;
     private final GetAiLogDetailUseCase getAiLogDetailUseCase;
     private final SearchProductAiLogsUseCase searchProductAiLogsUseCase;
@@ -235,6 +241,31 @@ public class AiDescriptionController {
                 HttpStatus.CREATED.value(),
                 "AI 상품 설명이 재생성되었습니다.",
                 RetryDescriptionResponse.from(result)
+        );
+    }
+
+    /**
+     * AI 음식 이미지 생성 (API-AI-301)
+     * POST /api/v1/ai/stores/{storeId}/images/preview
+     *
+     * - OWNER: 본인 가게만 요청 가능 (UseCase에서 소유권 체크)
+     * - MASTER: 모든 가게 요청 가능
+     * - 응답의 imageData는 base64 인코딩된 이미지 데이터
+     */
+    @PostMapping("/stores/{storeId}/images/preview")
+    @PreAuthorize("hasAnyRole('OWNER', 'MASTER')")
+    public ResponseEntity<ApiResponseDto<GenerateImageResponse>> generateImagePreview(
+            @PathVariable UUID storeId,
+            @Valid @RequestBody GenerateImageRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        GenerateImageCommand command = request.toCommand(storeId, userDetails);
+        GenerateImageResult result = generateImageUseCase.execute(command);
+
+        return ApiResponseDto.success(
+                HttpStatus.CREATED.value(),
+                "AI 음식 이미지가 생성되었습니다.",
+                GenerateImageResponse.from(result)
         );
     }
 
