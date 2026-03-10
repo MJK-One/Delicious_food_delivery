@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- 로그 패턴에 색상 적용 -->
+    <conversionRule conversionWord="clr" converterClass="org.springframework.boot.logging.logback.ColorConverter"/>
+    <!-- 로그 설정 프로퍼티 -->
+    <springProperty name="LOG_FILE_NAME" source="log.config.filename"/>
+    <property name="LOG_PATH" value="./logs"/>
+    <!-- 로그 패턴 설정 -->
+    <property name="CONSOLE_LOG_PATTERN"
+              value="[%d{yyyy-MM-dd HH:mm:ss}]  %clr(%-5level) %clr(${PID:-}){magenta} %clr(---){faint} %clr([%15.15thread]){faint} %clr(%-20.20logger{0}){cyan} %clr(:){faint} %msg%n"/>
+    <property name="LOG_PATTERN"
+              value="[%d{yyyy-MM-dd HH:mm:ss}] %-5level %5(${PID:-}) --- [%15.15thread] %-40.40logger{36} : %msg%n"/>
+
+    <!-- 콘솔 로그 설정 -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- 파일 출력 설정 -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/was.log</file>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!-- 롤링된 파일 명명 규칙 -->
+            <fileNamePattern>${LOG_PATH}/%d{yyyy-MM-dd}/${LOG_FILE_NAME}.was.%i.log</fileNamePattern>
+            <!-- 파일당 최대 크기 -->
+            <maxFileSize>10MB</maxFileSize>
+            <!-- 보관 주기 -->
+            <maxHistory>6</maxHistory>
+            <!-- 총 파일 크기 제한 -->
+            <totalSizeCap>500MB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- 슬랙 알람 로그 설정   -->
+    <springProperty scope="context" name="slackUrl" source="notification.slack.webhook-url"/>
+    <appender name="SLACK" class="com.github.maricn.logback.SlackAppender">
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>error</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <webhookUri>${SLACK_API_KEY}</webhookUri>
+        <channel>#server-log</channel> <layout class="ch.qos.logback.classic.PatternLayout">
+        <pattern>${LOG_PATTERN}</pattern>
+    </layout>
+    </appender>
+
+    <!-- 에러 로그 설정 -->
+    <appender name="ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>error</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <file>${LOG_PATH}/error.log</file>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/%d{yyyy-MM-dd}/${LOG_FILE_NAME}.error.%i.log</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>6</maxHistory>
+            <totalSizeCap>200MB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- 프로파일별 로그 설정 -->
+    <springProfile name="local">
+        <root level="info">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="dev">
+        <root level="info">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="SLACK" />
+            <appender-ref ref="ERROR"/>
+        </root>
+
+        <logger name="org.springframework.web" level="debug">
+            <appender-ref ref="FILE"/>
+        </logger>
+    </springProfile>
+
+    <springProfile name="prod">
+        <root level="info">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="SLACK" />
+            <appender-ref ref="ERROR"/>
+        </root>
+
+        <logger name="org.springframework.web" level="debug">
+            <appender-ref ref="FILE"/>
+        </logger>
+    </springProfile>
+
+</configuration>

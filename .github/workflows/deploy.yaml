@@ -72,6 +72,8 @@ jobs:
             export REDIS_HOST=${{ secrets.REDIS_HOST }}
             export SERVER_PORT=${{ secrets.SERVER_PORT }}
             export JWT_SECRET=${{ secrets.JWT_SECRET }}
+            export GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+            export SLACK_API_KEY=${{ secrets.SLACK_API_KEY }}
             
             if [ "${{ github.ref }}" == "refs/heads/develop" ]; then
               COMPOSE_FILE="compose.dev.yaml"
