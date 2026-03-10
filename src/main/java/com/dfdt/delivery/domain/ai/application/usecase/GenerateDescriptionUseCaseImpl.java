@@ -49,7 +49,9 @@ public class GenerateDescriptionUseCaseImpl implements GenerateDescriptionUseCas
                     .orElseThrow(() -> new BusinessException(AiErrorCode.PRODUCT_NOT_FOUND));
 
             // findByProductIdAndStoreId 쿼리는 soft delete 미포함 → 별도 체크
-            if (product.getSoftDeleteAudit().isDeleted()) {
+            // getSoftDeleteAudit()이 null이면 deleted_at/deleted_by 컬럼이 모두 null인
+            // 활성 상품 (JPA @Embedded 특성상 모든 컬럼이 null이면 객체 자체가 null로 반환됨)
+            if (product.getSoftDeleteAudit() != null && product.getSoftDeleteAudit().isDeleted()) {
                 throw new BusinessException(AiErrorCode.PRODUCT_NOT_FOUND);
             }
 

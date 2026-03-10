@@ -7,11 +7,13 @@ import com.dfdt.delivery.domain.ai.application.dto.AiLogSummaryResult;
 import com.dfdt.delivery.domain.ai.application.dto.ApplyDescriptionResult;
 import com.dfdt.delivery.domain.ai.application.dto.GenerateDescriptionResult;
 import com.dfdt.delivery.domain.ai.application.dto.AiPromptRulesResult;
+import com.dfdt.delivery.domain.ai.application.dto.RetryDescriptionResult;
 import com.dfdt.delivery.domain.ai.application.usecase.ApplyDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.CheckAiHealthUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GenerateDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GetAiLogDetailUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GetPromptRulesUseCase;
+import com.dfdt.delivery.domain.ai.application.usecase.RetryDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.SearchAiLogsUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.SearchProductAiLogsUseCase;
 import com.dfdt.delivery.domain.ai.domain.entity.enums.AiRequestType;
@@ -85,6 +87,9 @@ class AiDescriptionControllerTest {
 
     @MockBean
     private GetPromptRulesUseCase getPromptRulesUseCase;
+
+    @MockBean
+    private RetryDescriptionUseCase retryDescriptionUseCase;
 
     @MockBean
     private com.dfdt.delivery.domain.auth.infrastructure.jwt.JwtProvider jwtProvider;
@@ -739,6 +744,123 @@ class AiDescriptionControllerTest {
                             storeId, productId)
                             .with(user(customerDetails)))
                     .andExpect(status().isForbidden());
+        }
+    }
+
+    // ──────────────────────────────────────────────────
+    // API-AI-203: AI 로그 재실행 (재시도)
+    // ──────────────────────────────────────────────────
+    @Nested
+    @DisplayName("AI 로그 재실행 (API-AI-203)")
+    class RetryDescriptionTests {
+
+        private UUID aiLogId;
+        private UUID newAiLogId;
+        private UUID productId;
+
+        @BeforeEach
+        void setUpRetry() {
+            aiLogId = UUID.randomUUID();
+            newAiLogId = UUID.randomUUID();
+            productId = UUID.randomUUID();
+        }
+
+        @Test
+        @DisplayName("OWNER가 요청하면 201과 재실행 결과를 반환한다")
+        void ownerShouldReturn201WithRetryResult() throws Exception {
+            // given
+            RetryDescriptionResult mockResult = new RetryDescriptionResult(
+                    newAiLogId, aiLogId, "재생성된 치킨 설명!", "최종프롬프트"
+            );
+            given(retryDescriptionUseCase.execute(any())).willReturn(mockResult);
+
+            // when & then
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/logs/{aiLogId}/retry",
+                            storeId, aiLogId)
+                            .with(user(ownerDetails))
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.status").value(201))
+                    .andExpect(jsonPath("$.data.aiLogId").value(newAiLogId.toString()))
+                    .andExpect(jsonPath("$.data.sourceAiLogId").value(aiLogId.toString()))
+                    .andExpect(jsonPath("$.data.responseText").value("재생성된 치킨 설명!"));
+        }
+
+        @Test
+        @DisplayName("overrideInputPrompt를 포함한 요청도 201을 반환한다")
+        void shouldReturn201WithOverrideInputPrompt() throws Exception {
+            // given
+            RetryDescriptionResult mockResult = new RetryDescriptionResult(
+                    newAiLogId, aiLogId, "변경된 설명!", "최종프롬프트"
+            );
+            given(retryDescriptionUseCase.execute(any())).willReturn(mockResult);
+
+            Map<String, Object> requestBody = Map.of(
+                    "overrideInputPrompt", "변경된 프롬프트로 재생성해줘"
+            );
+
+            // when & then
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/logs/{aiLogId}/retry",
+                            storeId, aiLogId)
+                            .with(user(ownerDetails))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.data.responseText").value("변경된 설명!"));
+        }
+
+        @Test
+        @DisplayName("MASTER도 201을 반환한다")
+        void masterShouldReturn201() throws Exception {
+            // given
+            given(retryDescriptionUseCase.execute(any())).willReturn(
+                    new RetryDescriptionResult(newAiLogId, aiLogId, "치킨 맛있어요!", "프롬프트")
+            );
+
+            // when & then
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/logs/{aiLogId}/retry",
+                            storeId, aiLogId)
+                            .with(user(masterDetails))
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isCreated());
+        }
+
+        @Test
+        @DisplayName("인증되지 않은 요청은 4xx를 반환한다")
+        void unauthenticatedShouldReturn4xx() throws Exception {
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/logs/{aiLogId}/retry",
+                            storeId, aiLogId)
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().is4xxClientError());
+        }
+
+        @Test
+        @DisplayName("CUSTOMER 역할은 403을 반환한다")
+        void customerShouldReturn403() throws Exception {
+            User customer = User.builder()
+                    .username("customer1").name("고객").password("pw").role(UserRole.CUSTOMER).build();
+            CustomUserDetails customerDetails = new CustomUserDetails(customer);
+
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/logs/{aiLogId}/retry",
+                            storeId, aiLogId)
+                            .with(user(customerDetails))
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("overrideInputPrompt가 300자를 초과하면 400을 반환한다")
+        void shouldReturn400WhenOverrideInputPromptTooLong() throws Exception {
+            Map<String, Object> requestBody = Map.of(
+                    "overrideInputPrompt", "a".repeat(301)
+            );
+
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/logs/{aiLogId}/retry",
+                            storeId, aiLogId)
+                            .with(user(ownerDetails))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().isBadRequest());
         }
     }
 }
