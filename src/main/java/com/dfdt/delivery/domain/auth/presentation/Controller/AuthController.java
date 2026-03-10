@@ -1,4 +1,4 @@
-package com.dfdt.delivery.domain.auth.presentation;
+package com.dfdt.delivery.domain.auth.presentation.Controller;
 
 import com.dfdt.delivery.common.response.ApiResponseDto;
 import com.dfdt.delivery.domain.auth.application.AuthService;
