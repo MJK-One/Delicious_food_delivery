@@ -15,6 +15,7 @@ import com.dfdt.delivery.domain.review.presentation.dto.response.ReviewListResDt
 import com.dfdt.delivery.domain.review.presentation.dto.response.ReviewResDto;
 import com.dfdt.delivery.domain.store.domain.entity.Store;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +32,9 @@ public class ReviewQueryServiceImpl implements ReviewQueryService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "storeReviews",
+            key = "#storeId.toString() + ':' + #request.page + ':' + #request.size + ':' + #request.sort",
+            unless = "#result == null")
     public ReviewListResDto getStoreReviews(UUID storeId, StoreReviewSearchReqDto request) {
 
         request.setSize(reviewValidator.validateAndAdjustSize(request.getSize()));
@@ -61,6 +65,7 @@ public class ReviewQueryServiceImpl implements ReviewQueryService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "reviewDetail", key = "#reviewId.toString()", unless = "#result == null")
     public ReviewResDto getReview(UUID reviewId) {
 
         Review review = reviewDataFinder.findReview(reviewId);

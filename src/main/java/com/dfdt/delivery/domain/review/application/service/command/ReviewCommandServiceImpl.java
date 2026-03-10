@@ -12,6 +12,8 @@ import com.dfdt.delivery.domain.review.presentation.dto.response.ReviewResDto;
 import com.dfdt.delivery.domain.store.domain.entity.Store;
 import com.dfdt.delivery.domain.user.domain.enums.UserRole;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +29,7 @@ public class ReviewCommandServiceImpl implements ReviewCommandService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "storeReviews", allEntries = true)
     public ReviewResDto createReview(String username, ReviewCreateReqDto request) {
 
         // 1. 데이터 조회
@@ -68,6 +71,10 @@ public class ReviewCommandServiceImpl implements ReviewCommandService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "reviewDetail", key = "#reviewId.toString()"),
+            @CacheEvict(value = "storeReviews", allEntries = true)
+    })
     public ReviewResDto updateReview(UUID reviewId, String username, ReviewUpdateReqDto request) {
 
         // 1. 리뷰 조회
@@ -104,6 +111,10 @@ public class ReviewCommandServiceImpl implements ReviewCommandService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "reviewDetail", key = "#reviewId.toString()"),
+            @CacheEvict(value = "storeReviews", allEntries = true)
+    })
     public void deleteReview(UUID reviewId, String username, UserRole role) {
 
         // 1. 리뷰 조회
