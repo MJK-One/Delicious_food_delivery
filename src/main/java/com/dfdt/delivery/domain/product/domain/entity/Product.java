@@ -83,6 +83,12 @@ public class Product {
         this.softDeleteAudit.softDelete(username);
     }
 
+    public void applyAiDescription(String aiDescription, String username) {
+        this.description = aiDescription;
+        this.isAiDescription = true;
+        makeUpdateAudit(username);
+    }
+
     public void soldOut(String username) {
         makeUpdateAudit(username);
         this.isHidden = !this.isHidden;

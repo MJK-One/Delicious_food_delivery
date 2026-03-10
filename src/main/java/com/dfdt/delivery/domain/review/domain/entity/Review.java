@@ -43,6 +43,7 @@ public class Review {
 
     @Builder.Default
     @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("displayOrder ASC")
     private List<ReviewImage> images = new ArrayList<>();
 
     @Embedded
@@ -82,11 +83,14 @@ public class Review {
     }
 
     public void delete(String deletedBy) {
+        if (this.softDeleteAudit == null) {
+            this.softDeleteAudit = SoftDeleteAudit.active();
+        }
         this.softDeleteAudit.softDelete(deletedBy);
     }
 
     public boolean isDeleted() {
-        return this.softDeleteAudit.isDeleted();
+        return this.softDeleteAudit != null && this.softDeleteAudit.isDeleted();
     }
 
     public void addImage(String imageUrl) {
