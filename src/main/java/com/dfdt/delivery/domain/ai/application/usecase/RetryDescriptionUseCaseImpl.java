@@ -16,12 +16,14 @@ import com.dfdt.delivery.domain.store.domain.entity.Store;
 import com.dfdt.delivery.domain.store.domain.repository.StoreRepository;
 import com.dfdt.delivery.domain.user.domain.enums.UserRole;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RetryDescriptionUseCaseImpl implements RetryDescriptionUseCase {
@@ -97,15 +99,18 @@ public class RetryDescriptionUseCaseImpl implements RetryDescriptionUseCase {
         long startMs = System.currentTimeMillis();
         try {
             rawResponse = geminiClient.generate(finalPrompt);
-        } catch (BusinessException e) {
+        } catch (Exception e) {
             int responseTimeMs = (int) (System.currentTimeMillis() - startMs);
+            String errorCode = (e instanceof BusinessException be)
+                    ? be.getErrorCode().getErrorCode()
+                    : AiErrorCode.EXTERNAL_AI_CALL_FAILED.getErrorCode();
             aiLogRepository.save(AiLogEntity.failureProductDescription(
                     command.storeId(),
                     sourceLog.getProductId(),
                     command.requestedBy(),
                     inputPrompt,
                     finalPrompt,
-                    e.getErrorCode().getErrorCode(),
+                    errorCode,
                     e.getMessage(),
                     modelName,
                     responseTimeMs,
@@ -113,7 +118,9 @@ public class RetryDescriptionUseCaseImpl implements RetryDescriptionUseCase {
                     toneSnapshot,
                     keywordsSnapshot
             ));
-            throw e;
+            if (e instanceof BusinessException be) throw be;
+            log.error("[RetryDescriptionUseCase] 예기치 못한 오류 발생: {}", e.getMessage(), e);
+            throw new BusinessException(AiErrorCode.EXTERNAL_AI_CALL_FAILED);
         }
         int responseTimeMs = (int) (System.currentTimeMillis() - startMs);
 

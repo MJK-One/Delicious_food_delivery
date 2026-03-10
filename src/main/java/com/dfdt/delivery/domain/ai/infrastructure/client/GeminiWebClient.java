@@ -86,12 +86,13 @@ public class GeminiWebClient implements GeminiClient {
                 throw new BusinessException(AiErrorCode.EXTERNAL_AI_EMPTY_RESPONSE);
             }
 
-            String text = candidates.get(0)
-                    .path("content")
-                    .path("parts")
-                    .get(0)
-                    .path("text")
-                    .asText(null);
+            JsonNode parts = candidates.get(0).path("content").path("parts");
+            if (parts.isMissingNode() || parts.isEmpty()) {
+                log.warn("[GeminiWebClient] 응답에 parts 배열이 없음");
+                throw new BusinessException(AiErrorCode.EXTERNAL_AI_EMPTY_RESPONSE);
+            }
+
+            String text = parts.get(0).path("text").asText(null);
 
             if (text == null || text.isBlank()) {
                 throw new BusinessException(AiErrorCode.EXTERNAL_AI_EMPTY_RESPONSE);

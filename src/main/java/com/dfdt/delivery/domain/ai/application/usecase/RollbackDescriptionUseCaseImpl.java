@@ -11,9 +11,11 @@ import com.dfdt.delivery.domain.store.domain.entity.Store;
 import com.dfdt.delivery.domain.store.domain.repository.StoreRepository;
 import com.dfdt.delivery.domain.user.domain.enums.UserRole;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RollbackDescriptionUseCaseImpl implements RollbackDescriptionUseCase {
@@ -65,6 +67,9 @@ public class RollbackDescriptionUseCaseImpl implements RollbackDescriptionUseCas
 
         // 8. AiLog에 롤백 기록
         aiLog.rollback(command.requestedBy());
+
+        log.info("[RollbackDescriptionUseCase] 상품 설명 원복 완료 - aiLogId={}, productId={}, requestedBy={}",
+                aiLog.getAiLogId(), aiLog.getProductId(), command.requestedBy());
 
         return new RollbackDescriptionResult(
                 aiLog.getAiLogId(),

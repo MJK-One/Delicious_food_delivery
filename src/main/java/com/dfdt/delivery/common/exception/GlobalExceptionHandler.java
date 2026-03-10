@@ -57,10 +57,17 @@ public class GlobalExceptionHandler {
         return  ErrorResponseDto.fail(CommonErrorCode.METHOD_TYPE_MISMATCH, e.getMessage());
     }
 
+    // IllegalArgumentException — 도메인 객체 내부 방어 검증 실패 (프로그래밍 오류)
+    @ExceptionHandler(IllegalArgumentException.class)
+    protected ResponseEntity<ErrorResponseDto> handleIllegalArgumentException(IllegalArgumentException e) {
+        log.error("잘못된 인자 오류 (프로그래밍 버그 의심) - {}", e.getMessage(), e);
+        return ErrorResponseDto.fail(CommonErrorCode.INTERNAL_SERVER_ERROR, e.getMessage());
+    }
+
     // INTERNAL_SERVER_ERROR (500 에러)
     @ExceptionHandler(Exception.class)
     protected ResponseEntity<ErrorResponseDto> handleException(Exception e) {
-        log.error("내부 서버 오류 - {}", e.getMessage());
+        log.error("내부 서버 오류 - {}", e.getMessage(), e);
         return ErrorResponseDto.fail(CommonErrorCode.INTERNAL_SERVER_ERROR, e.getMessage());
     }
 }

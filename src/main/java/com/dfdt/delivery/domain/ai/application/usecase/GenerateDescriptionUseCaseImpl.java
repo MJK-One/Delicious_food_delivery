@@ -14,9 +14,11 @@ import com.dfdt.delivery.domain.store.domain.entity.Store;
 import com.dfdt.delivery.domain.store.domain.repository.StoreRepository;
 import com.dfdt.delivery.domain.user.domain.enums.UserRole;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class GenerateDescriptionUseCaseImpl implements GenerateDescriptionUseCase {
@@ -70,15 +72,18 @@ public class GenerateDescriptionUseCaseImpl implements GenerateDescriptionUseCas
         long startMs = System.currentTimeMillis();
         try {
             rawResponse = geminiClient.generate(finalPrompt);
-        } catch (BusinessException e) {
+        } catch (Exception e) {
             int responseTimeMs = (int) (System.currentTimeMillis() - startMs);
+            String errorCode = (e instanceof BusinessException be)
+                    ? be.getErrorCode().getErrorCode()
+                    : AiErrorCode.EXTERNAL_AI_CALL_FAILED.getErrorCode();
             aiLogRepository.save(AiLogEntity.failureProductDescription(
                     command.storeId(),
                     command.productId(),
                     command.requestedBy(),
                     command.inputPrompt(),
                     finalPrompt,
-                    e.getErrorCode().getErrorCode(),
+                    errorCode,
                     e.getMessage(),
                     modelName,
                     responseTimeMs,
@@ -86,7 +91,9 @@ public class GenerateDescriptionUseCaseImpl implements GenerateDescriptionUseCas
                     toneSnapshot,
                     keywordsSnapshot
             ));
-            throw e;
+            if (e instanceof BusinessException be) throw be;
+            log.error("[GenerateDescriptionUseCase] 예기치 못한 오류 발생: {}", e.getMessage(), e);
+            throw new BusinessException(AiErrorCode.EXTERNAL_AI_CALL_FAILED);
         }
         int responseTimeMs = (int) (System.currentTimeMillis() - startMs);
 
