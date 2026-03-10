@@ -3,6 +3,7 @@ package com.dfdt.delivery.domain.ai.domain.policy;
 import com.dfdt.delivery.domain.ai.domain.entity.enums.Tone;
 import org.springframework.stereotype.Component;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Component
@@ -10,6 +11,20 @@ public class AiPromptPolicy {
 
     public static final String MANDATORY_SUFFIX = " 답변을 최대한 간결하게 50자 이하로 작성해줘.";
     public static final int MAX_RESPONSE_LENGTH = 50;
+
+    /**
+     * 톤(Tone)과 해당 지시문을 쌍으로 나타내는 도메인 레코드
+     */
+    public record ToneRule(String tone, String instruction) {}
+
+    /**
+     * 사용 가능한 모든 톤 규칙 목록을 반환합니다.
+     */
+    public List<ToneRule> availableToneRules() {
+        return Arrays.stream(Tone.values())
+                .map(t -> new ToneRule(t.name(), toneInstruction(t)))
+                .toList();
+    }
 
     /**
      * 최종 프롬프트를 조립합니다.
