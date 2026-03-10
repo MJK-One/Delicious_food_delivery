@@ -99,9 +99,12 @@ public class RetryDescriptionUseCaseImpl implements RetryDescriptionUseCase {
 
         // 10. Gemini API 호출 — 실패 시 실패 로그 저장 후 예외 rethrow
         String rawResponse;
+        String modelName = geminiClient.getModelName();
+        long startMs = System.currentTimeMillis();
         try {
             rawResponse = geminiClient.generate(finalPrompt);
         } catch (BusinessException e) {
+            int responseTimeMs = (int) (System.currentTimeMillis() - startMs);
             aiLogRepository.save(AiLogEntity.failureProductDescription(
                     command.storeId(),
                     sourceLog.getProductId(),
@@ -110,14 +113,15 @@ public class RetryDescriptionUseCaseImpl implements RetryDescriptionUseCase {
                     finalPrompt,
                     e.getErrorCode().getErrorCode(),
                     e.getMessage(),
-                    null,
-                    null,
+                    modelName,
+                    responseTimeMs,
                     command.sourceAiLogId(),
                     toneSnapshot,
                     keywordsSnapshot
             ));
             throw e;
         }
+        int responseTimeMs = (int) (System.currentTimeMillis() - startMs);
 
         // 11. 응답 후처리 (50자 trim)
         String responseText = aiPromptPolicy.trimResponse(rawResponse);
@@ -130,8 +134,8 @@ public class RetryDescriptionUseCaseImpl implements RetryDescriptionUseCase {
                 inputPrompt,
                 finalPrompt,
                 responseText,
-                null,
-                null,
+                modelName,
+                responseTimeMs,
                 command.sourceAiLogId(),
                 toneSnapshot,
                 keywordsSnapshot

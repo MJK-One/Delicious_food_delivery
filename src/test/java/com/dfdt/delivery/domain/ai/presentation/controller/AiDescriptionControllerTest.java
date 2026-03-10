@@ -4,18 +4,22 @@ import com.dfdt.delivery.common.config.SecurityConfig;
 import com.dfdt.delivery.domain.ai.application.dto.AiHealthResult;
 import com.dfdt.delivery.domain.ai.application.dto.AiLogDetailResult;
 import com.dfdt.delivery.domain.ai.application.dto.AiLogSummaryResult;
+import com.dfdt.delivery.domain.ai.application.dto.AiStatsResult;
 import com.dfdt.delivery.domain.ai.application.dto.ApplyDescriptionResult;
 import com.dfdt.delivery.domain.ai.application.dto.GenerateDescriptionResult;
 import com.dfdt.delivery.domain.ai.application.dto.AiPromptRulesResult;
 import com.dfdt.delivery.domain.ai.application.dto.GenerateImageResult;
 import com.dfdt.delivery.domain.ai.application.dto.RetryDescriptionResult;
+import com.dfdt.delivery.domain.ai.application.dto.RollbackDescriptionResult;
 import com.dfdt.delivery.domain.ai.application.usecase.ApplyDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.CheckAiHealthUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GenerateDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GenerateImageUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GetAiLogDetailUseCase;
+import com.dfdt.delivery.domain.ai.application.usecase.GetAiStatsUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GetPromptRulesUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.RetryDescriptionUseCase;
+import com.dfdt.delivery.domain.ai.application.usecase.RollbackDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.SearchAiLogsUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.SearchProductAiLogsUseCase;
 import com.dfdt.delivery.domain.ai.domain.entity.enums.AiRequestType;
@@ -94,7 +98,13 @@ class AiDescriptionControllerTest {
     private RetryDescriptionUseCase retryDescriptionUseCase;
 
     @MockBean
+    private RollbackDescriptionUseCase rollbackDescriptionUseCase;
+
+    @MockBean
     private GenerateImageUseCase generateImageUseCase;
+
+    @MockBean
+    private GetAiStatsUseCase getAiStatsUseCase;
 
     @MockBean
     private com.dfdt.delivery.domain.auth.infrastructure.jwt.JwtProvider jwtProvider;
@@ -1031,6 +1041,137 @@ class AiDescriptionControllerTest {
             mockMvc.perform(post("/api/v1/ai/stores/{storeId}/images/preview", storeId)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().is4xxClientError());
+        }
+    }
+
+    // ──────────────────────────────────────────────────
+    // API-AI-205: AI 설명 원복
+    // ──────────────────────────────────────────────────
+    @Nested
+    @DisplayName("AI 설명 원복 (API-AI-205)")
+    class RollbackDescriptionTests {
+
+        private UUID aiLogId;
+        private UUID productId;
+
+        @BeforeEach
+        void setUpRollback() {
+            aiLogId = UUID.randomUUID();
+            productId = UUID.randomUUID();
+        }
+
+        @Test
+        @DisplayName("OWNER가 요청하면 200과 원복 결과를 반환한다")
+        void ownerShouldReturn200WithRollbackResult() throws Exception {
+            // given
+            RollbackDescriptionResult mockResult = new RollbackDescriptionResult(
+                    aiLogId, productId, "원래 설명이었던 치킨", OffsetDateTime.now()
+            );
+            given(rollbackDescriptionUseCase.execute(any())).willReturn(mockResult);
+
+            // when & then
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/descriptions/{aiLogId}/rollback",
+                            storeId, aiLogId)
+                            .with(user(ownerDetails)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value(200))
+                    .andExpect(jsonPath("$.data.aiLogId").value(aiLogId.toString()))
+                    .andExpect(jsonPath("$.data.productId").value(productId.toString()))
+                    .andExpect(jsonPath("$.data.restoredDescription").value("원래 설명이었던 치킨"));
+        }
+
+        @Test
+        @DisplayName("MASTER도 200을 반환한다")
+        void masterShouldReturn200() throws Exception {
+            // given
+            given(rollbackDescriptionUseCase.execute(any())).willReturn(
+                    new RollbackDescriptionResult(aiLogId, productId, "이전 설명", OffsetDateTime.now())
+            );
+
+            // when & then
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/descriptions/{aiLogId}/rollback",
+                            storeId, aiLogId)
+                            .with(user(masterDetails)))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("인증되지 않은 요청은 4xx를 반환한다")
+        void unauthenticatedShouldReturn4xx() throws Exception {
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/descriptions/{aiLogId}/rollback",
+                            storeId, aiLogId))
+                    .andExpect(status().is4xxClientError());
+        }
+
+        @Test
+        @DisplayName("CUSTOMER 역할은 403을 반환한다")
+        void customerShouldReturn403() throws Exception {
+            User customer = User.builder()
+                    .username("customer1").name("고객").password("pw").role(UserRole.CUSTOMER).build();
+            CustomUserDetails customerDetails = new CustomUserDetails(customer);
+
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/descriptions/{aiLogId}/rollback",
+                            storeId, aiLogId)
+                            .with(user(customerDetails)))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    // ──────────────────────────────────────────────────
+    // API-AI-204: AI 호출 통계
+    // ──────────────────────────────────────────────────
+    @Nested
+    @DisplayName("AI 호출 통계 (API-AI-204)")
+    class GetAiStatsTests {
+
+        @Test
+        @DisplayName("MASTER가 요청하면 200과 통계를 반환한다")
+        void masterShouldReturn200WithStats() throws Exception {
+            // given
+            AiStatsResult mockResult = new AiStatsResult(storeId, 20L, 18L, 2L, 90.0, 320L, null, null);
+            given(getAiStatsUseCase.execute(any())).willReturn(mockResult);
+
+            // when & then
+            mockMvc.perform(get("/api/v1/ai/stores/{storeId}/stats", storeId)
+                            .with(user(masterDetails)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value(200))
+                    .andExpect(jsonPath("$.data.storeId").value(storeId.toString()))
+                    .andExpect(jsonPath("$.data.totalCount").value(20))
+                    .andExpect(jsonPath("$.data.successCount").value(18))
+                    .andExpect(jsonPath("$.data.failureCount").value(2))
+                    .andExpect(jsonPath("$.data.successRate").value(90.0))
+                    .andExpect(jsonPath("$.data.avgResponseTimeMs").value(320));
+        }
+
+        @Test
+        @DisplayName("조회 결과가 없으면 totalCount=0으로 반환한다")
+        void shouldReturn200WithZeroStats() throws Exception {
+            // given
+            AiStatsResult mockResult = new AiStatsResult(storeId, 0L, 0L, 0L, 0.0, null, null, null);
+            given(getAiStatsUseCase.execute(any())).willReturn(mockResult);
+
+            // when & then
+            mockMvc.perform(get("/api/v1/ai/stores/{storeId}/stats", storeId)
+                            .with(user(masterDetails)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.totalCount").value(0))
+                    .andExpect(jsonPath("$.data.avgResponseTimeMs").doesNotExist());
+        }
+
+        @Test
+        @DisplayName("OWNER 역할은 403을 반환한다")
+        void ownerShouldReturn403() throws Exception {
+            mockMvc.perform(get("/api/v1/ai/stores/{storeId}/stats", storeId)
+                            .with(user(ownerDetails)))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("인증되지 않은 요청은 4xx를 반환한다")
+        void unauthenticatedShouldReturn4xx() throws Exception {
+            mockMvc.perform(get("/api/v1/ai/stores/{storeId}/stats", storeId))
                     .andExpect(status().is4xxClientError());
         }
     }

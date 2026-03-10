@@ -14,4 +14,9 @@ public interface GeminiClient {
      * @throws com.dfdt.delivery.common.exception.BusinessException AI 호출 실패 시
      */
     String generate(String prompt);
+
+    /**
+     * 현재 사용 중인 Gemini 모델명을 반환합니다.
+     */
+    String getModelName();
 }
