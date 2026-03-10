@@ -22,6 +22,9 @@ public interface AuthControllerDocs {
     @Operation(summary = "API-Auth-001 로그인", description = "사용자 아이디와 비밀번호를 받아 인증 토큰을 발급합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "로그인 성공"),
+            @ApiResponse(responseCode = "400", description = "입력 형식 오류", content = @Content(mediaType = "application/json", examples = {
+                    @ExampleObject(name = "입력 형식 오류", value = AuthErrorDocs.INVALID_INPUT_VALUE)
+            })),
             @ApiResponse(responseCode = "401", description = "로그인 실패", content = @Content(mediaType = "application/json", examples = {
                     @ExampleObject(name = "로그인 실패", value = AuthErrorDocs.LOGIN_FAILED)
             }))
