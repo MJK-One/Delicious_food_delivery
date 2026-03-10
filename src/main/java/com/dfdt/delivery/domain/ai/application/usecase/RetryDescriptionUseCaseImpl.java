@@ -81,7 +81,9 @@ public class RetryDescriptionUseCaseImpl implements RetryDescriptionUseCase {
             Product product = productRepository.findByProductIdAndStoreId(
                     sourceLog.getProductId(), command.storeId())
                     .orElseThrow(() -> new BusinessException(AiErrorCode.PRODUCT_NOT_FOUND));
-            if (product.getSoftDeleteAudit().isDeleted()) {
+            // getSoftDeleteAudit()이 null이면 deleted_at/deleted_by 컬럼이 모두 null인
+            // 활성 상품 (JPA @Embedded 특성상 모든 컬럼이 null이면 객체 자체가 null로 반환됨)
+            if (product.getSoftDeleteAudit() != null && product.getSoftDeleteAudit().isDeleted()) {
                 throw new BusinessException(AiErrorCode.PRODUCT_NOT_FOUND);
             }
             productName = product.getName();
