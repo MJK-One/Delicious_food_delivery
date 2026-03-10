@@ -26,6 +26,11 @@ public class GeminiWebClient implements GeminiClient {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
+    public String getModelName() {
+        return properties.model();
+    }
+
+    @Override
     public String generate(String prompt) {
         String url = "/v1beta/models/" + properties.model() + ":generateContent?key=" + properties.apiKey();
 

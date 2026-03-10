@@ -74,9 +74,12 @@ public class GenerateDescriptionUseCaseImpl implements GenerateDescriptionUseCas
 
         // 5. Gemini API 호출 — 실패 시 실패 로그 저장 후 예외 rethrow
         String rawResponse;
+        String modelName = geminiClient.getModelName();
+        long startMs = System.currentTimeMillis();
         try {
             rawResponse = geminiClient.generate(finalPrompt);
         } catch (BusinessException e) {
+            int responseTimeMs = (int) (System.currentTimeMillis() - startMs);
             aiLogRepository.save(AiLogEntity.failureProductDescription(
                     command.storeId(),
                     command.productId(),
@@ -85,14 +88,15 @@ public class GenerateDescriptionUseCaseImpl implements GenerateDescriptionUseCas
                     finalPrompt,
                     e.getErrorCode().getErrorCode(),
                     e.getMessage(),
-                    null,           // modelName: Round 3에서 추가
-                    null,           // responseTimeMs: Round 3에서 추가
+                    modelName,
+                    responseTimeMs,
                     null,           // sourceAiLogId: 재실행 시 사용
                     toneSnapshot,
                     keywordsSnapshot
             ));
             throw e;
         }
+        int responseTimeMs = (int) (System.currentTimeMillis() - startMs);
 
         // 6. 응답 후처리 (50자 trim)
         String responseText = aiPromptPolicy.trimResponse(rawResponse);
@@ -105,8 +109,8 @@ public class GenerateDescriptionUseCaseImpl implements GenerateDescriptionUseCas
                 command.inputPrompt(),
                 finalPrompt,
                 responseText,
-                null,           // modelName: Round 3에서 추가
-                null,           // responseTimeMs: Round 3에서 추가
+                modelName,
+                responseTimeMs,
                 null,           // sourceAiLogId: 재실행 시 사용
                 toneSnapshot,
                 keywordsSnapshot

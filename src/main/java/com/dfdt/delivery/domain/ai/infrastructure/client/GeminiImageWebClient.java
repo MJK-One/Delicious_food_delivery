@@ -33,6 +33,11 @@ public class GeminiImageWebClient implements ImageGenerationClient {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
+    public String getModelName() {
+        return properties.imageModel();
+    }
+
+    @Override
     public GeneratedImageData generate(String prompt, String aspectRatio) {
         String url = "/v1beta/models/" + properties.imageModel() + ":predict?key=" + properties.apiKey();
 

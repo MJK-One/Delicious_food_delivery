@@ -15,4 +15,9 @@ public interface ImageGenerationClient {
      * @throws com.dfdt.delivery.common.exception.BusinessException AI 호출 실패 시
      */
     GeneratedImageData generate(String prompt, String aspectRatio);
+
+    /**
+     * 현재 사용 중인 이미지 생성 모델명을 반환합니다.
+     */
+    String getModelName();
 }

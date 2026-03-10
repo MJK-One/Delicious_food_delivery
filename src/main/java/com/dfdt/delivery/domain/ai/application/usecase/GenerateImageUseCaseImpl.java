@@ -73,9 +73,12 @@ public class GenerateImageUseCaseImpl implements GenerateImageUseCase {
 
         // 8. 이미지 생성 API 호출 — 실패 시 실패 로그 저장 후 예외 rethrow
         GeneratedImageData imageData;
+        String modelName = imageGenerationClient.getModelName();
+        long startMs = System.currentTimeMillis();
         try {
             imageData = imageGenerationClient.generate(finalPrompt, aspectRatio.getRatio());
         } catch (BusinessException e) {
+            int responseTimeMs = (int) (System.currentTimeMillis() - startMs);
             aiLogRepository.save(AiLogEntity.failureFoodImageGeneration(
                     command.storeId(),
                     command.productId(),
@@ -84,14 +87,15 @@ public class GenerateImageUseCaseImpl implements GenerateImageUseCase {
                     finalPrompt,
                     e.getErrorCode().getErrorCode(),
                     e.getMessage(),
-                    null,
-                    null,
+                    modelName,
+                    responseTimeMs,
                     null,
                     null,
                     null
             ));
             throw e;
         }
+        int responseTimeMs = (int) (System.currentTimeMillis() - startMs);
 
         // 9. 성공 로그 저장 (imageData.base64Data를 responseText에 저장)
         AiLogEntity savedLog = aiLogRepository.save(AiLogEntity.successFoodImageGeneration(
@@ -101,8 +105,8 @@ public class GenerateImageUseCaseImpl implements GenerateImageUseCase {
                 command.prompt(),
                 finalPrompt,
                 imageData.base64Data(),
-                null,
-                null,
+                modelName,
+                responseTimeMs,
                 null,
                 null,
                 null

@@ -89,6 +89,12 @@ public class Product {
         makeUpdateAudit(username);
     }
 
+    public void restoreDescription(String previousDescription, String username) {
+        this.description = previousDescription;
+        this.isAiDescription = false;
+        makeUpdateAudit(username);
+    }
+
     public void soldOut(String username) {
         makeUpdateAudit(username);
         this.isHidden = !this.isHidden;
