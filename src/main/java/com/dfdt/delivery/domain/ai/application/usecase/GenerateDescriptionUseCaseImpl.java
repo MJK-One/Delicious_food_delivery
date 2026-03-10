@@ -49,7 +49,9 @@ public class GenerateDescriptionUseCaseImpl implements GenerateDescriptionUseCas
                     .orElseThrow(() -> new BusinessException(AiErrorCode.PRODUCT_NOT_FOUND));
 
             // findByProductIdAndStoreId 쿼리는 soft delete 미포함 → 별도 체크
-            if (product.getSoftDeleteAudit().isDeleted()) {
+            // getSoftDeleteAudit()이 null이면 deleted_at/deleted_by 컬럼이 모두 null인
+            // 활성 상품 (JPA @Embedded 특성상 모든 컬럼이 null이면 객체 자체가 null로 반환됨)
+            if (product.getSoftDeleteAudit() != null && product.getSoftDeleteAudit().isDeleted()) {
                 throw new BusinessException(AiErrorCode.PRODUCT_NOT_FOUND);
             }
 
@@ -72,9 +74,12 @@ public class GenerateDescriptionUseCaseImpl implements GenerateDescriptionUseCas
 
         // 5. Gemini API 호출 — 실패 시 실패 로그 저장 후 예외 rethrow
         String rawResponse;
+        String modelName = geminiClient.getModelName();
+        long startMs = System.currentTimeMillis();
         try {
             rawResponse = geminiClient.generate(finalPrompt);
         } catch (BusinessException e) {
+            int responseTimeMs = (int) (System.currentTimeMillis() - startMs);
             aiLogRepository.save(AiLogEntity.failureProductDescription(
                     command.storeId(),
                     command.productId(),
@@ -83,14 +88,15 @@ public class GenerateDescriptionUseCaseImpl implements GenerateDescriptionUseCas
                     finalPrompt,
                     e.getErrorCode().getErrorCode(),
                     e.getMessage(),
-                    null,           // modelName: Round 3에서 추가
-                    null,           // responseTimeMs: Round 3에서 추가
+                    modelName,
+                    responseTimeMs,
                     null,           // sourceAiLogId: 재실행 시 사용
                     toneSnapshot,
                     keywordsSnapshot
             ));
             throw e;
         }
+        int responseTimeMs = (int) (System.currentTimeMillis() - startMs);
 
         // 6. 응답 후처리 (50자 trim)
         String responseText = aiPromptPolicy.trimResponse(rawResponse);
@@ -103,8 +109,8 @@ public class GenerateDescriptionUseCaseImpl implements GenerateDescriptionUseCas
                 command.inputPrompt(),
                 finalPrompt,
                 responseText,
-                null,           // modelName: Round 3에서 추가
-                null,           // responseTimeMs: Round 3에서 추가
+                modelName,
+                responseTimeMs,
                 null,           // sourceAiLogId: 재실행 시 사용
                 toneSnapshot,
                 keywordsSnapshot

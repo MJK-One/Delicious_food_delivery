@@ -187,24 +187,29 @@ public class ReviewCustomRepositoryImpl implements ReviewCustomRepository {
     }
 
     private OrderSpecifier<?> getOrderSpecifier(QReview review, String sort) {
-        if (!StringUtils.hasText(sort)) {
-            return review.createAudit.createdAt.desc();
+        Order direction = Order.DESC;
+        String property = "createdAt";
+
+        if (StringUtils.hasText(sort)) {
+            String[] parts = sort.split(",");
+            property = parts[0];
+            if (parts.length > 1 && parts[1].equalsIgnoreCase("asc")) {
+                direction = Order.ASC;
+            }
         }
-
-        String[] parts = sort.split(",");
-        String property = parts[0];
-        Order order = (parts.length > 1 && parts[1].equalsIgnoreCase("asc")) ? Order.ASC : Order.DESC;
-
-        PathBuilder<Review> pathBuilder = new PathBuilder<>(Review.class, "review");
 
         if (property.equals("createdAt")) {
-            return order == Order.ASC ? review.createAudit.createdAt.asc() : review.createAudit.createdAt.desc();
+            return direction == Order.ASC ? review.createAudit.createdAt.asc() : review.createAudit.createdAt.desc();
         }
         if (property.equals("updatedAt")) {
-            return order == Order.ASC ? review.updateAudit.updatedAt.asc() : review.updateAudit.updatedAt.desc();
+            return direction == Order.ASC ? review.updateAudit.updatedAt.asc() : review.updateAudit.updatedAt.desc();
+        }
+        if (property.equals("rating")) {
+            return direction == Order.ASC ? review.rating.asc() : review.rating.desc();
         }
 
-        return new OrderSpecifier(order, pathBuilder.get(property));
+        // 알 수 없는 필드일 경우 기본값 반환
+        return review.createAudit.createdAt.desc();
     }
 
     private OffsetDateTime toOffsetDateTime(LocalDateTime localDateTime) {

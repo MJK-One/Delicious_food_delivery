@@ -6,25 +6,45 @@ import com.dfdt.delivery.domain.ai.application.dto.AiLogDetailResult;
 import com.dfdt.delivery.domain.ai.application.dto.AiLogSummaryResult;
 import com.dfdt.delivery.domain.ai.application.dto.ApplyDescriptionCommand;
 import com.dfdt.delivery.domain.ai.application.dto.ApplyDescriptionResult;
+import com.dfdt.delivery.domain.ai.application.dto.AiStatsQuery;
+import com.dfdt.delivery.domain.ai.application.dto.AiStatsResult;
 import com.dfdt.delivery.domain.ai.application.dto.GenerateDescriptionCommand;
 import com.dfdt.delivery.domain.ai.application.dto.GenerateDescriptionResult;
 import com.dfdt.delivery.domain.ai.application.dto.GetAiLogDetailQuery;
+import com.dfdt.delivery.domain.ai.application.dto.RetryDescriptionCommand;
+import com.dfdt.delivery.domain.ai.application.dto.RetryDescriptionResult;
+import com.dfdt.delivery.domain.ai.application.dto.RollbackDescriptionCommand;
+import com.dfdt.delivery.domain.ai.application.dto.RollbackDescriptionResult;
 import com.dfdt.delivery.domain.ai.application.dto.SearchAiLogsQuery;
 import com.dfdt.delivery.domain.ai.application.dto.SearchProductAiLogsQuery;
 import com.dfdt.delivery.domain.ai.application.usecase.ApplyDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.CheckAiHealthUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GenerateDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GetAiLogDetailUseCase;
+import com.dfdt.delivery.domain.ai.application.usecase.GetAiStatsUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GetPromptRulesUseCase;
+import com.dfdt.delivery.domain.ai.application.dto.GenerateImageCommand;
+import com.dfdt.delivery.domain.ai.application.dto.GenerateImageResult;
+import com.dfdt.delivery.domain.ai.application.usecase.GenerateImageUseCase;
+import com.dfdt.delivery.domain.ai.application.usecase.RetryDescriptionUseCase;
+import com.dfdt.delivery.domain.ai.application.usecase.RollbackDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.SearchAiLogsUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.SearchProductAiLogsUseCase;
+import com.dfdt.delivery.domain.ai.domain.entity.enums.AiRequestType;
 import com.dfdt.delivery.domain.ai.presentation.dto.request.GenerateDescriptionRequest;
+import com.dfdt.delivery.domain.ai.presentation.dto.request.GenerateImageRequest;
+import com.dfdt.delivery.domain.ai.presentation.dto.request.RetryDescriptionRequest;
 import com.dfdt.delivery.domain.ai.presentation.dto.response.AiHealthResponse;
 import com.dfdt.delivery.domain.ai.presentation.dto.response.AiLogDetailResponse;
 import com.dfdt.delivery.domain.ai.presentation.dto.response.AiLogSummaryResponse;
 import com.dfdt.delivery.domain.ai.presentation.dto.response.AiPromptRulesResponse;
+import com.dfdt.delivery.domain.ai.presentation.dto.response.AiStatsResponse;
 import com.dfdt.delivery.domain.ai.presentation.dto.response.ApplyDescriptionResponse;
 import com.dfdt.delivery.domain.ai.presentation.dto.response.GenerateDescriptionResponse;
+import com.dfdt.delivery.domain.ai.presentation.dto.response.GenerateImageResponse;
+import com.dfdt.delivery.domain.ai.presentation.dto.response.RetryDescriptionResponse;
+import com.dfdt.delivery.domain.ai.presentation.dto.response.RollbackDescriptionResponse;
+import org.springframework.format.annotation.DateTimeFormat;
 import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +55,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @RestController
@@ -44,11 +65,15 @@ public class AiDescriptionController {
 
     private final GenerateDescriptionUseCase generateDescriptionUseCase;
     private final ApplyDescriptionUseCase applyDescriptionUseCase;
+    private final RetryDescriptionUseCase retryDescriptionUseCase;
+    private final RollbackDescriptionUseCase rollbackDescriptionUseCase;
+    private final GenerateImageUseCase generateImageUseCase;
     private final SearchAiLogsUseCase searchAiLogsUseCase;
     private final GetAiLogDetailUseCase getAiLogDetailUseCase;
     private final SearchProductAiLogsUseCase searchProductAiLogsUseCase;
     private final CheckAiHealthUseCase checkAiHealthUseCase;
     private final GetPromptRulesUseCase getPromptRulesUseCase;
+    private final GetAiStatsUseCase getAiStatsUseCase;
 
     /**
      * AI 연동 상태 확인 (API-AI-201)
@@ -202,6 +227,62 @@ public class AiDescriptionController {
     }
 
     /**
+     * AI 로그 재실행 (재시도) (API-AI-203)
+     * POST /api/v1/ai/stores/{storeId}/logs/{aiLogId}/retry
+     *
+     * - OWNER: 본인 가게만 요청 가능 (UseCase에서 소유권 체크)
+     * - MASTER: 모든 가게 요청 가능
+     * - 원본 AI 로그의 파라미터(tone, keywords, inputPrompt)를 재사용하되,
+     *   overrideInputPrompt가 있으면 inputPrompt 대신 사용
+     * - PRODUCT_DESCRIPTION 타입만 지원
+     */
+    @PostMapping("/stores/{storeId}/logs/{aiLogId}/retry")
+    @PreAuthorize("hasAnyRole('OWNER', 'MASTER')")
+    public ResponseEntity<ApiResponseDto<RetryDescriptionResponse>> retryDescription(
+            @PathVariable UUID storeId,
+            @PathVariable UUID aiLogId,
+            @Valid @RequestBody(required = false) RetryDescriptionRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        String overrideInputPrompt = (request != null) ? request.overrideInputPrompt() : null;
+        RetryDescriptionCommand command = new RetryDescriptionCommand(
+                storeId, aiLogId, userDetails.getUsername(), userDetails.getRole(), overrideInputPrompt
+        );
+        RetryDescriptionResult result = retryDescriptionUseCase.execute(command);
+
+        return ApiResponseDto.success(
+                HttpStatus.CREATED.value(),
+                "AI 상품 설명이 재생성되었습니다.",
+                RetryDescriptionResponse.from(result)
+        );
+    }
+
+    /**
+     * AI 음식 이미지 생성 (API-AI-301)
+     * POST /api/v1/ai/stores/{storeId}/images/preview
+     *
+     * - OWNER: 본인 가게만 요청 가능 (UseCase에서 소유권 체크)
+     * - MASTER: 모든 가게 요청 가능
+     * - 응답의 imageData는 base64 인코딩된 이미지 데이터
+     */
+    @PostMapping("/stores/{storeId}/images/preview")
+    @PreAuthorize("hasAnyRole('OWNER', 'MASTER')")
+    public ResponseEntity<ApiResponseDto<GenerateImageResponse>> generateImagePreview(
+            @PathVariable UUID storeId,
+            @Valid @RequestBody GenerateImageRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        GenerateImageCommand command = request.toCommand(storeId, userDetails);
+        GenerateImageResult result = generateImageUseCase.execute(command);
+
+        return ApiResponseDto.success(
+                HttpStatus.CREATED.value(),
+                "AI 음식 이미지가 생성되었습니다.",
+                GenerateImageResponse.from(result)
+        );
+    }
+
+    /**
      * AI 생성 상품 설명 적용 (API-AI-002)
      * PATCH /api/v1/ai/stores/{storeId}/descriptions/{aiLogId}/apply
      *
@@ -224,6 +305,59 @@ public class AiDescriptionController {
                 HttpStatus.OK.value(),
                 "AI 상품 설명이 적용되었습니다.",
                 ApplyDescriptionResponse.from(result)
+        );
+    }
+
+    /**
+     * AI 설명 원복 (API-AI-205)
+     * POST /api/v1/ai/stores/{storeId}/descriptions/{aiLogId}/rollback
+     *
+     * - OWNER: 본인 가게만 원복 가능 (UseCase에서 소유권 체크)
+     * - MASTER: 모든 가게 원복 가능
+     * - apply 완료된 로그의 previousDescription으로 상품 설명을 복원합니다.
+     */
+    @PostMapping("/stores/{storeId}/descriptions/{aiLogId}/rollback")
+    @PreAuthorize("hasAnyRole('OWNER', 'MASTER')")
+    public ResponseEntity<ApiResponseDto<RollbackDescriptionResponse>> rollbackDescription(
+            @PathVariable UUID storeId,
+            @PathVariable UUID aiLogId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        RollbackDescriptionCommand command = new RollbackDescriptionCommand(
+                storeId, aiLogId, userDetails.getUsername(), userDetails.getRole()
+        );
+        RollbackDescriptionResult result = rollbackDescriptionUseCase.execute(command);
+
+        return ApiResponseDto.success(
+                HttpStatus.OK.value(),
+                "AI 상품 설명이 원복되었습니다.",
+                RollbackDescriptionResponse.from(result)
+        );
+    }
+
+    /**
+     * 가게별/기간별 AI 호출 통계 (API-AI-204)
+     * GET /api/v1/ai/stores/{storeId}/stats
+     *
+     * - MASTER 전용
+     * - fromDateTime/toDateTime 생략 시 전체 기간 통계
+     * - 기간 범위는 최대 90일
+     */
+    @GetMapping("/stores/{storeId}/stats")
+    @PreAuthorize("hasRole('MASTER')")
+    public ResponseEntity<ApiResponseDto<AiStatsResponse>> getAiStats(
+            @PathVariable UUID storeId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime fromDateTime,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime toDateTime,
+            @RequestParam(required = false) AiRequestType requestType
+    ) {
+        AiStatsQuery query = new AiStatsQuery(storeId, fromDateTime, toDateTime, requestType);
+        AiStatsResult result = getAiStatsUseCase.execute(query);
+
+        return ApiResponseDto.success(
+                HttpStatus.OK.value(),
+                "AI 호출 통계를 조회했습니다.",
+                AiStatsResponse.from(result)
         );
     }
 }

@@ -40,23 +40,35 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # compose.yaml → EC2 복사
-      - name: Copy compose.yaml to EC2
+      # compose.prod.yaml → EC2 복사
+      - name: Copy compose.prod.yaml to EC2
+        if: github.ref == 'refs/heads/develop'
         uses: appleboy/scp-action@v0.1.3
         with:
-          host: ${{ secrets.HOST }}
+          host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.KEY }}
-          source: "compose.dev.yaml"
+          key: ${{ secrets.PROD_KEY }}
+          source: "compose.prod.yaml"
           target: "/home/${{ secrets.USERNAME }}"
 
-      # EC2 Docker에서 이미지 pull 및 컨테이너 실행
+      # compose.dev.yaml → EC2 복사
+      - name: Copy compose.dev.yaml to EC2
+        if: github.ref == 'refs/heads/develop'
+        uses: appleboy/scp-action@v0.1.3
+        with:
+            host: ${{ secrets.PROD_HOST }}
+            username: ${{ secrets.USERNAME }}
+            key: ${{ secrets.PROD_KEY }}
+            source: "compose.dev.yaml"
+            target: "/home/${{ secrets.USERNAME }}"
+
+      # EC2 PROD server
       - name: SSH Remote Commands
         uses: appleboy/ssh-action@v0.1.7
         with:
-          host: ${{ secrets.HOST }}
+          host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.KEY }}
+          key: ${{ secrets.PROD_KEY }}
           script: |
             cd /home/${{ secrets.USERNAME }}
             
@@ -75,15 +87,37 @@ jobs:
             export GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
             export SLACK_API_KEY=${{ secrets.SLACK_API_KEY }}
             
-            if [ "${{ github.ref }}" == "refs/heads/develop" ]; then
-              COMPOSE_FILE="compose.dev.yaml"
-            else
-              COMPOSE_FILE="compose.prod.yaml"
-            fi
-            
-            # 기존 컨테이너 종료 후 새 이미지 반영
-            docker-compose -f ${COMPOSE_FILE} down || true
-            docker-compose -f ${COMPOSE_FILE} pull
-            docker-compose -f ${COMPOSE_FILE} up -d
-            
-            docker image prune -f
+            docker-compose -f compose.prod.yaml down || true
+            docker-compose -f compose.prod.yaml pull
+            docker-compose -f compose.prod.yaml up -d
+            docker image prune -f            
+
+      # EC2 Dev server
+      - name: SSH Remote Commands
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          script: |
+              cd /home/${{ secrets.USERNAME }}
+                    
+              export POSTGRESQL_IMAGE=${{ secrets.POSTGRESQL_IMAGE }}
+              export REDIS_IMAGE=${{ secrets.REDIS_IMAGE }}
+              export SERVER_IMAGE=${{ secrets.SERVER_IMAGE }}
+              export DB=${{ secrets.DB }}
+              export POSTGRESQL_PORT=${{ secrets.POSTGRESQL_PORT }}
+              export DB_USER=${{ secrets.DB_USER }}
+              export DB_PW=${{ secrets.DB_PW }}
+              export DB_URL=${{ secrets.DB_URL }}
+              export REDIS_PORT=${{ secrets.REDIS_PORT }}
+              export REDIS_HOST=${{ secrets.REDIS_HOST }}
+              export SERVER_PORT=${{ secrets.SERVER_PORT }}
+              export JWT_SECRET=${{ secrets.JWT_SECRET }}
+              export GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+              export SLACK_API_KEY=${{ secrets.SLACK_API_KEY }}
+                    
+              docker-compose -f compose.dev.yaml down || true
+              docker-compose -f compose.dev.yaml pull
+              docker-compose -f compose.dev.yaml up -d  
+              docker image prune -f

@@ -1,14 +1,14 @@
 package com.dfdt.delivery.domain.ai.infrastructure.client;
 
 import com.dfdt.delivery.common.exception.BusinessException;
-import com.dfdt.delivery.domain.ai.domain.client.GeminiClient;
+import com.dfdt.delivery.domain.ai.domain.client.GeneratedImageData;
+import com.dfdt.delivery.domain.ai.domain.client.ImageGenerationClient;
 import com.dfdt.delivery.domain.ai.domain.enums.AiErrorCode;
 import com.dfdt.delivery.domain.ai.infrastructure.config.GeminiProperties;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -16,10 +16,17 @@ import org.springframework.web.client.RestClient;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Imagen 4 Fast API를 사용한 이미지 생성 클라이언트.
+ *
+ * Google AI Imagen API의 :predict 엔드포인트를 사용합니다.
+ * 요청: instances[0].prompt + parameters.aspectRatio
+ * 응답: predictions[0].bytesBase64Encoded + predictions[0].mimeType
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class GeminiWebClient implements GeminiClient {
+public class GeminiImageWebClient implements ImageGenerationClient {
 
     private final RestClient restClient;
     private final GeminiProperties properties;
@@ -27,19 +34,21 @@ public class GeminiWebClient implements GeminiClient {
 
     @Override
     public String getModelName() {
-        return properties.model();
+        return properties.imageModel();
     }
 
     @Override
-    public String generate(String prompt) {
-        String url = "/v1beta/models/" + properties.model() + ":generateContent?key=" + properties.apiKey();
+    public GeneratedImageData generate(String prompt, String aspectRatio) {
+        String url = "/v1beta/models/" + properties.imageModel() + ":predict?key=" + properties.apiKey();
 
-        // Gemini API 요청 바디: {"contents": [{"parts": [{"text": "..."}]}]}
+        // Imagen API 요청 형식: instances + parameters
         Map<String, Object> requestBody = Map.of(
-                "contents", List.of(
-                        Map.of("parts", List.of(
-                                Map.of("text", prompt)
-                        ))
+                "instances", List.of(
+                        Map.of("prompt", prompt)
+                ),
+                "parameters", Map.of(
+                        "sampleCount", 1,
+                        "aspectRatio", aspectRatio
                 )
         );
 
@@ -49,11 +58,11 @@ public class GeminiWebClient implements GeminiClient {
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
-            log.error("[GeminiWebClient] API 호출 실패: {}", e.getMessage(), e);
+            log.error("[GeminiImageWebClient] Imagen API 호출 실패: {}", e.getMessage(), e);
             throw new BusinessException(AiErrorCode.EXTERNAL_AI_CALL_FAILED);
         }
 
-        return parseText(responseJson);
+        return parseImage(responseJson);
     }
 
     /**
@@ -70,39 +79,36 @@ public class GeminiWebClient implements GeminiClient {
     }
 
     /**
-     * Gemini API JSON 응답에서 텍스트를 추출합니다.
-     * 응답 구조: candidates[0].content.parts[0].text
+     * Imagen API 응답 JSON에서 base64 이미지 데이터를 추출합니다.
+     * 응답 구조: predictions[0].bytesBase64Encoded + predictions[0].mimeType
      */
-    String parseText(String responseJson) {
+    GeneratedImageData parseImage(String responseJson) {
         if (responseJson == null || responseJson.isBlank()) {
             throw new BusinessException(AiErrorCode.EXTERNAL_AI_EMPTY_RESPONSE);
         }
 
         try {
             JsonNode root = objectMapper.readTree(responseJson);
-            JsonNode candidates = root.path("candidates");
+            JsonNode predictions = root.path("predictions");
 
-            if (candidates.isMissingNode() || candidates.isEmpty()) {
+            if (predictions.isMissingNode() || predictions.isEmpty()) {
                 throw new BusinessException(AiErrorCode.EXTERNAL_AI_EMPTY_RESPONSE);
             }
 
-            String text = candidates.get(0)
-                    .path("content")
-                    .path("parts")
-                    .get(0)
-                    .path("text")
-                    .asText(null);
+            JsonNode prediction = predictions.get(0);
+            String base64Data = prediction.path("bytesBase64Encoded").asText(null);
+            String mimeType = prediction.path("mimeType").asText(null);
 
-            if (text == null || text.isBlank()) {
+            if (base64Data == null || base64Data.isBlank()) {
                 throw new BusinessException(AiErrorCode.EXTERNAL_AI_EMPTY_RESPONSE);
             }
 
-            return text;
+            return new GeneratedImageData(base64Data, mimeType != null ? mimeType : "image/jpeg");
 
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
-            log.error("[GeminiWebClient] 응답 파싱 실패: {}", e.getMessage(), e);
+            log.error("[GeminiImageWebClient] Imagen 응답 파싱 실패: {}", e.getMessage(), e);
             throw new BusinessException(AiErrorCode.EXTERNAL_AI_CALL_FAILED);
         }
     }

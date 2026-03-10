@@ -49,6 +49,8 @@ public enum AiErrorCode implements ErrorCode {
     STORE_PRODUCT_MISMATCH(409, "AI-4092", "storeId와 productId가 일치하지 않습니다."),
     PRODUCT_ID_REQUIRED_FOR_APPLY(409, "AI-4093", "productId가 없는 미리보기 로그는 적용할 수 없습니다."),
     RETRY_NOT_SUPPORTED_TYPE(409, "AI-4094", "해당 requestType은 재실행을 지원하지 않습니다."),
+    NOT_YET_APPLIED(409, "AI-4095", "적용되지 않은 AI 로그는 원복할 수 없습니다."),
+    ALREADY_ROLLED_BACK(409, "AI-4096", "이미 원복된 AI 로그입니다."),
 
     // 429 TOO MANY REQUESTS
     RATE_LIMIT_EXCEEDED(429, "AI-4291", "요청 횟수 한도를 초과했습니다. 잠시 후 다시 시도해 주세요."),

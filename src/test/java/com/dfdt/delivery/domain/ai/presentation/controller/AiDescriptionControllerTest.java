@@ -4,14 +4,22 @@ import com.dfdt.delivery.common.config.SecurityConfig;
 import com.dfdt.delivery.domain.ai.application.dto.AiHealthResult;
 import com.dfdt.delivery.domain.ai.application.dto.AiLogDetailResult;
 import com.dfdt.delivery.domain.ai.application.dto.AiLogSummaryResult;
+import com.dfdt.delivery.domain.ai.application.dto.AiStatsResult;
 import com.dfdt.delivery.domain.ai.application.dto.ApplyDescriptionResult;
 import com.dfdt.delivery.domain.ai.application.dto.GenerateDescriptionResult;
 import com.dfdt.delivery.domain.ai.application.dto.AiPromptRulesResult;
+import com.dfdt.delivery.domain.ai.application.dto.GenerateImageResult;
+import com.dfdt.delivery.domain.ai.application.dto.RetryDescriptionResult;
+import com.dfdt.delivery.domain.ai.application.dto.RollbackDescriptionResult;
 import com.dfdt.delivery.domain.ai.application.usecase.ApplyDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.CheckAiHealthUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GenerateDescriptionUseCase;
+import com.dfdt.delivery.domain.ai.application.usecase.GenerateImageUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GetAiLogDetailUseCase;
+import com.dfdt.delivery.domain.ai.application.usecase.GetAiStatsUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GetPromptRulesUseCase;
+import com.dfdt.delivery.domain.ai.application.usecase.RetryDescriptionUseCase;
+import com.dfdt.delivery.domain.ai.application.usecase.RollbackDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.SearchAiLogsUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.SearchProductAiLogsUseCase;
 import com.dfdt.delivery.domain.ai.domain.entity.enums.AiRequestType;
@@ -85,6 +93,18 @@ class AiDescriptionControllerTest {
 
     @MockBean
     private GetPromptRulesUseCase getPromptRulesUseCase;
+
+    @MockBean
+    private RetryDescriptionUseCase retryDescriptionUseCase;
+
+    @MockBean
+    private RollbackDescriptionUseCase rollbackDescriptionUseCase;
+
+    @MockBean
+    private GenerateImageUseCase generateImageUseCase;
+
+    @MockBean
+    private GetAiStatsUseCase getAiStatsUseCase;
 
     @MockBean
     private com.dfdt.delivery.domain.auth.infrastructure.jwt.JwtProvider jwtProvider;
@@ -739,6 +759,420 @@ class AiDescriptionControllerTest {
                             storeId, productId)
                             .with(user(customerDetails)))
                     .andExpect(status().isForbidden());
+        }
+    }
+
+    // ──────────────────────────────────────────────────
+    // API-AI-203: AI 로그 재실행 (재시도)
+    // ──────────────────────────────────────────────────
+    @Nested
+    @DisplayName("AI 로그 재실행 (API-AI-203)")
+    class RetryDescriptionTests {
+
+        private UUID aiLogId;
+        private UUID newAiLogId;
+        private UUID productId;
+
+        @BeforeEach
+        void setUpRetry() {
+            aiLogId = UUID.randomUUID();
+            newAiLogId = UUID.randomUUID();
+            productId = UUID.randomUUID();
+        }
+
+        @Test
+        @DisplayName("OWNER가 요청하면 201과 재실행 결과를 반환한다")
+        void ownerShouldReturn201WithRetryResult() throws Exception {
+            // given
+            RetryDescriptionResult mockResult = new RetryDescriptionResult(
+                    newAiLogId, aiLogId, "재생성된 치킨 설명!", "최종프롬프트"
+            );
+            given(retryDescriptionUseCase.execute(any())).willReturn(mockResult);
+
+            // when & then
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/logs/{aiLogId}/retry",
+                            storeId, aiLogId)
+                            .with(user(ownerDetails))
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.status").value(201))
+                    .andExpect(jsonPath("$.data.aiLogId").value(newAiLogId.toString()))
+                    .andExpect(jsonPath("$.data.sourceAiLogId").value(aiLogId.toString()))
+                    .andExpect(jsonPath("$.data.responseText").value("재생성된 치킨 설명!"));
+        }
+
+        @Test
+        @DisplayName("overrideInputPrompt를 포함한 요청도 201을 반환한다")
+        void shouldReturn201WithOverrideInputPrompt() throws Exception {
+            // given
+            RetryDescriptionResult mockResult = new RetryDescriptionResult(
+                    newAiLogId, aiLogId, "변경된 설명!", "최종프롬프트"
+            );
+            given(retryDescriptionUseCase.execute(any())).willReturn(mockResult);
+
+            Map<String, Object> requestBody = Map.of(
+                    "overrideInputPrompt", "변경된 프롬프트로 재생성해줘"
+            );
+
+            // when & then
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/logs/{aiLogId}/retry",
+                            storeId, aiLogId)
+                            .with(user(ownerDetails))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.data.responseText").value("변경된 설명!"));
+        }
+
+        @Test
+        @DisplayName("MASTER도 201을 반환한다")
+        void masterShouldReturn201() throws Exception {
+            // given
+            given(retryDescriptionUseCase.execute(any())).willReturn(
+                    new RetryDescriptionResult(newAiLogId, aiLogId, "치킨 맛있어요!", "프롬프트")
+            );
+
+            // when & then
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/logs/{aiLogId}/retry",
+                            storeId, aiLogId)
+                            .with(user(masterDetails))
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isCreated());
+        }
+
+        @Test
+        @DisplayName("인증되지 않은 요청은 4xx를 반환한다")
+        void unauthenticatedShouldReturn4xx() throws Exception {
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/logs/{aiLogId}/retry",
+                            storeId, aiLogId)
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().is4xxClientError());
+        }
+
+        @Test
+        @DisplayName("CUSTOMER 역할은 403을 반환한다")
+        void customerShouldReturn403() throws Exception {
+            User customer = User.builder()
+                    .username("customer1").name("고객").password("pw").role(UserRole.CUSTOMER).build();
+            CustomUserDetails customerDetails = new CustomUserDetails(customer);
+
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/logs/{aiLogId}/retry",
+                            storeId, aiLogId)
+                            .with(user(customerDetails))
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("overrideInputPrompt가 300자를 초과하면 400을 반환한다")
+        void shouldReturn400WhenOverrideInputPromptTooLong() throws Exception {
+            Map<String, Object> requestBody = Map.of(
+                    "overrideInputPrompt", "a".repeat(301)
+            );
+
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/logs/{aiLogId}/retry",
+                            storeId, aiLogId)
+                            .with(user(ownerDetails))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().isBadRequest());
+        }
+    }
+
+    // ──────────────────────────────────────────────────
+    // API-AI-301: AI 음식 이미지 생성
+    // ──────────────────────────────────────────────────
+    @Nested
+    @DisplayName("AI 음식 이미지 생성 (API-AI-301)")
+    class GenerateImageTests {
+
+        @Test
+        @DisplayName("OWNER가 유효한 요청을 보내면 201과 이미지 데이터를 반환한다")
+        void ownerShouldReturn201WithImageData() throws Exception {
+            // given
+            UUID aiLogId = UUID.randomUUID();
+            GenerateImageResult mockResult = new GenerateImageResult(
+                    aiLogId, "base64imagedata==", "image/png"
+            );
+            given(generateImageUseCase.execute(any())).willReturn(mockResult);
+
+            Map<String, Object> requestBody = Map.of(
+                    "productName", "황금 바삭치킨",
+                    "prompt", "따뜻한 식당 배경으로 맛있게",
+                    "includeText", false
+            );
+
+            // when & then
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/images/preview", storeId)
+                            .with(user(ownerDetails))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.status").value(201))
+                    .andExpect(jsonPath("$.data.aiLogId").value(aiLogId.toString()))
+                    .andExpect(jsonPath("$.data.imageData").value("base64imagedata=="))
+                    .andExpect(jsonPath("$.data.mimeType").value("image/png"));
+        }
+
+        @Test
+        @DisplayName("MASTER도 201을 반환한다")
+        void masterShouldReturn201() throws Exception {
+            // given
+            given(generateImageUseCase.execute(any())).willReturn(
+                    new GenerateImageResult(UUID.randomUUID(), "data==", "image/png")
+            );
+
+            Map<String, Object> requestBody = Map.of(
+                    "productName", "치킨",
+                    "prompt", "맛있게 보이게",
+                    "includeText", false
+            );
+
+            // when & then
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/images/preview", storeId)
+                            .with(user(masterDetails))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().isCreated());
+        }
+
+        @Test
+        @DisplayName("prompt가 없으면 400을 반환한다")
+        void shouldReturn400WhenPromptMissing() throws Exception {
+            Map<String, Object> requestBody = Map.of(
+                    "productName", "치킨",
+                    "includeText", false
+                    // prompt 없음
+            );
+
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/images/preview", storeId)
+                            .with(user(ownerDetails))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("prompt가 500자를 초과하면 400을 반환한다")
+        void shouldReturn400WhenPromptTooLong() throws Exception {
+            Map<String, Object> requestBody = Map.of(
+                    "productName", "치킨",
+                    "prompt", "a".repeat(501),
+                    "includeText", false
+            );
+
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/images/preview", storeId)
+                            .with(user(ownerDetails))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("CUSTOMER 역할은 403을 반환한다")
+        void customerShouldReturn403() throws Exception {
+            User customer = User.builder()
+                    .username("customer1").name("고객").password("pw").role(UserRole.CUSTOMER).build();
+            CustomUserDetails customerDetails = new CustomUserDetails(customer);
+
+            Map<String, Object> requestBody = Map.of(
+                    "productName", "치킨",
+                    "prompt", "맛있게",
+                    "includeText", false
+            );
+
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/images/preview", storeId)
+                            .with(user(customerDetails))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("aspectRatio와 style을 포함한 요청도 201을 반환한다")
+        void shouldReturn201WithAspectRatioAndStyle() throws Exception {
+            // given
+            given(generateImageUseCase.execute(any())).willReturn(
+                    new GenerateImageResult(UUID.randomUUID(), "data==", "image/png")
+            );
+
+            Map<String, Object> requestBody = Map.of(
+                    "productName", "황금 바삭치킨",
+                    "prompt", "따뜻한 식당 배경으로",
+                    "aspectRatio", "LANDSCAPE",
+                    "style", "수채화",
+                    "includeText", false
+            );
+
+            // when & then
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/images/preview", storeId)
+                            .with(user(ownerDetails))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().isCreated());
+        }
+
+        @Test
+        @DisplayName("style이 50자를 초과하면 400을 반환한다")
+        void shouldReturn400WhenStyleTooLong() throws Exception {
+            Map<String, Object> requestBody = Map.of(
+                    "productName", "치킨",
+                    "prompt", "맛있게",
+                    "style", "a".repeat(51),
+                    "includeText", false
+            );
+
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/images/preview", storeId)
+                            .with(user(ownerDetails))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("인증되지 않은 요청은 4xx를 반환한다")
+        void unauthenticatedShouldReturn4xx() throws Exception {
+            Map<String, Object> requestBody = Map.of(
+                    "productName", "치킨",
+                    "prompt", "맛있게",
+                    "includeText", false
+            );
+
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/images/preview", storeId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().is4xxClientError());
+        }
+    }
+
+    // ──────────────────────────────────────────────────
+    // API-AI-205: AI 설명 원복
+    // ──────────────────────────────────────────────────
+    @Nested
+    @DisplayName("AI 설명 원복 (API-AI-205)")
+    class RollbackDescriptionTests {
+
+        private UUID aiLogId;
+        private UUID productId;
+
+        @BeforeEach
+        void setUpRollback() {
+            aiLogId = UUID.randomUUID();
+            productId = UUID.randomUUID();
+        }
+
+        @Test
+        @DisplayName("OWNER가 요청하면 200과 원복 결과를 반환한다")
+        void ownerShouldReturn200WithRollbackResult() throws Exception {
+            // given
+            RollbackDescriptionResult mockResult = new RollbackDescriptionResult(
+                    aiLogId, productId, "원래 설명이었던 치킨", OffsetDateTime.now()
+            );
+            given(rollbackDescriptionUseCase.execute(any())).willReturn(mockResult);
+
+            // when & then
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/descriptions/{aiLogId}/rollback",
+                            storeId, aiLogId)
+                            .with(user(ownerDetails)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value(200))
+                    .andExpect(jsonPath("$.data.aiLogId").value(aiLogId.toString()))
+                    .andExpect(jsonPath("$.data.productId").value(productId.toString()))
+                    .andExpect(jsonPath("$.data.restoredDescription").value("원래 설명이었던 치킨"));
+        }
+
+        @Test
+        @DisplayName("MASTER도 200을 반환한다")
+        void masterShouldReturn200() throws Exception {
+            // given
+            given(rollbackDescriptionUseCase.execute(any())).willReturn(
+                    new RollbackDescriptionResult(aiLogId, productId, "이전 설명", OffsetDateTime.now())
+            );
+
+            // when & then
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/descriptions/{aiLogId}/rollback",
+                            storeId, aiLogId)
+                            .with(user(masterDetails)))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("인증되지 않은 요청은 4xx를 반환한다")
+        void unauthenticatedShouldReturn4xx() throws Exception {
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/descriptions/{aiLogId}/rollback",
+                            storeId, aiLogId))
+                    .andExpect(status().is4xxClientError());
+        }
+
+        @Test
+        @DisplayName("CUSTOMER 역할은 403을 반환한다")
+        void customerShouldReturn403() throws Exception {
+            User customer = User.builder()
+                    .username("customer1").name("고객").password("pw").role(UserRole.CUSTOMER).build();
+            CustomUserDetails customerDetails = new CustomUserDetails(customer);
+
+            mockMvc.perform(post("/api/v1/ai/stores/{storeId}/descriptions/{aiLogId}/rollback",
+                            storeId, aiLogId)
+                            .with(user(customerDetails)))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    // ──────────────────────────────────────────────────
+    // API-AI-204: AI 호출 통계
+    // ──────────────────────────────────────────────────
+    @Nested
+    @DisplayName("AI 호출 통계 (API-AI-204)")
+    class GetAiStatsTests {
+
+        @Test
+        @DisplayName("MASTER가 요청하면 200과 통계를 반환한다")
+        void masterShouldReturn200WithStats() throws Exception {
+            // given
+            AiStatsResult mockResult = new AiStatsResult(storeId, 20L, 18L, 2L, 90.0, 320L, null, null);
+            given(getAiStatsUseCase.execute(any())).willReturn(mockResult);
+
+            // when & then
+            mockMvc.perform(get("/api/v1/ai/stores/{storeId}/stats", storeId)
+                            .with(user(masterDetails)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value(200))
+                    .andExpect(jsonPath("$.data.storeId").value(storeId.toString()))
+                    .andExpect(jsonPath("$.data.totalCount").value(20))
+                    .andExpect(jsonPath("$.data.successCount").value(18))
+                    .andExpect(jsonPath("$.data.failureCount").value(2))
+                    .andExpect(jsonPath("$.data.successRate").value(90.0))
+                    .andExpect(jsonPath("$.data.avgResponseTimeMs").value(320));
+        }
+
+        @Test
+        @DisplayName("조회 결과가 없으면 totalCount=0으로 반환한다")
+        void shouldReturn200WithZeroStats() throws Exception {
+            // given
+            AiStatsResult mockResult = new AiStatsResult(storeId, 0L, 0L, 0L, 0.0, null, null, null);
+            given(getAiStatsUseCase.execute(any())).willReturn(mockResult);
+
+            // when & then
+            mockMvc.perform(get("/api/v1/ai/stores/{storeId}/stats", storeId)
+                            .with(user(masterDetails)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.totalCount").value(0))
+                    .andExpect(jsonPath("$.data.avgResponseTimeMs").doesNotExist());
+        }
+
+        @Test
+        @DisplayName("OWNER 역할은 403을 반환한다")
+        void ownerShouldReturn403() throws Exception {
+            mockMvc.perform(get("/api/v1/ai/stores/{storeId}/stats", storeId)
+                            .with(user(ownerDetails)))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("인증되지 않은 요청은 4xx를 반환한다")
+        void unauthenticatedShouldReturn4xx() throws Exception {
+            mockMvc.perform(get("/api/v1/ai/stores/{storeId}/stats", storeId))
+                    .andExpect(status().is4xxClientError());
         }
     }
 }
