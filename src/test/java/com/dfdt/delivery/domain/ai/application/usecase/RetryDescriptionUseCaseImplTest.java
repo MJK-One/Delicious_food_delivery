@@ -1,8 +1,6 @@
 package com.dfdt.delivery.domain.ai.application.usecase;
 
 import com.dfdt.delivery.common.exception.BusinessException;
-import com.dfdt.delivery.common.infrastructure.persistence.embedded.CreateAudit;
-import com.dfdt.delivery.common.infrastructure.persistence.embedded.SoftDeleteAudit;
 import com.dfdt.delivery.domain.ai.application.dto.RetryDescriptionCommand;
 import com.dfdt.delivery.domain.ai.application.dto.RetryDescriptionResult;
 import com.dfdt.delivery.domain.ai.domain.client.GeminiClient;
@@ -10,9 +8,9 @@ import com.dfdt.delivery.domain.ai.domain.entity.AiLogEntity;
 import com.dfdt.delivery.domain.ai.domain.entity.enums.AiRequestType;
 import com.dfdt.delivery.domain.ai.domain.enums.AiErrorCode;
 import com.dfdt.delivery.domain.ai.domain.policy.AiPromptPolicy;
+import com.dfdt.delivery.domain.ai.domain.port.ProductForAiPort;
+import com.dfdt.delivery.domain.ai.domain.port.ProductInfo;
 import com.dfdt.delivery.domain.ai.domain.repository.AiLogRepository;
-import com.dfdt.delivery.domain.product.domain.entity.Product;
-import com.dfdt.delivery.domain.product.domain.repository.ProductRepository;
 import com.dfdt.delivery.domain.store.domain.entity.Store;
 import com.dfdt.delivery.domain.store.domain.repository.StoreRepository;
 import com.dfdt.delivery.domain.user.domain.entity.User;
@@ -45,7 +43,7 @@ class RetryDescriptionUseCaseImplTest {
     private StoreRepository storeRepository;
 
     @Mock
-    private ProductRepository productRepository;
+    private ProductForAiPort productForAiPort;
 
     @Mock
     private GeminiClient geminiClient;
@@ -140,12 +138,10 @@ class RetryDescriptionUseCaseImplTest {
             Store mockStore = mockStore(requestedBy);
             AiLogEntity sourceLog = mockSourceLog(AiRequestType.PRODUCT_DESCRIPTION,
                     "원본 프롬프트", "FRIENDLY", null, productId);
-            Product mockProduct = mockProduct("황금 바삭치킨", false);
 
             given(aiLogRepository.findById(sourceAiLogId)).willReturn(Optional.of(sourceLog));
             given(storeRepository.findByStoreIdAndNotDeleted(storeId)).willReturn(Optional.of(mockStore));
-            given(productRepository.findByProductIdAndStoreId(productId, storeId))
-                    .willReturn(Optional.of(mockProduct));
+            given(productForAiPort.findActive(productId, storeId)).willReturn(Optional.of(new ProductInfo(productId, "황금 바삭치킨")));
             given(aiPromptPolicy.buildFinalPrompt(eq("황금 바삭치킨"), any(), any(), any()))
                     .willReturn("최종프롬프트");
             given(geminiClient.generate(any())).willReturn("황금 바삭치킨!");
@@ -347,16 +343,5 @@ class RetryDescriptionUseCaseImplTest {
         return log;
     }
 
-    private Product mockProduct(String productName, boolean isDeleted) {
-        SoftDeleteAudit softDeleteAudit = mock(SoftDeleteAudit.class);
-        given(softDeleteAudit.isDeleted()).willReturn(isDeleted);
-
-        Product mockProduct = mock(Product.class);
-        given(mockProduct.getSoftDeleteAudit()).willReturn(softDeleteAudit);
-        if (!isDeleted) {
-            given(mockProduct.getName()).willReturn(productName);
-        }
-
-        return mockProduct;
-    }
 }
+

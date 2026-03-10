@@ -9,9 +9,9 @@ import com.dfdt.delivery.domain.ai.domain.entity.enums.AiRequestType;
 import com.dfdt.delivery.domain.ai.domain.entity.enums.Tone;
 import com.dfdt.delivery.domain.ai.domain.enums.AiErrorCode;
 import com.dfdt.delivery.domain.ai.domain.policy.AiPromptPolicy;
+import com.dfdt.delivery.domain.ai.domain.port.ProductForAiPort;
+import com.dfdt.delivery.domain.ai.domain.port.ProductInfo;
 import com.dfdt.delivery.domain.ai.domain.repository.AiLogRepository;
-import com.dfdt.delivery.domain.product.domain.entity.Product;
-import com.dfdt.delivery.domain.product.domain.repository.ProductRepository;
 import com.dfdt.delivery.domain.store.domain.entity.Store;
 import com.dfdt.delivery.domain.store.domain.repository.StoreRepository;
 import com.dfdt.delivery.domain.user.domain.enums.UserRole;
@@ -28,7 +28,7 @@ public class RetryDescriptionUseCaseImpl implements RetryDescriptionUseCase {
 
     private final AiLogRepository aiLogRepository;
     private final StoreRepository storeRepository;
-    private final ProductRepository productRepository;
+    private final ProductForAiPort productForAiPort;
     private final GeminiClient geminiClient;
     private final AiPromptPolicy aiPromptPolicy;
 
@@ -78,15 +78,9 @@ public class RetryDescriptionUseCaseImpl implements RetryDescriptionUseCase {
         // 8. 상품명 조회 (productId가 있는 경우)
         String productName = null;
         if (sourceLog.getProductId() != null) {
-            Product product = productRepository.findByProductIdAndStoreId(
-                    sourceLog.getProductId(), command.storeId())
+            ProductInfo productInfo = productForAiPort.findActive(sourceLog.getProductId(), command.storeId())
                     .orElseThrow(() -> new BusinessException(AiErrorCode.PRODUCT_NOT_FOUND));
-            // getSoftDeleteAudit()이 null이면 deleted_at/deleted_by 컬럼이 모두 null인
-            // 활성 상품 (JPA @Embedded 특성상 모든 컬럼이 null이면 객체 자체가 null로 반환됨)
-            if (product.getSoftDeleteAudit() != null && product.getSoftDeleteAudit().isDeleted()) {
-                throw new BusinessException(AiErrorCode.PRODUCT_NOT_FOUND);
-            }
-            productName = product.getName();
+            productName = productInfo.name();
         }
 
         // 9. 최종 프롬프트 조립

@@ -7,9 +7,9 @@ import com.dfdt.delivery.domain.ai.domain.client.GeminiClient;
 import com.dfdt.delivery.domain.ai.domain.entity.AiLogEntity;
 import com.dfdt.delivery.domain.ai.domain.enums.AiErrorCode;
 import com.dfdt.delivery.domain.ai.domain.policy.AiPromptPolicy;
+import com.dfdt.delivery.domain.ai.domain.port.ProductForAiPort;
+import com.dfdt.delivery.domain.ai.domain.port.ProductInfo;
 import com.dfdt.delivery.domain.ai.domain.repository.AiLogRepository;
-import com.dfdt.delivery.domain.product.domain.entity.Product;
-import com.dfdt.delivery.domain.product.domain.repository.ProductRepository;
 import com.dfdt.delivery.domain.store.domain.entity.Store;
 import com.dfdt.delivery.domain.store.domain.repository.StoreRepository;
 import com.dfdt.delivery.domain.user.domain.enums.UserRole;
@@ -22,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class GenerateDescriptionUseCaseImpl implements GenerateDescriptionUseCase {
 
     private final StoreRepository storeRepository;
-    private final ProductRepository productRepository;
+    private final ProductForAiPort productForAiPort;
     private final AiLogRepository aiLogRepository;
     private final GeminiClient geminiClient;
     private final AiPromptPolicy aiPromptPolicy;
@@ -45,17 +45,9 @@ public class GenerateDescriptionUseCaseImpl implements GenerateDescriptionUseCas
         // 3. productId가 있으면 Product 조회 및 유효성 확인
         String resolvedProductName = command.productName();
         if (command.productId() != null) {
-            Product product = productRepository.findByProductIdAndStoreId(command.productId(), command.storeId())
+            ProductInfo productInfo = productForAiPort.findActive(command.productId(), command.storeId())
                     .orElseThrow(() -> new BusinessException(AiErrorCode.PRODUCT_NOT_FOUND));
-
-            // findByProductIdAndStoreId 쿼리는 soft delete 미포함 → 별도 체크
-            // getSoftDeleteAudit()이 null이면 deleted_at/deleted_by 컬럼이 모두 null인
-            // 활성 상품 (JPA @Embedded 특성상 모든 컬럼이 null이면 객체 자체가 null로 반환됨)
-            if (product.getSoftDeleteAudit() != null && product.getSoftDeleteAudit().isDeleted()) {
-                throw new BusinessException(AiErrorCode.PRODUCT_NOT_FOUND);
-            }
-
-            resolvedProductName = product.getName();
+            resolvedProductName = productInfo.name();
         }
 
         // 4. 최종 프롬프트 조립
@@ -90,7 +82,7 @@ public class GenerateDescriptionUseCaseImpl implements GenerateDescriptionUseCas
                     e.getMessage(),
                     modelName,
                     responseTimeMs,
-                    null,           // sourceAiLogId: 재실행 시 사용
+                    null,
                     toneSnapshot,
                     keywordsSnapshot
             ));
@@ -111,7 +103,7 @@ public class GenerateDescriptionUseCaseImpl implements GenerateDescriptionUseCas
                 responseText,
                 modelName,
                 responseTimeMs,
-                null,           // sourceAiLogId: 재실행 시 사용
+                null,
                 toneSnapshot,
                 keywordsSnapshot
         ));

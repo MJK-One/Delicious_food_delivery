@@ -5,9 +5,8 @@ import com.dfdt.delivery.domain.ai.application.dto.RollbackDescriptionCommand;
 import com.dfdt.delivery.domain.ai.application.dto.RollbackDescriptionResult;
 import com.dfdt.delivery.domain.ai.domain.entity.AiLogEntity;
 import com.dfdt.delivery.domain.ai.domain.enums.AiErrorCode;
+import com.dfdt.delivery.domain.ai.domain.port.ProductForAiPort;
 import com.dfdt.delivery.domain.ai.domain.repository.AiLogRepository;
-import com.dfdt.delivery.domain.product.domain.entity.Product;
-import com.dfdt.delivery.domain.product.domain.repository.ProductRepository;
 import com.dfdt.delivery.domain.store.domain.entity.Store;
 import com.dfdt.delivery.domain.store.domain.repository.StoreRepository;
 import com.dfdt.delivery.domain.user.domain.entity.User;
@@ -41,7 +40,7 @@ class RollbackDescriptionUseCaseImplTest {
     private StoreRepository storeRepository;
 
     @Mock
-    private ProductRepository productRepository;
+    private ProductForAiPort productForAiPort;
 
     @InjectMocks
     private RollbackDescriptionUseCaseImpl sut;
@@ -71,12 +70,12 @@ class RollbackDescriptionUseCaseImplTest {
         void shouldRollbackSuccessfullyForOwner() {
             // given
             AiLogEntity mockLog = mockAppliedLog(storeId, productId, "이전 설명", null);
-            Product mockProduct = mock(Product.class);
             Store mockStore = mockStore(requestedBy);
 
             given(aiLogRepository.findById(aiLogId)).willReturn(Optional.of(mockLog));
             given(storeRepository.findByStoreIdAndNotDeleted(storeId)).willReturn(Optional.of(mockStore));
-            given(productRepository.findByProductIdAndStoreId(productId, storeId)).willReturn(Optional.of(mockProduct));
+            given(productForAiPort.restoreDescription(eq(productId), eq(storeId), eq("이전 설명"), eq(requestedBy)))
+                    .willReturn(true);
 
             RollbackDescriptionCommand command = new RollbackDescriptionCommand(
                     storeId, aiLogId, requestedBy, UserRole.OWNER
@@ -84,7 +83,7 @@ class RollbackDescriptionUseCaseImplTest {
 
             // when & then
             assertThatCode(() -> sut.execute(command)).doesNotThrowAnyException();
-            then(mockProduct).should().restoreDescription(eq("이전 설명"), eq(requestedBy));
+            then(productForAiPort).should().restoreDescription(eq(productId), eq(storeId), eq("이전 설명"), eq(requestedBy));
         }
 
         @Test
@@ -92,10 +91,9 @@ class RollbackDescriptionUseCaseImplTest {
         void masterCanRollbackWithoutOwnershipCheck() {
             // given
             AiLogEntity mockLog = mockAppliedLog(storeId, productId, "이전 설명", null);
-            Product mockProduct = mock(Product.class);
 
             given(aiLogRepository.findById(aiLogId)).willReturn(Optional.of(mockLog));
-            given(productRepository.findByProductIdAndStoreId(productId, storeId)).willReturn(Optional.of(mockProduct));
+            given(productForAiPort.restoreDescription(any(), any(), any(), any())).willReturn(true);
 
             RollbackDescriptionCommand command = new RollbackDescriptionCommand(
                     storeId, aiLogId, "masterUser", UserRole.MASTER
@@ -111,10 +109,9 @@ class RollbackDescriptionUseCaseImplTest {
         void shouldRollbackEvenWhenPreviousDescriptionIsNull() {
             // given
             AiLogEntity mockLog = mockAppliedLog(storeId, productId, null, null);
-            Product mockProduct = mock(Product.class);
 
             given(aiLogRepository.findById(aiLogId)).willReturn(Optional.of(mockLog));
-            given(productRepository.findByProductIdAndStoreId(productId, storeId)).willReturn(Optional.of(mockProduct));
+            given(productForAiPort.restoreDescription(any(), any(), isNull(), eq("masterUser"))).willReturn(true);
 
             RollbackDescriptionCommand command = new RollbackDescriptionCommand(
                     storeId, aiLogId, "masterUser", UserRole.MASTER
@@ -122,7 +119,7 @@ class RollbackDescriptionUseCaseImplTest {
 
             // when & then
             assertThatCode(() -> sut.execute(command)).doesNotThrowAnyException();
-            then(mockProduct).should().restoreDescription(isNull(), eq("masterUser"));
+            then(productForAiPort).should().restoreDescription(any(), any(), isNull(), eq("masterUser"));
         }
     }
 

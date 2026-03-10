@@ -5,9 +5,8 @@ import com.dfdt.delivery.domain.ai.application.dto.ApplyDescriptionCommand;
 import com.dfdt.delivery.domain.ai.application.dto.ApplyDescriptionResult;
 import com.dfdt.delivery.domain.ai.domain.entity.AiLogEntity;
 import com.dfdt.delivery.domain.ai.domain.enums.AiErrorCode;
+import com.dfdt.delivery.domain.ai.domain.port.ProductForAiPort;
 import com.dfdt.delivery.domain.ai.domain.repository.AiLogRepository;
-import com.dfdt.delivery.domain.product.domain.entity.Product;
-import com.dfdt.delivery.domain.product.domain.repository.ProductRepository;
 import com.dfdt.delivery.domain.store.domain.entity.Store;
 import com.dfdt.delivery.domain.store.domain.repository.StoreRepository;
 import com.dfdt.delivery.domain.user.domain.entity.User;
@@ -41,7 +40,7 @@ class ApplyDescriptionUseCaseImplTest {
     private StoreRepository storeRepository;
 
     @Mock
-    private ProductRepository productRepository;
+    private ProductForAiPort productForAiPort;
 
     @InjectMocks
     private ApplyDescriptionUseCaseImpl sut;
@@ -72,11 +71,11 @@ class ApplyDescriptionUseCaseImplTest {
             // given
             AiLogEntity mockLog = mockAiLog(storeId, productId, false, "바삭한 치킨입니다!");
             Store mockStore = mockStore(requestedBy);
-            Product mockProduct = mock(Product.class);
 
             given(aiLogRepository.findById(aiLogId)).willReturn(Optional.of(mockLog));
             given(storeRepository.findByStoreIdAndNotDeleted(storeId)).willReturn(Optional.of(mockStore));
-            given(productRepository.findByProductIdAndStoreId(productId, storeId)).willReturn(Optional.of(mockProduct));
+            given(productForAiPort.applyAiDescription(eq(productId), eq(storeId), eq("바삭한 치킨입니다!"), eq(requestedBy)))
+                    .willReturn(Optional.of("이전 설명"));
             given(mockLog.getAppliedAt()).willReturn(OffsetDateTime.now());
 
             ApplyDescriptionCommand command = new ApplyDescriptionCommand(
@@ -90,7 +89,7 @@ class ApplyDescriptionUseCaseImplTest {
             assertThat(result.aiLogId()).isEqualTo(aiLogId);
             assertThat(result.productId()).isEqualTo(productId);
             assertThat(result.appliedDescription()).isEqualTo("바삭한 치킨입니다!");
-            then(mockProduct).should().applyAiDescription(eq("바삭한 치킨입니다!"), eq(requestedBy));
+            then(productForAiPort).should().applyAiDescription(eq(productId), eq(storeId), eq("바삭한 치킨입니다!"), eq(requestedBy));
             then(mockLog).should().applyDescription(any(), eq(requestedBy));
         }
 
@@ -99,10 +98,10 @@ class ApplyDescriptionUseCaseImplTest {
         void masterAppliesDescription_skipsOwnershipCheck() {
             // given
             AiLogEntity mockLog = mockAiLog(storeId, productId, false, "치킨 설명");
-            Product mockProduct = mock(Product.class);
 
             given(aiLogRepository.findById(aiLogId)).willReturn(Optional.of(mockLog));
-            given(productRepository.findByProductIdAndStoreId(productId, storeId)).willReturn(Optional.of(mockProduct));
+            given(productForAiPort.applyAiDescription(eq(productId), eq(storeId), eq("치킨 설명"), eq("masterUser")))
+                    .willReturn(Optional.of("이전 설명"));
             given(mockLog.getAppliedAt()).willReturn(OffsetDateTime.now());
 
             ApplyDescriptionCommand command = new ApplyDescriptionCommand(
@@ -253,7 +252,8 @@ class ApplyDescriptionUseCaseImplTest {
 
             given(aiLogRepository.findById(aiLogId)).willReturn(Optional.of(mockLog));
             given(storeRepository.findByStoreIdAndNotDeleted(storeId)).willReturn(Optional.of(mockStore));
-            given(productRepository.findByProductIdAndStoreId(productId, storeId)).willReturn(Optional.empty());
+            given(productForAiPort.applyAiDescription(eq(productId), eq(storeId), any(), eq(requestedBy)))
+                    .willReturn(Optional.empty());
 
             ApplyDescriptionCommand command = new ApplyDescriptionCommand(
                     storeId, aiLogId, requestedBy, UserRole.OWNER

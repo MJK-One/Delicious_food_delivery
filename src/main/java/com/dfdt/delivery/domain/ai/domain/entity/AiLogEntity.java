@@ -400,6 +400,28 @@ public class AiLogEntity {
         );
     }
 
+    /**
+     * 상품 등록 시 AI 미리보기 로그를 신규 상품에 연결합니다.
+     * productId를 기록하고 isApplied=true로 전환합니다.
+     *
+     * @param productId           방금 생성된 상품의 UUID
+     * @param previousDescription 상품 등록 요청에 포함된 원본 설명 (롤백 시 복원 대상)
+     * @param appliedBy           적용 요청자 username
+     */
+    public void linkToProduct(UUID productId, String previousDescription, String appliedBy) {
+        if (productId == null) {
+            throw new IllegalArgumentException("productId must not be null");
+        }
+        if (appliedBy == null || appliedBy.isBlank()) {
+            throw new IllegalArgumentException("appliedBy must not be blank");
+        }
+        this.productId = productId;
+        this.previousDescription = previousDescription;
+        this.isApplied = true;
+        this.appliedAt = OffsetDateTime.now();
+        this.appliedBy = appliedBy;
+    }
+
     public void applyDescription(String previousDescription, String appliedBy) {
         if (appliedBy == null || appliedBy.isBlank()) {
             throw new IllegalArgumentException("appliedBy must not be blank");

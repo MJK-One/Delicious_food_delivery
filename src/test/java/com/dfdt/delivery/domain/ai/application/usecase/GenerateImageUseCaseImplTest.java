@@ -1,7 +1,6 @@
 package com.dfdt.delivery.domain.ai.application.usecase;
 
 import com.dfdt.delivery.common.exception.BusinessException;
-import com.dfdt.delivery.common.infrastructure.persistence.embedded.SoftDeleteAudit;
 import com.dfdt.delivery.domain.ai.application.dto.GenerateImageCommand;
 import com.dfdt.delivery.domain.ai.application.dto.GenerateImageResult;
 import com.dfdt.delivery.domain.ai.domain.client.GeneratedImageData;
@@ -9,9 +8,9 @@ import com.dfdt.delivery.domain.ai.domain.client.ImageGenerationClient;
 import com.dfdt.delivery.domain.ai.domain.entity.AiLogEntity;
 import com.dfdt.delivery.domain.ai.domain.entity.enums.AspectRatio;
 import com.dfdt.delivery.domain.ai.domain.enums.AiErrorCode;
+import com.dfdt.delivery.domain.ai.domain.port.ProductForAiPort;
+import com.dfdt.delivery.domain.ai.domain.port.ProductInfo;
 import com.dfdt.delivery.domain.ai.domain.repository.AiLogRepository;
-import com.dfdt.delivery.domain.product.domain.entity.Product;
-import com.dfdt.delivery.domain.product.domain.repository.ProductRepository;
 import com.dfdt.delivery.domain.store.domain.entity.Store;
 import com.dfdt.delivery.domain.store.domain.repository.StoreRepository;
 import com.dfdt.delivery.domain.user.domain.entity.User;
@@ -41,7 +40,7 @@ class GenerateImageUseCaseImplTest {
     private StoreRepository storeRepository;
 
     @Mock
-    private ProductRepository productRepository;
+    private ProductForAiPort productForAiPort;
 
     @Mock
     private AiLogRepository aiLogRepository;
@@ -123,12 +122,10 @@ class GenerateImageUseCaseImplTest {
         void shouldUseProductNameFromProductEntity() {
             // given
             Store mockStore = mockStore(requestedBy);
-            Product mockProduct = mockProduct("황금 바삭치킨", false);
             GeneratedImageData imageData = new GeneratedImageData("imgdata==", "image/jpeg");
 
             given(storeRepository.findByStoreIdAndNotDeleted(storeId)).willReturn(Optional.of(mockStore));
-            given(productRepository.findByProductIdAndStoreId(productId, storeId))
-                    .willReturn(Optional.of(mockProduct));
+            given(productForAiPort.findActive(productId, storeId)).willReturn(Optional.of(new ProductInfo(productId, "황금 바삭치킨")));
             given(imageGenerationClient.generate(contains("황금 바삭치킨"), any())).willReturn(imageData);
             given(aiLogRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
 
@@ -306,16 +303,5 @@ class GenerateImageUseCaseImplTest {
         return mockStore;
     }
 
-    private Product mockProduct(String productName, boolean isDeleted) {
-        SoftDeleteAudit softDeleteAudit = mock(SoftDeleteAudit.class);
-        given(softDeleteAudit.isDeleted()).willReturn(isDeleted);
-
-        Product mockProduct = mock(Product.class);
-        given(mockProduct.getSoftDeleteAudit()).willReturn(softDeleteAudit);
-        if (!isDeleted) {
-            given(mockProduct.getName()).willReturn(productName);
-        }
-
-        return mockProduct;
-    }
 }
+
