@@ -79,14 +79,23 @@ public class Review {
         if (newRating != null) this.rating = newRating;
         if (newContent != null) this.content = newContent;
 
+        ensureUpdateAudit();
         this.updateAudit.touch(updatedBy);
     }
 
     public void delete(String deletedBy) {
+        ensureUpdateAudit();
+        this.updateAudit.touch(deletedBy);
         if (this.softDeleteAudit == null) {
             this.softDeleteAudit = SoftDeleteAudit.active();
         }
         this.softDeleteAudit.softDelete(deletedBy);
+    }
+
+    private void ensureUpdateAudit() {
+        if (this.updateAudit == null) {
+            this.updateAudit = UpdateAudit.empty();
+        }
     }
 
     public boolean isDeleted() {
