@@ -1,6 +1,5 @@
 package com.dfdt.delivery.domain.payment.application.service.command;
 
-import com.dfdt.delivery.common.util.RedisService;
 import com.dfdt.delivery.domain.order.application.provider.OrderDataFinder;
 import com.dfdt.delivery.domain.order.application.service.OrderExpirationService;
 import com.dfdt.delivery.domain.order.domain.entity.Order;
@@ -14,6 +13,7 @@ import com.dfdt.delivery.domain.payment.domain.entity.PaymentStatusHistory;
 import com.dfdt.delivery.domain.payment.domain.enums.PaymentStatus;
 import com.dfdt.delivery.domain.payment.domain.repository.PaymentRepository;
 import com.dfdt.delivery.domain.payment.domain.repository.PaymentStatusHistoryRepository;
+import com.dfdt.delivery.domain.payment.infrastructure.persistence.redis.PaymentRedisService;
 import com.dfdt.delivery.domain.payment.presentation.dto.request.PaymentApproveReqDto;
 import com.dfdt.delivery.domain.payment.presentation.dto.request.PaymentCreateReqDto;
 import com.dfdt.delivery.domain.payment.presentation.dto.response.PaymentDetailResDto;
@@ -30,15 +30,12 @@ public class PaymentCommandServiceImpl implements PaymentCommandService {
 
     private final PaymentRepository paymentRepository;
     private final PaymentStatusHistoryRepository historyRepository;
-    private final RedisService redisService;
+    private final PaymentRedisService paymentRedisService;
     private final PaymentValidator paymentValidator;
     private final PaymentDataFinder paymentDataFinder;
     private final OrderDataFinder orderDataFinder;
     private final OrderExpirationService orderExpirationService;
     private final OrderRedisService orderRedisService;
-
-    private static final String TIMEOUT_KEY_PREFIX = "payment:timeout:";
-    private static final long FIVE_MINUTES_MS = 5 * 60 * 1000L;
 
     @Override
     @Transactional
@@ -48,8 +45,7 @@ public class PaymentCommandServiceImpl implements PaymentCommandService {
 
         saveHistory(savedPayment, username, null, PaymentStatus.READY, "결제 생성");
 
-        // Redis TTL 설정 (5분)
-        redisService.setData(TIMEOUT_KEY_PREFIX + savedPayment.getOrderId(), "PENDING", FIVE_MINUTES_MS);
+        paymentRedisService.setPaymentTimeout(savedPayment.getOrderId());
 
         return PaymentConverter.toDetailResDto(savedPayment);
     }
@@ -109,7 +105,7 @@ public class PaymentCommandServiceImpl implements PaymentCommandService {
             orderExpirationService.completePayment(payment.getOrderId());
 
             // Redis TTL 키 즉시 삭제 (타임아웃 방지)
-            redisService.deleteData(TIMEOUT_KEY_PREFIX + payment.getOrderId());
+            paymentRedisService.cancelPaymentTimeout(payment.getOrderId());
         } else {
             // 4-2. 승인 실패 처리
             String reason = reqDto.getFailureReason() != null ? reqDto.getFailureReason() : "PG 승인 거절";
@@ -120,7 +116,7 @@ public class PaymentCommandServiceImpl implements PaymentCommandService {
             orderRedisService.cancelTimeOut(payment.getOrderId());
 
             // Redis TTL 키 삭제
-            redisService.deleteData(TIMEOUT_KEY_PREFIX + payment.getOrderId());
+            paymentRedisService.cancelPaymentTimeout(payment.getOrderId());
         }
 
         return PaymentConverter.toDetailResDto(payment);
@@ -151,7 +147,7 @@ public class PaymentCommandServiceImpl implements PaymentCommandService {
         order.updateStatus(OrderStatus.CANCELED, "결제 취소로 인한 주문 자동 취소");
 
         // 6. Redis TTL 키 즉시 삭제
-        redisService.deleteData(TIMEOUT_KEY_PREFIX + payment.getOrderId());
+        paymentRedisService.cancelPaymentTimeout(payment.getOrderId());
 
         return PaymentConverter.toDetailResDto(payment);
     }
