@@ -5,6 +5,7 @@ import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
 import com.dfdt.delivery.domain.product.application.command.ProductCommandService;
 import com.dfdt.delivery.domain.product.domain.entity.Product;
 import com.dfdt.delivery.domain.product.domain.enums.ProductErrorCode;
+import com.dfdt.delivery.domain.product.domain.port.AiDescriptionPort;
 import com.dfdt.delivery.domain.product.domain.repository.JpaProductRepository;
 import com.dfdt.delivery.domain.product.presentation.dto.request.ProductCreateReqDto;
 import com.dfdt.delivery.domain.product.presentation.dto.request.ProductUpdateReqDto;
@@ -27,6 +28,7 @@ public class ProductCommandServiceImpl implements ProductCommandService {
 
     private final JpaProductRepository productRepository;
     private final StoreRepository storeRepository;
+    private final AiDescriptionPort aiDescriptionPort;
 
     public ProductResDto createProduct(UUID storeId, ProductCreateReqDto request, CustomUserDetails userDetails) {
         Store store = checkExistStore(storeId);
@@ -36,6 +38,16 @@ public class ProductCommandServiceImpl implements ProductCommandService {
         int maxDisplayOrder = productRepository.findMaxDisplayOrder(storeId).orElse(0);
         Product product = Product.create(request, store, maxDisplayOrder + 1, userDetails.getUsername());
         productRepository.save(product);
+
+        // aiLogId가 있으면 AI 미리보기 로그를 신규 상품에 연결
+        if (request.getAiLogId() != null) {
+            String previousDescription = product.getDescription();
+            String aiText = aiDescriptionPort.validateAndLink(
+                    request.getAiLogId(), storeId, product.getProductId(),
+                    previousDescription, userDetails.getUsername()
+            );
+            product.applyAiDescription(aiText, userDetails.getUsername());
+        }
 
         return ProductResDto.from(product);
     }

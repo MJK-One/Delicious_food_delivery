@@ -8,9 +8,9 @@ import com.dfdt.delivery.domain.ai.domain.client.ImageGenerationClient;
 import com.dfdt.delivery.domain.ai.domain.entity.AiLogEntity;
 import com.dfdt.delivery.domain.ai.domain.entity.enums.AspectRatio;
 import com.dfdt.delivery.domain.ai.domain.enums.AiErrorCode;
+import com.dfdt.delivery.domain.ai.domain.port.ProductForAiPort;
+import com.dfdt.delivery.domain.ai.domain.port.ProductInfo;
 import com.dfdt.delivery.domain.ai.domain.repository.AiLogRepository;
-import com.dfdt.delivery.domain.product.domain.entity.Product;
-import com.dfdt.delivery.domain.product.domain.repository.ProductRepository;
 import com.dfdt.delivery.domain.store.domain.entity.Store;
 import com.dfdt.delivery.domain.store.domain.repository.StoreRepository;
 import com.dfdt.delivery.domain.user.domain.enums.UserRole;
@@ -23,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class GenerateImageUseCaseImpl implements GenerateImageUseCase {
 
     private final StoreRepository storeRepository;
-    private final ProductRepository productRepository;
+    private final ProductForAiPort productForAiPort;
     private final AiLogRepository aiLogRepository;
     private final ImageGenerationClient imageGenerationClient;
 
@@ -50,13 +50,9 @@ public class GenerateImageUseCaseImpl implements GenerateImageUseCase {
         // 4. productId가 있으면 Product 조회 및 상품명 확인
         String resolvedProductName = command.productName();
         if (command.productId() != null) {
-            Product product = productRepository.findByProductIdAndStoreId(command.productId(), command.storeId())
+            ProductInfo productInfo = productForAiPort.findActive(command.productId(), command.storeId())
                     .orElseThrow(() -> new BusinessException(AiErrorCode.PRODUCT_NOT_FOUND));
-            // getSoftDeleteAudit()이 null이면 활성 상품 (JPA @Embedded 특성상 모든 컬럼 null → 객체 null)
-            if (product.getSoftDeleteAudit() != null && product.getSoftDeleteAudit().isDeleted()) {
-                throw new BusinessException(AiErrorCode.PRODUCT_NOT_FOUND);
-            }
-            resolvedProductName = product.getName();
+            resolvedProductName = productInfo.name();
         }
 
         // 5. includeText = true인데 text가 없으면 오류

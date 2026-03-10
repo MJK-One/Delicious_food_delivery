@@ -1,10 +1,12 @@
 package com.dfdt.delivery.domain.product.service;
 
 import com.dfdt.delivery.common.exception.BusinessException;
+import com.dfdt.delivery.domain.ai.domain.enums.AiErrorCode;
 import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
 import com.dfdt.delivery.domain.product.application.service.ProductCommandServiceImpl;
 import com.dfdt.delivery.domain.product.domain.entity.Product;
 import com.dfdt.delivery.domain.product.domain.enums.ProductErrorCode;
+import com.dfdt.delivery.domain.product.domain.port.AiDescriptionPort;
 import com.dfdt.delivery.domain.product.domain.repository.JpaProductRepository;
 import com.dfdt.delivery.domain.product.fixture.ProductFixture;
 import com.dfdt.delivery.domain.product.fixture.RegionFixture;
@@ -34,6 +36,7 @@ import java.util.UUID;
 import static org.hibernate.validator.internal.util.Contracts.assertNotNull;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,6 +51,9 @@ public class ProductCommandServiceImplTest {
 
     @Mock
     private JpaStoreRepository storeRepository;
+
+    @Mock
+    private AiDescriptionPort aiDescriptionPort;
 
     @Mock
     private CustomUserDetails userDetails;
@@ -173,6 +179,174 @@ public class ProductCommandServiceImplTest {
             assertEquals(StoreErrorCode.NOT_MY_STORE, exception.getErrorCode());
             verify(productRepository, never()).findMaxDisplayOrder(any());
             verify(productRepository, never()).save(any(Product.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("메뉴 생성 + AI 로그 연결")
+    class CreateProductWithAiLogTest {
+
+        private UUID aiLogId;
+
+        @BeforeEach
+        void setUp() {
+            aiLogId = UUID.randomUUID();
+        }
+
+        @Test
+        @DisplayName("성공: aiLogId가 있으면 AI 설명이 적용되고 AiLog에 productId가 연결된다")
+        void shouldLinkAiLogWhenAiLogIdProvided() {
+            // given
+            UUID storeId = store.getStoreId();
+            ProductCreateReqDto request = new ProductCreateReqDto();
+            request.setName("김치찌개");
+            request.setPrice(9000);
+            request.setDescription("직접 작성한 설명");
+            request.setIsHidden(false);
+            request.setAiLogId(aiLogId);
+
+            when(storeRepository.findByStoreIdAndNotDeleted(storeId)).thenReturn(Optional.of(store));
+            when(productRepository.findMaxDisplayOrder(storeId)).thenReturn(Optional.of(0));
+            when(aiDescriptionPort.validateAndLink(eq(aiLogId), eq(storeId), any(), any(), eq(owner.getUsername())))
+                    .thenReturn("AI가 생성한 맛있는 설명");
+
+            // when
+            ProductResDto result = productService.createProduct(storeId, request, ownerUserDetails);
+
+            // then
+            assertNotNull(result);
+            verify(aiDescriptionPort, times(1)).validateAndLink(eq(aiLogId), eq(storeId), any(), any(), eq(owner.getUsername()));
+        }
+
+        @Test
+        @DisplayName("성공: aiLogId가 없으면 AiDescriptionPort 호출 없이 상품만 생성된다")
+        void shouldSkipAiLinkWhenAiLogIdAbsent() {
+            // given
+            UUID storeId = store.getStoreId();
+            ProductCreateReqDto request = new ProductCreateReqDto();
+            request.setName("된장찌개");
+            request.setPrice(8000);
+            request.setIsHidden(false);
+            // aiLogId = null (기본값)
+
+            when(storeRepository.findByStoreIdAndNotDeleted(storeId)).thenReturn(Optional.of(store));
+            when(productRepository.findMaxDisplayOrder(storeId)).thenReturn(Optional.of(0));
+
+            // when
+            productService.createProduct(storeId, request, ownerUserDetails);
+
+            // then
+            verify(aiDescriptionPort, never()).validateAndLink(any(), any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("실패: aiLogId에 해당하는 로그가 없으면 AI_LOG_NOT_FOUND")
+        void shouldThrowWhenAiLogNotFound() {
+            // given
+            UUID storeId = store.getStoreId();
+            ProductCreateReqDto request = new ProductCreateReqDto();
+            request.setName("김치찌개");
+            request.setPrice(9000);
+            request.setIsHidden(false);
+            request.setAiLogId(aiLogId);
+
+            when(storeRepository.findByStoreIdAndNotDeleted(storeId)).thenReturn(Optional.of(store));
+            when(productRepository.findMaxDisplayOrder(storeId)).thenReturn(Optional.of(0));
+            when(aiDescriptionPort.validateAndLink(any(), any(), any(), any(), any()))
+                    .thenThrow(new BusinessException(AiErrorCode.AI_LOG_NOT_FOUND));
+
+            // when & then
+            BusinessException ex = assertThrows(BusinessException.class,
+                    () -> productService.createProduct(storeId, request, ownerUserDetails));
+            assertEquals(AiErrorCode.AI_LOG_NOT_FOUND, ex.getErrorCode());
+        }
+
+        @Test
+        @DisplayName("실패: AiLog의 storeId가 URL storeId와 다르면 STORE_NOT_FOUND")
+        void shouldThrowWhenStoreIdMismatch() {
+            // given
+            UUID storeId = store.getStoreId();
+            ProductCreateReqDto request = new ProductCreateReqDto();
+            request.setName("김치찌개");
+            request.setPrice(9000);
+            request.setIsHidden(false);
+            request.setAiLogId(aiLogId);
+
+            when(storeRepository.findByStoreIdAndNotDeleted(storeId)).thenReturn(Optional.of(store));
+            when(productRepository.findMaxDisplayOrder(storeId)).thenReturn(Optional.of(0));
+            when(aiDescriptionPort.validateAndLink(any(), any(), any(), any(), any()))
+                    .thenThrow(new BusinessException(AiErrorCode.STORE_NOT_FOUND));
+
+            // when & then
+            BusinessException ex = assertThrows(BusinessException.class,
+                    () -> productService.createProduct(storeId, request, ownerUserDetails));
+            assertEquals(AiErrorCode.STORE_NOT_FOUND, ex.getErrorCode());
+        }
+
+        @Test
+        @DisplayName("실패: 이미 적용된 로그면 ALREADY_APPLIED")
+        void shouldThrowWhenAiLogAlreadyApplied() {
+            // given
+            UUID storeId = store.getStoreId();
+            ProductCreateReqDto request = new ProductCreateReqDto();
+            request.setName("김치찌개");
+            request.setPrice(9000);
+            request.setIsHidden(false);
+            request.setAiLogId(aiLogId);
+
+            when(storeRepository.findByStoreIdAndNotDeleted(storeId)).thenReturn(Optional.of(store));
+            when(productRepository.findMaxDisplayOrder(storeId)).thenReturn(Optional.of(0));
+            when(aiDescriptionPort.validateAndLink(any(), any(), any(), any(), any()))
+                    .thenThrow(new BusinessException(AiErrorCode.ALREADY_APPLIED));
+
+            // when & then
+            BusinessException ex = assertThrows(BusinessException.class,
+                    () -> productService.createProduct(storeId, request, ownerUserDetails));
+            assertEquals(AiErrorCode.ALREADY_APPLIED, ex.getErrorCode());
+        }
+
+        @Test
+        @DisplayName("실패: productId가 이미 설정된 로그면 AI_LOG_PRODUCT_ALREADY_SET")
+        void shouldThrowWhenAiLogAlreadyHasProduct() {
+            // given
+            UUID storeId = store.getStoreId();
+            ProductCreateReqDto request = new ProductCreateReqDto();
+            request.setName("김치찌개");
+            request.setPrice(9000);
+            request.setIsHidden(false);
+            request.setAiLogId(aiLogId);
+
+            when(storeRepository.findByStoreIdAndNotDeleted(storeId)).thenReturn(Optional.of(store));
+            when(productRepository.findMaxDisplayOrder(storeId)).thenReturn(Optional.of(0));
+            when(aiDescriptionPort.validateAndLink(any(), any(), any(), any(), any()))
+                    .thenThrow(new BusinessException(AiErrorCode.AI_LOG_PRODUCT_ALREADY_SET));
+
+            // when & then
+            BusinessException ex = assertThrows(BusinessException.class,
+                    () -> productService.createProduct(storeId, request, ownerUserDetails));
+            assertEquals(AiErrorCode.AI_LOG_PRODUCT_ALREADY_SET, ex.getErrorCode());
+        }
+
+        @Test
+        @DisplayName("실패: 실패한 AI 로그면 AI_LOG_NOT_APPLICABLE")
+        void shouldThrowWhenAiLogIsFailure() {
+            // given
+            UUID storeId = store.getStoreId();
+            ProductCreateReqDto request = new ProductCreateReqDto();
+            request.setName("김치찌개");
+            request.setPrice(9000);
+            request.setIsHidden(false);
+            request.setAiLogId(aiLogId);
+
+            when(storeRepository.findByStoreIdAndNotDeleted(storeId)).thenReturn(Optional.of(store));
+            when(productRepository.findMaxDisplayOrder(storeId)).thenReturn(Optional.of(0));
+            when(aiDescriptionPort.validateAndLink(any(), any(), any(), any(), any()))
+                    .thenThrow(new BusinessException(AiErrorCode.AI_LOG_NOT_APPLICABLE));
+
+            // when & then
+            BusinessException ex = assertThrows(BusinessException.class,
+                    () -> productService.createProduct(storeId, request, ownerUserDetails));
+            assertEquals(AiErrorCode.AI_LOG_NOT_APPLICABLE, ex.getErrorCode());
         }
     }
 

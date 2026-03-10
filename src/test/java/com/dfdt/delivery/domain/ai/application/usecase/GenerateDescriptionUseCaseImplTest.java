@@ -8,10 +8,9 @@ import com.dfdt.delivery.domain.ai.domain.entity.AiLogEntity;
 import com.dfdt.delivery.domain.ai.domain.entity.enums.Tone;
 import com.dfdt.delivery.domain.ai.domain.enums.AiErrorCode;
 import com.dfdt.delivery.domain.ai.domain.policy.AiPromptPolicy;
+import com.dfdt.delivery.domain.ai.domain.port.ProductForAiPort;
+import com.dfdt.delivery.domain.ai.domain.port.ProductInfo;
 import com.dfdt.delivery.domain.ai.domain.repository.AiLogRepository;
-import com.dfdt.delivery.domain.product.domain.entity.Product;
-import com.dfdt.delivery.domain.product.domain.repository.ProductRepository;
-import com.dfdt.delivery.common.infrastructure.persistence.embedded.SoftDeleteAudit;
 import com.dfdt.delivery.domain.store.domain.entity.Store;
 import com.dfdt.delivery.domain.store.domain.repository.StoreRepository;
 import com.dfdt.delivery.domain.user.domain.entity.User;
@@ -42,7 +41,7 @@ class GenerateDescriptionUseCaseImplTest {
     private StoreRepository storeRepository;
 
     @Mock
-    private ProductRepository productRepository;
+    private ProductForAiPort productForAiPort;
 
     @Mock
     private AiLogRepository aiLogRepository;
@@ -106,7 +105,6 @@ class GenerateDescriptionUseCaseImplTest {
         void shouldUseProductNameFromProductEntityWhenProductIdProvided() {
             // given
             Store mockStore = mockStore(requestedBy);
-            Product mockProduct = mockProduct("황금 바삭치킨", false);
 
             GenerateDescriptionCommand command = new GenerateDescriptionCommand(
                     storeId, requestedBy, UserRole.OWNER,
@@ -115,7 +113,7 @@ class GenerateDescriptionUseCaseImplTest {
             );
 
             given(storeRepository.findByStoreIdAndNotDeleted(storeId)).willReturn(Optional.of(mockStore));
-            given(productRepository.findByProductIdAndStoreId(productId, storeId)).willReturn(Optional.of(mockProduct));
+            given(productForAiPort.findActive(productId, storeId)).willReturn(Optional.of(new ProductInfo(productId, "황금 바삭치킨")));
             given(aiPromptPolicy.buildFinalPrompt(eq("황금 바삭치킨"), any(), any(), any())).willReturn("최종프롬프트");
             given(geminiClient.generate(any())).willReturn("황금 바삭치킨 설명");
             given(aiPromptPolicy.trimResponse(any())).willReturn("황금 바삭치킨 설명");
@@ -208,7 +206,7 @@ class GenerateDescriptionUseCaseImplTest {
             // given
             Store mockStore = mockStore(requestedBy);
             given(storeRepository.findByStoreIdAndNotDeleted(storeId)).willReturn(Optional.of(mockStore));
-            given(productRepository.findByProductIdAndStoreId(productId, storeId)).willReturn(Optional.empty());
+            given(productForAiPort.findActive(productId, storeId)).willReturn(Optional.empty());
 
             GenerateDescriptionCommand command = new GenerateDescriptionCommand(
                     storeId, requestedBy, UserRole.OWNER,
@@ -227,10 +225,10 @@ class GenerateDescriptionUseCaseImplTest {
         void shouldThrowWhenProductIsSoftDeleted() {
             // given
             Store mockStore = mockStore(requestedBy);
-            Product deletedProduct = mockProduct("삭제된 치킨", true); // isDeleted = true
 
             given(storeRepository.findByStoreIdAndNotDeleted(storeId)).willReturn(Optional.of(mockStore));
-            given(productRepository.findByProductIdAndStoreId(productId, storeId)).willReturn(Optional.of(deletedProduct));
+            // 포트 구현체가 soft delete 필터링 후 empty를 반환
+            given(productForAiPort.findActive(productId, storeId)).willReturn(Optional.empty());
 
             GenerateDescriptionCommand command = new GenerateDescriptionCommand(
                     storeId, requestedBy, UserRole.OWNER,
@@ -295,17 +293,5 @@ class GenerateDescriptionUseCaseImplTest {
         return mockStore;
     }
 
-    private Product mockProduct(String productName, boolean isDeleted) {
-        SoftDeleteAudit softDeleteAudit = mock(SoftDeleteAudit.class);
-        given(softDeleteAudit.isDeleted()).willReturn(isDeleted);
-
-        Product mockProduct = mock(Product.class);
-        given(mockProduct.getSoftDeleteAudit()).willReturn(softDeleteAudit);
-        // soft delete된 경우 getName()은 호출되지 않으므로 조건부로 추가
-        if (!isDeleted) {
-            given(mockProduct.getName()).willReturn(productName);
-        }
-
-        return mockProduct;
-    }
 }
+

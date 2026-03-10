@@ -5,9 +5,8 @@ import com.dfdt.delivery.domain.ai.application.dto.RollbackDescriptionCommand;
 import com.dfdt.delivery.domain.ai.application.dto.RollbackDescriptionResult;
 import com.dfdt.delivery.domain.ai.domain.entity.AiLogEntity;
 import com.dfdt.delivery.domain.ai.domain.enums.AiErrorCode;
+import com.dfdt.delivery.domain.ai.domain.port.ProductForAiPort;
 import com.dfdt.delivery.domain.ai.domain.repository.AiLogRepository;
-import com.dfdt.delivery.domain.product.domain.entity.Product;
-import com.dfdt.delivery.domain.product.domain.repository.ProductRepository;
 import com.dfdt.delivery.domain.store.domain.entity.Store;
 import com.dfdt.delivery.domain.store.domain.repository.StoreRepository;
 import com.dfdt.delivery.domain.user.domain.enums.UserRole;
@@ -21,7 +20,7 @@ public class RollbackDescriptionUseCaseImpl implements RollbackDescriptionUseCas
 
     private final AiLogRepository aiLogRepository;
     private final StoreRepository storeRepository;
-    private final ProductRepository productRepository;
+    private final ProductForAiPort productForAiPort;
 
     @Override
     @Transactional
@@ -45,24 +44,26 @@ public class RollbackDescriptionUseCaseImpl implements RollbackDescriptionUseCas
             }
         }
 
-        // 4. 아직 적용되지 않은 로그 → 원복 불가
+        // 4. 아직 적용되지 않은 로그인지 확인
         if (!Boolean.TRUE.equals(aiLog.getIsApplied())) {
             throw new BusinessException(AiErrorCode.NOT_YET_APPLIED);
         }
 
-        // 5. 이미 원복된 로그 → 중복 원복 방지
+        // 5. 이미 롤백된 로그인지 확인
         if (aiLog.getRolledBackAt() != null) {
             throw new BusinessException(AiErrorCode.ALREADY_ROLLED_BACK);
         }
 
-        // 6. Product 조회
-        Product product = productRepository.findByProductIdAndStoreId(aiLog.getProductId(), command.storeId())
-                .orElseThrow(() -> new BusinessException(AiErrorCode.PRODUCT_NOT_FOUND));
+        // 6+7. Product 조회 및 설명 원복
+        boolean restored = productForAiPort.restoreDescription(
+                aiLog.getProductId(), command.storeId(),
+                aiLog.getPreviousDescription(), command.requestedBy()
+        );
+        if (!restored) {
+            throw new BusinessException(AiErrorCode.PRODUCT_NOT_FOUND);
+        }
 
-        // 7. apply 이전 설명으로 복원 (previousDescription이 null이면 설명 없음 상태로 복원)
-        product.restoreDescription(aiLog.getPreviousDescription(), command.requestedBy());
-
-        // 8. AiLog에 롤백 완료 기록
+        // 8. AiLog에 롤백 기록
         aiLog.rollback(command.requestedBy());
 
         return new RollbackDescriptionResult(

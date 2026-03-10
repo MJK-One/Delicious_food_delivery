@@ -51,6 +51,8 @@ public enum AiErrorCode implements ErrorCode {
     RETRY_NOT_SUPPORTED_TYPE(409, "AI-4094", "해당 requestType은 재실행을 지원하지 않습니다."),
     NOT_YET_APPLIED(409, "AI-4095", "적용되지 않은 AI 로그는 원복할 수 없습니다."),
     ALREADY_ROLLED_BACK(409, "AI-4096", "이미 원복된 AI 로그입니다."),
+    AI_LOG_PRODUCT_ALREADY_SET(409, "AI-4097", "이미 상품이 연결된 AI 로그입니다."),
+    AI_LOG_NOT_APPLICABLE(409, "AI-4098", "실패한 AI 로그는 적용할 수 없습니다."),
 
     // 429 TOO MANY REQUESTS
     RATE_LIMIT_EXCEEDED(429, "AI-4291", "요청 횟수 한도를 초과했습니다. 잠시 후 다시 시도해 주세요."),

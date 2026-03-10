@@ -5,9 +5,8 @@ import com.dfdt.delivery.domain.ai.application.dto.ApplyDescriptionCommand;
 import com.dfdt.delivery.domain.ai.application.dto.ApplyDescriptionResult;
 import com.dfdt.delivery.domain.ai.domain.entity.AiLogEntity;
 import com.dfdt.delivery.domain.ai.domain.enums.AiErrorCode;
+import com.dfdt.delivery.domain.ai.domain.port.ProductForAiPort;
 import com.dfdt.delivery.domain.ai.domain.repository.AiLogRepository;
-import com.dfdt.delivery.domain.product.domain.entity.Product;
-import com.dfdt.delivery.domain.product.domain.repository.ProductRepository;
 import com.dfdt.delivery.domain.store.domain.entity.Store;
 import com.dfdt.delivery.domain.store.domain.repository.StoreRepository;
 import com.dfdt.delivery.domain.user.domain.enums.UserRole;
@@ -21,7 +20,7 @@ public class ApplyDescriptionUseCaseImpl implements ApplyDescriptionUseCase {
 
     private final AiLogRepository aiLogRepository;
     private final StoreRepository storeRepository;
-    private final ProductRepository productRepository;
+    private final ProductForAiPort productForAiPort;
 
     @Override
     @Transactional
@@ -55,13 +54,10 @@ public class ApplyDescriptionUseCaseImpl implements ApplyDescriptionUseCase {
             throw new BusinessException(AiErrorCode.PRODUCT_ID_REQUIRED_FOR_APPLY);
         }
 
-        // 6. Product 조회
-        Product product = productRepository.findByProductIdAndStoreId(aiLog.getProductId(), command.storeId())
-                .orElseThrow(() -> new BusinessException(AiErrorCode.PRODUCT_NOT_FOUND));
-
-        // 7. 기존 설명 저장 후 AI 설명 적용
-        String previousDescription = product.getDescription();
-        product.applyAiDescription(aiLog.getResponseText(), command.requestedBy());
+        // 6+7. Product 조회 및 AI 설명 적용 (이전 설명을 previousDescription으로 반환)
+        String previousDescription = productForAiPort.applyAiDescription(
+                aiLog.getProductId(), command.storeId(), aiLog.getResponseText(), command.requestedBy()
+        ).orElseThrow(() -> new BusinessException(AiErrorCode.PRODUCT_NOT_FOUND));
 
         // 8. AiLog에 적용 완료 기록
         aiLog.applyDescription(previousDescription, command.requestedBy());
