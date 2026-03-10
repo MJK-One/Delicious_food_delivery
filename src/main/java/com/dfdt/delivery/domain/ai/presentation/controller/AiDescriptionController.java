@@ -9,6 +9,8 @@ import com.dfdt.delivery.domain.ai.application.dto.ApplyDescriptionResult;
 import com.dfdt.delivery.domain.ai.application.dto.GenerateDescriptionCommand;
 import com.dfdt.delivery.domain.ai.application.dto.GenerateDescriptionResult;
 import com.dfdt.delivery.domain.ai.application.dto.GetAiLogDetailQuery;
+import com.dfdt.delivery.domain.ai.application.dto.RetryDescriptionCommand;
+import com.dfdt.delivery.domain.ai.application.dto.RetryDescriptionResult;
 import com.dfdt.delivery.domain.ai.application.dto.SearchAiLogsQuery;
 import com.dfdt.delivery.domain.ai.application.dto.SearchProductAiLogsQuery;
 import com.dfdt.delivery.domain.ai.application.usecase.ApplyDescriptionUseCase;
@@ -16,15 +18,18 @@ import com.dfdt.delivery.domain.ai.application.usecase.CheckAiHealthUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GenerateDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GetAiLogDetailUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.GetPromptRulesUseCase;
+import com.dfdt.delivery.domain.ai.application.usecase.RetryDescriptionUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.SearchAiLogsUseCase;
 import com.dfdt.delivery.domain.ai.application.usecase.SearchProductAiLogsUseCase;
 import com.dfdt.delivery.domain.ai.presentation.dto.request.GenerateDescriptionRequest;
+import com.dfdt.delivery.domain.ai.presentation.dto.request.RetryDescriptionRequest;
 import com.dfdt.delivery.domain.ai.presentation.dto.response.AiHealthResponse;
 import com.dfdt.delivery.domain.ai.presentation.dto.response.AiLogDetailResponse;
 import com.dfdt.delivery.domain.ai.presentation.dto.response.AiLogSummaryResponse;
 import com.dfdt.delivery.domain.ai.presentation.dto.response.AiPromptRulesResponse;
 import com.dfdt.delivery.domain.ai.presentation.dto.response.ApplyDescriptionResponse;
 import com.dfdt.delivery.domain.ai.presentation.dto.response.GenerateDescriptionResponse;
+import com.dfdt.delivery.domain.ai.presentation.dto.response.RetryDescriptionResponse;
 import com.dfdt.delivery.domain.auth.infrastructure.security.CustomUserDetails;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +49,7 @@ public class AiDescriptionController {
 
     private final GenerateDescriptionUseCase generateDescriptionUseCase;
     private final ApplyDescriptionUseCase applyDescriptionUseCase;
+    private final RetryDescriptionUseCase retryDescriptionUseCase;
     private final SearchAiLogsUseCase searchAiLogsUseCase;
     private final GetAiLogDetailUseCase getAiLogDetailUseCase;
     private final SearchProductAiLogsUseCase searchProductAiLogsUseCase;
@@ -198,6 +204,37 @@ public class AiDescriptionController {
                 HttpStatus.CREATED.value(),
                 "AI 상품 설명이 생성되었습니다.",
                 GenerateDescriptionResponse.from(result)
+        );
+    }
+
+    /**
+     * AI 로그 재실행 (재시도) (API-AI-203)
+     * POST /api/v1/ai/stores/{storeId}/logs/{aiLogId}/retry
+     *
+     * - OWNER: 본인 가게만 요청 가능 (UseCase에서 소유권 체크)
+     * - MASTER: 모든 가게 요청 가능
+     * - 원본 AI 로그의 파라미터(tone, keywords, inputPrompt)를 재사용하되,
+     *   overrideInputPrompt가 있으면 inputPrompt 대신 사용
+     * - PRODUCT_DESCRIPTION 타입만 지원
+     */
+    @PostMapping("/stores/{storeId}/logs/{aiLogId}/retry")
+    @PreAuthorize("hasAnyRole('OWNER', 'MASTER')")
+    public ResponseEntity<ApiResponseDto<RetryDescriptionResponse>> retryDescription(
+            @PathVariable UUID storeId,
+            @PathVariable UUID aiLogId,
+            @Valid @RequestBody(required = false) RetryDescriptionRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        String overrideInputPrompt = (request != null) ? request.overrideInputPrompt() : null;
+        RetryDescriptionCommand command = new RetryDescriptionCommand(
+                storeId, aiLogId, userDetails.getUsername(), userDetails.getRole(), overrideInputPrompt
+        );
+        RetryDescriptionResult result = retryDescriptionUseCase.execute(command);
+
+        return ApiResponseDto.success(
+                HttpStatus.CREATED.value(),
+                "AI 상품 설명이 재생성되었습니다.",
+                RetryDescriptionResponse.from(result)
         );
     }
 
