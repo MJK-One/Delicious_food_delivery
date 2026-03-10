@@ -11,9 +11,11 @@ import com.dfdt.delivery.domain.store.domain.entity.Store;
 import com.dfdt.delivery.domain.store.domain.repository.StoreRepository;
 import com.dfdt.delivery.domain.user.domain.enums.UserRole;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ApplyDescriptionUseCaseImpl implements ApplyDescriptionUseCase {
@@ -61,6 +63,9 @@ public class ApplyDescriptionUseCaseImpl implements ApplyDescriptionUseCase {
 
         // 8. AiLog에 적용 완료 기록
         aiLog.applyDescription(previousDescription, command.requestedBy());
+
+        log.info("[ApplyDescriptionUseCase] AI 설명 적용 완료 - aiLogId={}, productId={}, requestedBy={}",
+                aiLog.getAiLogId(), aiLog.getProductId(), command.requestedBy());
 
         return new ApplyDescriptionResult(
                 aiLog.getAiLogId(),

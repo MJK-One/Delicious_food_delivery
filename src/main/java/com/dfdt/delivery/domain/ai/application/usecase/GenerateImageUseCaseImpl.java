@@ -15,9 +15,11 @@ import com.dfdt.delivery.domain.store.domain.entity.Store;
 import com.dfdt.delivery.domain.store.domain.repository.StoreRepository;
 import com.dfdt.delivery.domain.user.domain.enums.UserRole;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class GenerateImageUseCaseImpl implements GenerateImageUseCase {
@@ -73,15 +75,18 @@ public class GenerateImageUseCaseImpl implements GenerateImageUseCase {
         long startMs = System.currentTimeMillis();
         try {
             imageData = imageGenerationClient.generate(finalPrompt, aspectRatio.getRatio());
-        } catch (BusinessException e) {
+        } catch (Exception e) {
             int responseTimeMs = (int) (System.currentTimeMillis() - startMs);
+            String errorCode = (e instanceof BusinessException be)
+                    ? be.getErrorCode().getErrorCode()
+                    : AiErrorCode.EXTERNAL_AI_CALL_FAILED.getErrorCode();
             aiLogRepository.save(AiLogEntity.failureFoodImageGeneration(
                     command.storeId(),
                     command.productId(),
                     command.requestedBy(),
                     command.prompt(),
                     finalPrompt,
-                    e.getErrorCode().getErrorCode(),
+                    errorCode,
                     e.getMessage(),
                     modelName,
                     responseTimeMs,
@@ -89,7 +94,9 @@ public class GenerateImageUseCaseImpl implements GenerateImageUseCase {
                     null,
                     null
             ));
-            throw e;
+            if (e instanceof BusinessException be) throw be;
+            log.error("[GenerateImageUseCase] 예기치 못한 오류 발생: {}", e.getMessage(), e);
+            throw new BusinessException(AiErrorCode.EXTERNAL_AI_CALL_FAILED);
         }
         int responseTimeMs = (int) (System.currentTimeMillis() - startMs);
 

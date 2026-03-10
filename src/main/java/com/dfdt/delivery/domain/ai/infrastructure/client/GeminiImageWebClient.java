@@ -96,6 +96,11 @@ public class GeminiImageWebClient implements ImageGenerationClient {
             }
 
             JsonNode prediction = predictions.get(0);
+            if (prediction == null || prediction.isMissingNode()) {
+                log.warn("[GeminiImageWebClient] predictions[0]이 null");
+                throw new BusinessException(AiErrorCode.EXTERNAL_AI_EMPTY_RESPONSE);
+            }
+
             String base64Data = prediction.path("bytesBase64Encoded").asText(null);
             String mimeType = prediction.path("mimeType").asText(null);
 
