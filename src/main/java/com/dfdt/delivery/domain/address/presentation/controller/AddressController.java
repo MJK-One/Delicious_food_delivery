@@ -19,7 +19,7 @@ import java.util.UUID;
  * 사용자의 배송지 등록, 조회, 수정, 삭제 기능을 담당.
  */
 @RestController
-@RequestMapping("/api/v1/addresses")
+@RequestMapping("/addresses")
 @RequiredArgsConstructor
 public class AddressController implements AddressControllerDocs {
 
