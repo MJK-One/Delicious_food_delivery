@@ -20,8 +20,18 @@ public class PaymentDataFinder {
                 .orElseThrow(() -> new BusinessException(PaymentErrorCode.PAYMENT_NOT_FOUND));
     }
 
+    public Payment findPaymentWithLock(UUID paymentId) {
+        return paymentRepository.findByIdWithLock(paymentId)
+                .orElseThrow(() -> new BusinessException(PaymentErrorCode.PAYMENT_NOT_FOUND));
+    }
+
     public Payment findPaymentByOrderId(UUID orderId) {
         return paymentRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new BusinessException(PaymentErrorCode.PAYMENT_NOT_FOUND));
+    }
+
+    public Payment findPaymentByOrderIdWithLock(UUID orderId) {
+        return paymentRepository.findByOrderIdWithLock(orderId)
                 .orElseThrow(() -> new BusinessException(PaymentErrorCode.PAYMENT_NOT_FOUND));
     }
 }

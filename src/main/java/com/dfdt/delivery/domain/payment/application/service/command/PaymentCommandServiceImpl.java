@@ -53,7 +53,7 @@ public class PaymentCommandServiceImpl implements PaymentCommandService {
     @Override
     @Transactional
     public void timeoutPayment(UUID orderId) {
-        Payment payment = paymentDataFinder.findPaymentByOrderId(orderId);
+        Payment payment = paymentDataFinder.findPaymentByOrderIdWithLock(orderId);
 
         if (payment.getPaymentStatus() != PaymentStatus.READY) {
             return;
@@ -82,7 +82,7 @@ public class PaymentCommandServiceImpl implements PaymentCommandService {
     @Transactional
     public PaymentDetailResDto approvePayment(UUID paymentId, PaymentApproveReqDto reqDto, String username) {
         // 1. 결제 데이터 조회
-        Payment payment = paymentDataFinder.findPayment(paymentId);
+        Payment payment = paymentDataFinder.findPaymentWithLock(paymentId);
 
         // 2. READY 상태일 때만 승인 가능
         paymentValidator.validateApproveCondition(payment);
@@ -126,7 +126,7 @@ public class PaymentCommandServiceImpl implements PaymentCommandService {
     @Transactional
     public PaymentDetailResDto cancelPayment(UUID paymentId, String username) {
         // 1. 결제 데이터 조회
-        Payment payment = paymentDataFinder.findPayment(paymentId);
+        Payment payment = paymentDataFinder.findPaymentWithLock(paymentId);
 
         // 2. 결제 상태 확인 (이미 취소되었거나 실패한 경우 제외)
         paymentValidator.validateCancelStatus(payment);
