@@ -35,6 +35,7 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - SLACK_API_KEY=${SLACK_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - SPRING_PROFILES_ACTIVE=dev
     depends_on:
       - postgres
       - redis
